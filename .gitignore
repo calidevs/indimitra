@@ -1,0 +1,22 @@
+# JavaScript/React
+node_modules/
+js/build/
+
+# Python
+__pycache__
+*.pyc
+
+# Infrastructure
+terraform/.terraform/
+terraform/*.tfstate
+terraform/*.tfstate.backup
+
+# Database
+data
+
+# Environment
+.env
+
+# IDE and OS
+.vscode/
+.DS_Store

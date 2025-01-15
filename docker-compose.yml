@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  web:
+    build:
+      context: ./js
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./js:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - api
+
+  api:
+    build:
+      context: ./python
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./python:/app
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DEBUG=1
+    depends_on:
+      - db
+
+  db:
+    image: postgres:13
+    environment:
+      - POSTGRES_DB=indimitra
+      - POSTGRES_USER=indimitra
+      - POSTGRES_PASSWORD=indimitra123
+    volumes:
+      - ./data/postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  postgres_data:
