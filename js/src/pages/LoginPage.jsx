@@ -1,27 +1,27 @@
 import React, { useState } from 'react';
 import { signIn } from 'aws-amplify/auth';
 import { Box, TextField, Button, Typography, Alert, CircularProgress, Paper } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [success, setSuccess] = useState(false);
+  const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    setSuccess(false);
 
     try {
-      const user = await signIn({
+      await signIn({
         username: email,
         password: password,
       });
-      console.log('Login successful:', user);
-      setSuccess(true);
+      console.log('Login successful');
+      navigate('/'); // Redirect to the homepage
     } catch (err) {
       console.error('Login error:', err);
       setError(err.message || 'Login failed. Please try again.');
@@ -77,11 +77,6 @@ const LoginPage = () => {
           {error && (
             <Alert severity="error" sx={{ mt: 2 }}>
               {error}
-            </Alert>
-          )}
-          {success && (
-            <Alert severity="success" sx={{ mt: 2 }}>
-              Login successful!
             </Alert>
           )}
           <Button
