@@ -20,3 +20,6 @@ data
 # IDE and OS
 .vscode/
 .DS_Store
+
+#Files
+src/amplifyConfig.js
