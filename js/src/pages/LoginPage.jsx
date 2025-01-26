@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { signIn } from 'aws-amplify/auth';
-import { Box, TextField, Button, Typography, Alert, CircularProgress, Paper } from '@mui/material';
+import { Box, TextField, Button, Typography, Alert, Paper, LoadingSpinner } from '../components';
 import { useNavigate } from 'react-router-dom';
 
 const LoginPage = () => {
@@ -20,8 +20,7 @@ const LoginPage = () => {
         username: email,
         password: password,
       });
-      console.log('Login successful');
-      navigate('/'); // Redirect to the homepage
+      navigate('/');
     } catch (err) {
       console.error('Login error:', err);
       setError(err.message || 'Login failed. Please try again.');
@@ -87,7 +86,7 @@ const LoginPage = () => {
             disabled={loading}
             sx={{ mt: 2 }}
           >
-            {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : 'Login'}
+            {loading ? <LoadingSpinner size={24} sx={{ color: '#fff' }} /> : 'Login'}
           </Button>
         </form>
       </Paper>

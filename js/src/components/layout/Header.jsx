@@ -1,4 +1,3 @@
-import React from 'react';
 import { AppBar, Box, Toolbar, Typography, Button, IconButton } from '@mui/material';
 import { ShoppingCart, Menu as MenuIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
@@ -10,8 +9,7 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await signOut();
-      console.log('User successfully signed out.');
-      navigate('/login'); // Redirect to the login page after logout
+      navigate('/login');
     } catch (error) {
       console.error('Error signing out:', error);
     }

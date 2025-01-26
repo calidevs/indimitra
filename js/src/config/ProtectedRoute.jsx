@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { fetchAuthSession } from 'aws-amplify/auth';
+import { LoadingSpinner } from '../components';
 
 const ProtectedRoute = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = React.useState(false);
@@ -9,11 +10,16 @@ const ProtectedRoute = ({ children }) => {
   React.useEffect(() => {
     const checkAuth = async () => {
       try {
-        const user = await fetchAuthSession();
-        console.log('Authenticated user:', user);
-        setIsAuthenticated(true);
+        const session = await fetchAuthSession();
+
+        if (session?.tokens?.idToken) {
+          setIsAuthenticated(true);
+        } else {
+          console.warn('No valid session tokens found.');
+          setIsAuthenticated(false);
+        }
       } catch (err) {
-        console.error('Not authenticated:', err);
+        console.error('Error while checking authentication:', err);
         setIsAuthenticated(false);
       } finally {
         setLoading(false);
@@ -24,7 +30,7 @@ const ProtectedRoute = ({ children }) => {
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingSpinner />;
   }
 
   return isAuthenticated ? children : <Navigate to="/login" replace />;

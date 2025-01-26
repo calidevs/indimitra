@@ -9,27 +9,19 @@ import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './config/ProtectedRoute';
 
 const App = () => {
+  const protectedRoutes = [
+    { path: '/', element: <Home /> },
+    { path: '/products', element: <Products /> },
+  ];
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/products"
-          element={
-            <ProtectedRoute>
-              <Products />
-            </ProtectedRoute>
-          }
-        />
+        {protectedRoutes.map(({ path, element }) => (
+          <Route key={path} path={path} element={<ProtectedRoute>{element}</ProtectedRoute>} />
+        ))}
       </Routes>
     </ThemeProvider>
   );
