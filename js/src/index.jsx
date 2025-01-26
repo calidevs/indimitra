@@ -3,6 +3,7 @@ import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App.jsx';
 import './styles/index.css';
+import './amplifyConfig';
 
 const client = new ApolloClient({
   uri: 'http://localhost:8000/graphql',
@@ -16,4 +17,4 @@ root.render(
       <App />
     </BrowserRouter>
   </ApolloProvider>
-); 
+);
