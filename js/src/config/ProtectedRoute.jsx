@@ -1,13 +1,13 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { LoadingSpinner } from '../components';
 
 const ProtectedRoute = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
-  const [loading, setLoading] = React.useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const checkAuth = async () => {
       try {
         const session = await fetchAuthSession();
