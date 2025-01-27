@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from graphql import GraphQLError
 from sqlalchemy import Integer, create_engine, Column, String, Float
 from sqlalchemy.orm import sessionmaker, declarative_base
 import strawberry
@@ -58,7 +59,54 @@ class Query:
         finally:
             db.close()
 
-schema = strawberry.Schema(query=Query)
+@strawberry.type
+class Mutation:
+    @strawberry.mutation
+    def create_product(self,
+        name: str,
+        price: float,
+        description: str,
+        category: str) -> Product:
+        db = SessionLocal()
+        try:
+            product_model = ProductModel(
+                name=name,
+                price=price,
+                description=description,
+                category=category
+            )
+            db.add(product_model)
+            db.commit()
+            db.refresh(product_model) # refresh the instance with the new data
+
+            return Product(
+                id=product_model.id,
+                name=product_model.name,
+                price=product_model.price,
+                description=product_model.description,
+                category=product_model.category
+            )
+        finally:
+            db.close()
+
+    @strawberry.mutation
+    def delete_product(self, product_id: int) -> bool:
+        db = SessionLocal()
+        try:
+            product = db.query(ProductModel).get(product_id)
+            if not product:
+                raise GraphQLError(
+                message="Product not found",
+                extensions={"status_code": 404}
+            )
+
+            db.delete(product)
+            db.commit()
+            return True
+        finally:
+            db.close()
+
+schema = strawberry.Schema(query=Query, mutation=Mutation)
 graphql_app = GraphQLRouter(schema)
 
 # FastAPI app
