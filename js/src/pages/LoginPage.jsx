@@ -11,7 +11,7 @@ import {
   Tab,
   LoadingSpinner,
 } from '../components';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 
 const LoginPage = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -167,6 +167,24 @@ const LoginPage = () => {
                 'Sign Up'
               )}
             </Button>
+            <Typography
+              variant="body2"
+              sx={{
+                display: 'block',
+                textAlign: 'center',
+                mt: 2,
+                mb: -2,
+                cursor: 'pointer',
+                color: 'black',
+                '&:hover': {
+                  textDecoration: 'underline',
+                },
+              }}
+              component={Link}
+              to="/forgot-password"
+            >
+              Forgot Password?
+            </Typography>
           </form>
         ) : (
           <form onSubmit={handleOtpVerification}>

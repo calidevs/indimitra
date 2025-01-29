@@ -7,6 +7,7 @@ import Home from './pages/Home';
 import Products from './pages/Products';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './config/ProtectedRoute';
+import ForgotPassword from './pages/ForgotPassword';
 
 const App = () => {
   const protectedRoutes = [
@@ -19,6 +20,7 @@ const App = () => {
       <CssBaseline />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         {protectedRoutes.map(({ path, element }) => (
           <Route key={path} path={path} element={<ProtectedRoute>{element}</ProtectedRoute>} />
         ))}
