@@ -19,6 +19,7 @@ const LoginPage = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [otp, setOtp] = useState('');
   const [isOtpStep, setIsOtpStep] = useState(false);
   const navigate = useNavigate();
@@ -26,6 +27,7 @@ const LoginPage = () => {
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
     setError('');
+    setSuccess('');
     setIsOtpStep(false);
   };
 
@@ -33,6 +35,7 @@ const LoginPage = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
 
     try {
       await signIn({
@@ -52,6 +55,7 @@ const LoginPage = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
 
     try {
       await signUp({
@@ -59,6 +63,7 @@ const LoginPage = () => {
         password: password,
       });
       setIsOtpStep(true);
+      setSuccess('Signup successful! Enter the OTP sent to your email.');
     } catch (err) {
       console.error('Signup error:', err);
       setError(err.message || 'Signup failed. Please try again.');
@@ -71,10 +76,11 @@ const LoginPage = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
 
     try {
       await confirmSignUp({ username: email, confirmationCode: otp });
-      alert('Account verified successfully! You can now log in.');
+      setSuccess('Account verified successfully! You can now log in.');
       setActiveTab(0);
       setIsOtpStep(false);
     } catch (err) {
@@ -140,6 +146,11 @@ const LoginPage = () => {
                 {error}
               </Alert>
             )}
+            {success && (
+              <Alert severity="success" sx={{ mt: 2 }}>
+                {success}
+              </Alert>
+            )}
             <Button
               type="submit"
               variant="contained"
@@ -174,6 +185,11 @@ const LoginPage = () => {
             {error && (
               <Alert severity="error" sx={{ mt: 2 }}>
                 {error}
+              </Alert>
+            )}
+            {success && (
+              <Alert severity="success" sx={{ mt: 2 }}>
+                {success}
               </Alert>
             )}
             <Button
