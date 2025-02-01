@@ -102,15 +102,15 @@ const AuthContainer = () => {
           <Link
             to="/forgot-password"
             style={{
-              visibility: activeTab === 0 && !isOtpStep ? 'visible' : 'hidden',
-              opacity: activeTab === 0 && !isOtpStep ? 1 : 0,
               transition: 'opacity 0.3s ease-in-out',
               color: 'black',
               textDecoration: 'none',
               textAlign: 'center',
             }}
           >
-            <span style={{ textDecoration: 'underline' }}>Forgot Password?</span>
+            <span style={{ textDecoration: 'underline' }}>
+              {activeTab === 0 && !isOtpStep ? 'Forgot Password?' : 'Reset Password'}
+            </span>
           </Link>
         </Box>
       </Paper>
