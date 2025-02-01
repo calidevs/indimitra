@@ -34,9 +34,9 @@ const SignUpForm = ({ onOtpStep, onSuccess, onError }) => {
 
   return (
     <form onSubmit={handleSignUp}>
-      <Typography variant="h4" component="h1" gutterBottom>
+      {/* <Typography variant="h4" component="h1" gutterBottom>
         Sign Up
-      </Typography>
+      </Typography> */}
 
       {/* Email Field */}
       <Box

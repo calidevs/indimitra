@@ -32,9 +32,9 @@ const LoginPage = ({ onSuccess, onError, navigate }) => {
 
   return (
     <form onSubmit={handleSignIn}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Login
-      </Typography>
+      {/* <Typography variant="h4" component="h1" gutterBottom>
+        Sign In
+      </Typography> */}
 
       {/* Email Field with Icon */}
       <Box

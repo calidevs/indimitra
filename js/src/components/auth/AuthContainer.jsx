@@ -55,9 +55,10 @@ const AuthContainer = () => {
           value={activeTab}
           onChange={handleTabChange}
           centered
-          TabIndicatorProps={{ style: { backgroundColor: '#FF6B6B', height: '4px' } }} // Orange Active Tab
+          TabIndicatorProps={{
+            style: { backgroundColor: '#FF6B6B', height: '4px', bottom: 0 }, // Placed on Divider
+          }}
           sx={{
-            mb: 1,
             '& .MuiTab-root': {
               textTransform: 'none',
               fontWeight: 'bold',
@@ -67,14 +68,16 @@ const AuthContainer = () => {
             '& .Mui-selected': {
               color: '#FF6B6B',
             },
+            position: 'relative', // Ensures correct stacking
+            zIndex: 2, // Keeps the tab indicator above other elements
           }}
         >
           <Tab label="Sign In" />
           <Tab label="Sign Up" />
         </Tabs>
 
-        {/* Light Grey Divider between Tabs and Form */}
-        <Divider sx={{ backgroundColor: '#ddd', mb: 2 }} />
+        {/* Light Grey Divider directly below Tabs */}
+        <Divider sx={{ backgroundColor: '#ddd', mt: '-4px', mb: 2, zIndex: 1 }} />
 
         {/* Fixed-height container to prevent layout jumps */}
         <Box sx={{ minHeight: 300, transition: 'all 0.3s ease-in-out' }}>
