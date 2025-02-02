@@ -26,8 +26,17 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - DEBUG=1
+      - PYTHONPATH=/app 
     depends_on:
       - db
+      # Override the command: run bootstrap first, then start the server
+      # this will make sure db has records everytime we spin it up
+    command: >
+      sh -c "
+        cd /app &&
+        python -m dev_bootstrap.bootstrap &&
+        uvicorn api.main:app --host 0.0.0.0 --port 8000
+      "
 
   db:
     image: postgres:13

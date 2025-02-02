@@ -117,11 +117,53 @@ Key commands:
 
 ### Backend Development
 
+install postgresql before installing the packages in requirements.txt as it is a pre-req for psycopg2-binary
+
+For Mac you can run - `brew install postgresql`
+
 ```bash
 cd python
+```
+create a venv
+```
+python3 -m venv .venv    
+source .venv/bin/activate    
+```
+install packages
+```
 pip install -r requirements.txt
+```
+
+Now you can choose to spin up api in docker or in your local
+
+#### Spinning up in local
+Spin up db first as api refers db for data
+
+```
+docker-compose up --build db
+```
+
+Update the db url in main.py (refer comments)
+
+start api server
+
+```
 uvicorn api.main:app --reload
 ```
+
+#### Spinning up in docker
+
+This is easy! Run the below command and you should be good to go.
+
+```
+docker-compose up --build db api
+```
+
+You can access GraphQl interface at `localhost:8000/graphql` 
+
+And psql using - `psql -h localhost -p 5432 -U indimitra -W`
+
+Handy psql commands - [click here](https://hasura.io/blog/top-psql-commands-and-flags-you-need-to-know-postgresql)
 
 ### Docker Commands
 

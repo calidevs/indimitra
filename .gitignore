@@ -5,6 +5,7 @@ js/build/
 # Python
 __pycache__
 *.pyc
+.venv
 
 # Infrastructure
 terraform/.terraform/
