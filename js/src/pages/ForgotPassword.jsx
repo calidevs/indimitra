@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { resetPassword, confirmResetPassword } from 'aws-amplify/auth';
-import { Box, TextField, Button, Typography, Alert, Paper, LoadingSpinner } from '../components';
+import { Box, Paper, Typography, InputForm } from '../components';
 import { useNavigate } from 'react-router-dom';
 
 const ForgotPassword = () => {
@@ -19,14 +19,11 @@ const ForgotPassword = () => {
     setError('');
     setSuccess('');
 
-    //test
-
     try {
       await resetPassword({ username: email });
       setStep(2);
       setSuccess('OTP sent successfully! Check your email.');
     } catch (err) {
-      console.error('Error sending OTP:', err);
       setError(err.message || 'Failed to send OTP. Try again.');
     } finally {
       setLoading(false);
@@ -48,7 +45,6 @@ const ForgotPassword = () => {
       setSuccess('Password reset successfully! Redirecting to login...');
       setTimeout(() => navigate('/login'), 2000);
     } catch (err) {
-      console.error('Error resetting password:', err);
       setError(err.message || 'Failed to reset password. Try again.');
     } finally {
       setLoading(false);
@@ -81,79 +77,31 @@ const ForgotPassword = () => {
         </Typography>
 
         {step === 1 ? (
-          <form onSubmit={handleSendOtp}>
-            <TextField
-              label="Email"
-              variant="outlined"
-              fullWidth
-              margin="normal"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-            {error && (
-              <Alert severity="error" sx={{ mt: 2 }}>
-                {error}
-              </Alert>
-            )}
-            {success && (
-              <Alert severity="success" sx={{ mt: 2 }}>
-                {success}
-              </Alert>
-            )}
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              disabled={loading}
-              sx={{ mt: 2 }}
-            >
-              {loading ? <LoadingSpinner size={24} sx={{ color: '#fff' }} /> : 'Send OTP'}
-            </Button>
-          </form>
+          <InputForm
+            fields={[{ label: 'Email', type: 'email', value: email, onChange: setEmail }]}
+            onSubmit={handleSendOtp}
+            buttonLabel="Send OTP"
+            loading={loading}
+            error={error}
+            success={success}
+          />
         ) : (
-          <form onSubmit={handleResetPassword}>
-            <TextField
-              label="OTP"
-              variant="outlined"
-              fullWidth
-              margin="normal"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              required
-            />
-            <TextField
-              label="New Password"
-              variant="outlined"
-              type="password"
-              fullWidth
-              margin="normal"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-            />
-            {error && (
-              <Alert severity="error" sx={{ mt: 2 }}>
-                {error}
-              </Alert>
-            )}
-            {success && (
-              <Alert severity="success" sx={{ mt: 2 }}>
-                {success}
-              </Alert>
-            )}
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              disabled={loading}
-              sx={{ mt: 2 }}
-            >
-              {loading ? <LoadingSpinner size={24} sx={{ color: '#fff' }} /> : 'Reset Password'}
-            </Button>
-          </form>
+          <InputForm
+            fields={[
+              { label: 'OTP', type: 'text', value: otp, onChange: setOtp },
+              {
+                label: 'New Password',
+                type: 'password',
+                value: newPassword,
+                onChange: setNewPassword,
+              },
+            ]}
+            onSubmit={handleResetPassword}
+            buttonLabel="Reset Password"
+            loading={loading}
+            error={error}
+            success={success}
+          />
         )}
       </Paper>
     </Box>

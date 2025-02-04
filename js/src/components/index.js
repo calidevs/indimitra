@@ -8,3 +8,4 @@ export { default as LoadingSpinner } from './LoadingSpinner/LoadingSpinner';
 export { default as Tabs } from './Tabs/Tabs';
 export { default as Tab } from './Tab/Tab';
 export { default as Divider } from './Divider/Divider';
+export { default as InputForm } from './InputForm/InputForm';
