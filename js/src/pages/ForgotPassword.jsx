@@ -19,6 +19,8 @@ const ForgotPassword = () => {
     setError('');
     setSuccess('');
 
+    //test
+
     try {
       await resetPassword({ username: email });
       setStep(2);
