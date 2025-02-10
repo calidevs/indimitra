@@ -7,6 +7,8 @@ import Home from './pages/Home';
 import Products from './pages/Products';
 import LoginPage from './pages/LoginPage';
 import ProtectedRoute from './config/ProtectedRoute';
+import ForgotPassword from './pages/ForgotPassword';
+import AuthContainer from './components/auth/AuthContainer';
 
 const App = () => {
   const protectedRoutes = [
@@ -18,7 +20,8 @@ const App = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
+        <Route path="/login" element={<AuthContainer />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         {protectedRoutes.map(({ path, element }) => (
           <Route key={path} path={path} element={<ProtectedRoute>{element}</ProtectedRoute>} />
         ))}

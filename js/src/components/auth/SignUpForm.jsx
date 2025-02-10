@@ -1,28 +1,30 @@
-// src/components/auth/LoginForm.jsx
 import React, { useState } from 'react';
-import { signIn } from 'aws-amplify/auth';
-import { Box, TextField, Button, Typography, Alert, LoadingSpinner } from '../components/index';
+import { signUp } from 'aws-amplify/auth';
+import { Box, TextField, Button, Typography, Alert, LoadingSpinner } from '../index';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LockIcon from '@mui/icons-material/Lock';
 
-const LoginPage = ({ onSuccess, onError, navigate }) => {
+const SignUpForm = ({ onOtpStep, onSuccess, onError }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  const handleSignIn = async (e) => {
+  const handleSignUp = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
+    setSuccess('');
 
     try {
-      await signIn({ username: email, password });
+      await signUp({ username: email, password });
+      setSuccess('Signup successful! Enter the OTP sent to your email.');
+      if (onOtpStep) onOtpStep(email); // move to OTP step
       if (onSuccess) onSuccess();
-      navigate('/');
     } catch (err) {
-      console.error('Login error:', err);
-      const errMsg = err.message || 'Login failed. Please try again.';
+      console.error('Signup error:', err);
+      const errMsg = err.message || 'Signup failed. Please try again.';
       setError(errMsg);
       if (onError) onError(errMsg);
     } finally {
@@ -31,12 +33,12 @@ const LoginPage = ({ onSuccess, onError, navigate }) => {
   };
 
   return (
-    <form onSubmit={handleSignIn}>
+    <form onSubmit={handleSignUp}>
       {/* <Typography variant="h4" component="h1" gutterBottom>
-        Sign In
+        Sign Up
       </Typography> */}
 
-      {/* Email Field with Icon */}
+      {/* Email Field */}
       <Box
         sx={{
           display: 'flex',
@@ -66,7 +68,7 @@ const LoginPage = ({ onSuccess, onError, navigate }) => {
         />
       </Box>
 
-      {/* Password Field with Icon */}
+      {/* Password Field */}
       <Box
         sx={{
           display: 'flex',
@@ -102,6 +104,11 @@ const LoginPage = ({ onSuccess, onError, navigate }) => {
           {error}
         </Alert>
       )}
+      {success && (
+        <Alert severity="success" sx={{ mt: 2 }}>
+          {success}
+        </Alert>
+      )}
 
       <Button
         type="submit"
@@ -117,10 +124,10 @@ const LoginPage = ({ onSuccess, onError, navigate }) => {
           fontSize: '1rem',
         }}
       >
-        {loading ? <LoadingSpinner size={24} sx={{ color: '#fff' }} /> : 'Login'}
+        {loading ? <LoadingSpinner size={24} sx={{ color: '#fff' }} /> : 'Sign Up'}
       </Button>
     </form>
   );
 };
 
-export default LoginPage;
+export default SignUpForm;
