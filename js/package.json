@@ -20,7 +20,8 @@
     "graphql": "^16.8.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^6.21.3"
+    "react-router-dom": "^6.21.3",
+    "zustand": "^5.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.23.7",
