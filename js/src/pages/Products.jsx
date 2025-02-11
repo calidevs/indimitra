@@ -1,31 +1,48 @@
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Container, Typography } from '@mui/material';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/products/ProductGrid';
 
+// GraphQL query
+const PRODUCTS_QUERY = `
+  {
+    products {
+      id
+      name
+      price
+      description
+      category
+    }
+  }
+`;
+
+// Fetch function for GraphQL
+const fetchProducts = async () => {
+  const response = await fetch('http://localhost:8000/graphql', {
+    // Update the URL if needed
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ query: PRODUCTS_QUERY }),
+  });
+
+  const { data } = await response.json();
+  return data.products;
+};
+
 const Products = () => {
-  const products = [
-    {
-      id: '1',
-      name: 'Basmati Rice',
-      price: 19.99,
-      description: 'Premium long-grain basmati rice from India',
-      rating: 4.5,
-    },
-    {
-      id: '2',
-      name: 'Turmeric Powder',
-      price: 5.99,
-      description: 'Organic turmeric powder with high curcumin content',
-      rating: 4.8,
-    },
-    {
-      id: '3',
-      name: 'Garam Masala',
-      price: 6.99,
-      description: 'Authentic blend of Indian spices',
-      rating: 4.7,
-    },
-  ];
+  // Updated to use the object signature for React Query v5
+  const {
+    data: products,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['products'],
+    queryFn: fetchProducts,
+  });
+
+  if (isLoading) return <Typography>Loading...</Typography>;
+  if (error) return <Typography>Error fetching products!</Typography>;
 
   return (
     <Layout>
@@ -39,4 +56,4 @@ const Products = () => {
   );
 };
 
-export default Products; 
+export default Products;

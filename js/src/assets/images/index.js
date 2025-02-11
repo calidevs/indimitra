@@ -1,2 +1,2 @@
 // Placeholder for image exports
-export const PLACEHOLDER_IMAGE = 'https://via.placeholder.com/200'; 
+export const PLACEHOLDER_IMAGE = 'https://picsum.photos/200';
