@@ -1,7 +1,15 @@
 import { Grid } from '@mui/material';
+import { Typography } from '../index';
 import ProductCard from './ProductCard';
 
 const ProductGrid = ({ products }) => {
+  if (!Array.isArray(products) || products.length === 0) {
+    return (
+      <Typography variant="h6" align="center" sx={{ mt: 4 }}>
+        No products available.
+      </Typography>
+    );
+  }
   return (
     <Grid container spacing={4}>
       {products.map((product) => (
@@ -13,4 +21,4 @@ const ProductGrid = ({ products }) => {
   );
 };
 
-export default ProductGrid; 
+export default ProductGrid;

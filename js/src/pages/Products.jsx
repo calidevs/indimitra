@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Container, Typography } from '@mui/material';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/products/ProductGrid';
+import { LoadingSpinner } from '../components';
+import fetchGraphQL from '../utils/fetchGraphQL';
 
 // GraphQL query
 const PRODUCTS_QUERY = `
@@ -17,31 +19,17 @@ const PRODUCTS_QUERY = `
   }
 `;
 
-// Fetch function for GraphQL
-const fetchProducts = async () => {
-  const response = await fetch('http://localhost:8000/graphql', {
-    // Update the URL if needed
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ query: PRODUCTS_QUERY }),
-  });
-
-  const { data } = await response.json();
-  return data.products;
-};
-
 const Products = () => {
-  // Updated to use the object signature for React Query v5
   const {
-    data: products,
+    data: { products = [] } = {},
     isLoading,
     error,
   } = useQuery({
     queryKey: ['products'],
-    queryFn: fetchProducts,
+    queryFn: () => fetchGraphQL(PRODUCTS_QUERY),
   });
 
-  if (isLoading) return <Typography>Loading...</Typography>;
+  if (isLoading) return <LoadingSpinner />;
   if (error) return <Typography>Error fetching products!</Typography>;
 
   return (
