@@ -29,17 +29,11 @@ const Products = () => {
     queryFn: () => fetchGraphQL(PRODUCTS_QUERY),
   });
 
-  if (isLoading) return <LoadingSpinner />;
   if (error) return <Typography>Error fetching products!</Typography>;
 
   return (
     <Layout>
-      <Container>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Our Products
-        </Typography>
-        <ProductGrid products={products} />
-      </Container>
+      <Container>{isLoading ? <LoadingSpinner /> : <ProductGrid products={products} />}</Container>
     </Layout>
   );
 };
