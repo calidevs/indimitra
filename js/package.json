@@ -19,6 +19,7 @@
     "aws-amplify": "^6.12.2",
     "core-js": "^3.35.1",
     "graphql": "^16.8.1",
+    "graphql-request": "^7.1.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-router-dom": "^6.21.3",

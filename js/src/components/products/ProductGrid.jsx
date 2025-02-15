@@ -3,7 +3,7 @@ import { Typography } from '../index';
 import ProductCard from './ProductCard';
 
 const ProductGrid = ({ products }) => {
-  if (!Array.isArray(products) || products.length === 0) {
+  if (products.length === 0) {
     return (
       <Typography variant="h6" align="center" sx={{ mt: 4 }}>
         No products available.
