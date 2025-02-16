@@ -1,42 +1,29 @@
+import React from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Container, Typography } from '@mui/material';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/products/ProductGrid';
+import { LoadingSpinner } from '../components';
+import fetchGraphQL from '../config/graphql/graphqlService';
+import { PRODUCTS_QUERY } from '../config/graphql/queries';
 
 const Products = () => {
-  const products = [
-    {
-      id: '1',
-      name: 'Basmati Rice',
-      price: 19.99,
-      description: 'Premium long-grain basmati rice from India',
-      rating: 4.5,
-    },
-    {
-      id: '2',
-      name: 'Turmeric Powder',
-      price: 5.99,
-      description: 'Organic turmeric powder with high curcumin content',
-      rating: 4.8,
-    },
-    {
-      id: '3',
-      name: 'Garam Masala',
-      price: 6.99,
-      description: 'Authentic blend of Indian spices',
-      rating: 4.7,
-    },
-  ];
+  const {
+    data: { products = [] } = {},
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ['products'],
+    queryFn: () => fetchGraphQL(PRODUCTS_QUERY),
+  });
+
+  if (error) return <Typography>Error fetching products!</Typography>;
 
   return (
     <Layout>
-      <Container>
-        <Typography variant="h4" component="h1" gutterBottom>
-          Our Products
-        </Typography>
-        <ProductGrid products={products} />
-      </Container>
+      <Container>{isLoading ? <LoadingSpinner /> : <ProductGrid products={products} />}</Container>
     </Layout>
   );
 };
 
-export default Products; 
+export default Products;
