@@ -1,7 +1,10 @@
 # bootstrap.py
 
 import json
-from api.main import SessionLocal, ProductModel, Base, engine
+from app.db.session import SessionLocal
+from app.db.models.product import ProductModel
+from app.db.base import Base
+from app.db.session import engine
 
 def create_data():
     # Create tables if they don’t exist yet
