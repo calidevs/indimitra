@@ -5,7 +5,7 @@ import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/products/ProductGrid';
 import { LoadingSpinner } from '../components';
 import fetchGraphQL from '../config/graphql/graphqlService';
-import { PRODUCTS_QUERY } from '../config/graphql/queries';
+import { PRODUCTS_QUERY } from '@/queries/operations';
 
 const Products = () => {
   const {
