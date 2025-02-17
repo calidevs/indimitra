@@ -45,10 +45,29 @@ indimitra/
 │   │   ├── webpack.dev.js
 │   │   └── webpack.prod.js
 │   └── package.json
-├── python/                 # Backend application
-│   ├── api/               # FastAPI application
-│   │   └── main.py
-│   └── requirements.txt
+├── python/                  # Backend application
+│   ├── app/                 # Application code
+│   │   ├── config.py        # Configuration
+│   │   ├── main.py          # Application entry point
+│   │   ├── db/              # Database layer
+│   │   │   ├── base.py      # Base class for models
+│   │   │   ├── session.py   # DB engine and session setup
+│   │   │   └── models/      # Model definitions
+│   │   │       └── product.py   
+│   │   ├── graphql/         # GraphQL API
+│   │   │   ├── resolvers/   # GraphQL resolvers
+│   │   │   └── schema.py    # Schema assembly
+│   │   ├── services/        # Business logic
+│   │   │   └── product_service.py
+│   │   ├── api/             # REST API endpoints
+│   │   │   └── routes/
+│   │   │       └── product.py
+│   │   └── utils/           # Utility functions
+│   ├── dev_bootstrap/       # Bootstrap/seed scripts
+│   │   ├── bootstrap.py     # Data seeding script
+│   │   └── product_data.json  # Sample data
+│   ├── Dockerfile           # Docker configuration
+│   ├── requirements.txt     # Python dependencies
 ├── data/                  # Data storage
 │   └── postgres/          # PostgreSQL data
 └── docker-compose.yml
@@ -117,6 +136,33 @@ Key commands:
 
 ### Backend Development
 
+#### Create `.env` file at `python/`
+
+```
+POSTGRES_USER=indimitra
+POSTGRES_PASSWORD=indimitra123
+POSTGRES_HOST=localhost # uncomment this, if spinning up backend in local
+#POSTGRES_HOST=db # comment this, if spinning up backend in local
+POSTGRES_PORT=5432
+POSTGRES_DB=indimitra
+```
+This is needed to establish connection with DB
+
+---
+
+You can choose to spin up backend in docker or in your local
+
+#### 1. Spinning up in docker
+
+This is easy! Run the below command and you should be good to go.
+
+```
+docker-compose up --build db api
+```
+
+#### 2. Spinning up in local (For backend development)
+You can skip this if you just want to spin up backend 
+
 install postgresql before installing the packages in requirements.txt as it is a pre-req for psycopg2-binary
 
 For Mac you can run - `brew install postgresql`
@@ -134,16 +180,13 @@ install packages
 pip install -r requirements.txt
 ```
 
-Now you can choose to spin up api in docker or in your local
-
-#### Spinning up in local
-Spin up db first as api refers db for data
+From root `/indimart` spin up db first as api refers db for data
 
 ```
 docker-compose up --build db
 ```
 
-Update the db url in main.py (refer comments)
+Update the db url in `.env` (refer comments)
 
 start api server
 
@@ -151,13 +194,7 @@ start api server
 uvicorn api.main:app --reload
 ```
 
-#### Spinning up in docker
-
-This is easy! Run the below command and you should be good to go.
-
-```
-docker-compose up --build db api
-```
+----
 
 You can access GraphQl interface at `localhost:8000/graphql` 
 
