@@ -141,8 +141,8 @@ Key commands:
 ```
 POSTGRES_USER=indimitra
 POSTGRES_PASSWORD=indimitra123
-POSTGRES_HOST=localhost # uncomment this, if spinning up backend in local
-#POSTGRES_HOST=db # comment this, if spinning up backend in local
+#POSTGRES_HOST=localhost # uncomment this, if spinning up backend in local
+POSTGRES_HOST=db # comment this, if spinning up backend in local
 POSTGRES_PORT=5432
 POSTGRES_DB=indimitra
 ```
