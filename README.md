@@ -191,7 +191,7 @@ Update the db url in `.env` (refer comments)
 start api server
 
 ```
-uvicorn api.main:app --reload
+uvicorn app.main:app --reload
 ```
 
 ----
