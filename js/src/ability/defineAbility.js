@@ -2,10 +2,10 @@ import { defineAbility } from '@casl/ability';
 
 export const defineUserAbility = (role) => {
   return defineAbility((can) => {
-    role = role?.toLowerCase().trim(); // Ensure lowercase and no spaces
+    role = role?.toLowerCase().trim();
 
     if (role === 'admin') {
-      can('view', 'admin'); // ✅ Match what ProtectedRoute is checking
+      can('view', 'admin');
     } else if (role === 'user') {
       can('view', 'user');
     } else if (role === 'driver') {

@@ -22,10 +22,6 @@ const ProtectedRoute = ({ children, role }) => {
 
           const newAbility = defineUserAbility(userRole);
           setAbility(newAbility);
-
-          console.log('🟢 User Role:', userRole);
-          console.log('🟢 Defined Ability Rules:', newAbility.rules);
-          console.log('🟢 Checking Ability: Can View', role, '?', newAbility.can('view', role));
         } else {
           console.warn('⚠️ No valid session tokens found.');
         }

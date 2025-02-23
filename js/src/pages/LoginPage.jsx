@@ -22,16 +22,13 @@ const LoginForm = ({ onSuccess, onError }) => {
     try {
       const user = await signIn({ username: email, password });
 
-      // ✅ Fetch user attributes from Cognito (get the role)
       const attributes = await fetchUserAttributes();
-      const userRole = attributes['custom:role'].toLowerCase(); // Ensure your Cognito user pool has a custom role attribute
+      const userRole = attributes['custom:role'].toLowerCase();
 
-      // ✅ Update Zustand store
       setUser({ email: attributes.email, role: userRole });
 
-      // ✅ Redirect to role-specific dashboard
       if (onSuccess) onSuccess();
-      navigate(`/${userRole}`); // Redirect based on role
+      navigate(`/${userRole}`);
     } catch (err) {
       console.error('Login error:', err);
       const errMsg = err.message || 'Login failed. Please try again.';
@@ -65,6 +62,10 @@ const LoginForm = ({ onSuccess, onError }) => {
           fullWidth
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          sx={{
+            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+            '& .MuiOutlinedInput-root': { fontSize: '0.95rem' },
+          }}
           required
         />
       </Box>
@@ -91,6 +92,10 @@ const LoginForm = ({ onSuccess, onError }) => {
           fullWidth
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          sx={{
+            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
+            '& .MuiOutlinedInput-root': { fontSize: '0.95rem' },
+          }}
           required
         />
       </Box>
