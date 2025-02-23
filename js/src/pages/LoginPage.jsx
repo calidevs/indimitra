@@ -62,10 +62,6 @@ const LoginForm = ({ onSuccess, onError }) => {
           fullWidth
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          sx={{
-            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-            '& .MuiOutlinedInput-root': { fontSize: '0.95rem' },
-          }}
           required
         />
       </Box>
@@ -92,10 +88,6 @@ const LoginForm = ({ onSuccess, onError }) => {
           fullWidth
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          sx={{
-            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-            '& .MuiOutlinedInput-root': { fontSize: '0.95rem' },
-          }}
           required
         />
       </Box>
@@ -114,7 +106,7 @@ const LoginForm = ({ onSuccess, onError }) => {
         disabled={loading}
         sx={{ mt: 3, py: 1.2, borderRadius: '8px', textTransform: 'none', fontSize: '1rem' }}
       >
-        {loading ? <LoadingSpinner size={24} sx={{ color: '#fff' }} /> : 'Login'}
+        {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : 'Login'}
       </Button>
     </form>
   );
