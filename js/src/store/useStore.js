@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { defineUserAbility } from '../ability/defineAbility';
 
 const useStore = create((set) => ({
   count: 0,
@@ -8,8 +9,10 @@ const useStore = create((set) => ({
 
 export const useAuthStore = create((set) => ({
   user: null,
+  ability: defineUserAbility(null),
   setUser: (user) => set({ user }),
-  logout: () => set({ user: null }),
+  setAbility: (ability) => set({ ability }),
+  logout: () => set({ user: null, ability: defineUserAbility(null) }),
 }));
 
 export default useStore;
