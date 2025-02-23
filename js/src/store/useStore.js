@@ -6,4 +6,10 @@ const useStore = create((set) => ({
   decrement: () => set((state) => ({ count: state.count - 1 })),
 }));
 
+export const useAuthStore = create((set) => ({
+  user: null,
+  setUser: (user) => set({ user }),
+  logout: () => set({ user: null }),
+}));
+
 export default useStore;
