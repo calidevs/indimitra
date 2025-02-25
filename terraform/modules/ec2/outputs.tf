@@ -1,7 +1,7 @@
-output "instance_id" {
-  value = aws_instance.example.id
-}
+# output "instance_id" {
+#   value = aws_instance.example.id
+# }
 
-output "public_ip" {
-  value = aws_instance.example.public_ip
-}
+# output "public_ip" {
+#   value = aws_instance.example.public_ip
+# }
