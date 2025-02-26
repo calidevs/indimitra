@@ -6,12 +6,12 @@ region = "us-eas-1"
 # instance_name = "demo-ec2"
 
 #db variables
-identifier = "postgres-db"
+identifier = "dev-cognito"
 allocated_storage = "5"
 engine_version = "16.3"
 engine = "postgres"
 instance_class = "db.t3.micro"
-db_name = "test_db"
+db_name = "DEV_USERPOOL_DB"
 username = "postgres"
 password = "admin123456"
 
