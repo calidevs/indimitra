@@ -106,7 +106,7 @@ const LoginForm = ({ onSuccess, onError }) => {
         disabled={loading}
         sx={{ mt: 3, py: 1.2, borderRadius: '8px', textTransform: 'none', fontSize: '1rem' }}
       >
-        {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : 'Login'}
+        {loading ? <LoadingSpinner size={24} sx={{ color: '#fff' }} /> : 'Login'}
       </Button>
     </form>
   );
