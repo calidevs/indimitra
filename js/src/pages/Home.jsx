@@ -3,12 +3,7 @@ import Layout from '@/components/layout/Layout';
 import Products from './Products';
 
 const Home = () => {
-  return (
-    // <Layout>
-    //   <HeroSection />
-    // </Layout>
-    <Products />
-  );
+  return <Products />;
 };
 
 export default Home;

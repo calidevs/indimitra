@@ -11,6 +11,7 @@ import AuthContainer from './components/auth/AuthContainer';
 import AdminDashboard from './pages/AdminDashboard';
 import DriverDashboard from './pages/DriverDashboard';
 import { useAuthStore } from './store/useStore';
+import { ROUTES } from './config/constants/routes';
 
 const App = () => {
   const { user } = useAuthStore();
@@ -20,12 +21,12 @@ const App = () => {
       <CssBaseline />
       <Routes>
         {/* Public Routes */}
-        <Route path="/login" element={<AuthContainer />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path={ROUTES.LOGIN} element={<AuthContainer />} />
+        <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
 
         {/* Protected Routes */}
         <Route
-          path="/admin"
+          path={ROUTES.ADMIN}
           element={
             <ProtectedRoute role="admin">
               <AdminDashboard />
@@ -33,7 +34,7 @@ const App = () => {
           }
         />
         <Route
-          path="/user"
+          path={ROUTES.USER}
           element={
             <ProtectedRoute role="user">
               <Home />
@@ -41,7 +42,7 @@ const App = () => {
           }
         />
         <Route
-          path="/driver"
+          path={ROUTES.DRIVER}
           element={
             <ProtectedRoute role="driver">
               <DriverDashboard />
@@ -50,7 +51,7 @@ const App = () => {
         />
 
         <Route
-          path="/products"
+          path={ROUTES.PRODUCTS}
           element={
             <ProtectedRoute role="user">
               <Products />
@@ -60,7 +61,7 @@ const App = () => {
 
         {/* Default Redirection Based on User Role */}
         <Route
-          path="/"
+          path={ROUTES.HOME}
           element={
             user ? <Navigate to={`/${user.role}`} replace /> : <Navigate to="/login" replace />
           }

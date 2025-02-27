@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { signIn, fetchUserAttributes } from 'aws-amplify/auth';
 import { useNavigate } from 'react-router-dom';
-import { Box, TextField, Button, Typography, Alert, CircularProgress } from '@mui/material';
+import { Box, TextField, Button, Typography, Alert, LoadingSpinner } from '../components/index';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LockIcon from '@mui/icons-material/Lock';
-import { useAuthStore } from '../store/useStore'; // Import Zustand store
+import { useAuthStore } from '../store/useStore';
 
 const LoginForm = ({ onSuccess, onError }) => {
   const navigate = useNavigate();
-  const { setUser } = useAuthStore(); // Zustand function to set user
+  const { setUser } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -114,7 +114,7 @@ const LoginForm = ({ onSuccess, onError }) => {
         disabled={loading}
         sx={{ mt: 3, py: 1.2, borderRadius: '8px', textTransform: 'none', fontSize: '1rem' }}
       >
-        {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : 'Login'}
+        {loading ? <LoadingSpinner size={24} sx={{ color: '#fff' }} /> : 'Login'}
       </Button>
     </form>
   );

@@ -14,7 +14,7 @@ const ProtectedRoute = ({ children, role }) => {
       try {
         const session = await fetchAuthSession();
         if (session?.tokens?.idToken) {
-          const userRole = session.tokens.idToken.payload['custom:role'].toLowerCase(); // Convert to lowercase
+          const userRole = session.tokens.idToken.payload['custom:role'].toLowerCase();
 
           if (!user) {
             setUser({ role: userRole });
@@ -37,8 +37,8 @@ const ProtectedRoute = ({ children, role }) => {
 
   if (loading) return <LoadingSpinner />;
 
-  if (!user) return <Navigate to="/login" replace />;
-  if (!ability || !ability.can('view', role)) return <Navigate to="/not-authorized" replace />;
+  if (!user) return <Navigate to="/login" />;
+  if (!ability || !ability.can('view', role)) return <Navigate to="/not-authorized" />;
 
   return children;
 };
