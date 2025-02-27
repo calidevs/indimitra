@@ -10,18 +10,16 @@ import {
 } from '@mui/material';
 import { AddShoppingCart } from '@mui/icons-material';
 import { PLACEHOLDER_IMAGE } from '@/assets/images';
+import { useTheme } from '@mui/material/styles';
 
 const ProductCard = ({ product }) => {
+  const theme = useTheme();
+
   const { name, price, description, image, rating = 4 } = product;
 
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <CardMedia
-        component="img"
-        height="200"
-        image={image || PLACEHOLDER_IMAGE}
-        alt={name}
-      />
+      <CardMedia component="img" height="200" image={image || PLACEHOLDER_IMAGE} alt={name} />
       <CardContent sx={{ flexGrow: 1 }}>
         <Typography gutterBottom variant="h5" component="h2">
           {name}
@@ -42,7 +40,7 @@ const ProductCard = ({ product }) => {
       <CardActions>
         <Button
           size="small"
-          color="primary"
+          sx={{ background: theme.palette.custom.gradientPrimary }}
           startIcon={<AddShoppingCart />}
           fullWidth
           variant="contained"
@@ -54,4 +52,4 @@ const ProductCard = ({ product }) => {
   );
 };
 
-export default ProductCard; 
+export default ProductCard;

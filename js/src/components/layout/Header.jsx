@@ -2,9 +2,11 @@ import { AppBar, Box, Toolbar, Typography, Button, IconButton } from '@mui/mater
 import { ShoppingCart, Menu as MenuIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'aws-amplify/auth';
+import { useTheme } from '@mui/material/styles';
 
 const Header = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
 
   const handleLogout = async () => {
     try {
@@ -17,7 +19,7 @@ const Header = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <AppBar position="static">
+      <AppBar position="static" sx={{ background: theme.palette.custom.gradientPrimary }}>
         <Toolbar>
           <IconButton size="large" edge="start" color="inherit" aria-label="menu" sx={{ mr: 2 }}>
             <MenuIcon />

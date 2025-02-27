@@ -18,6 +18,9 @@ const theme = createTheme({
       default: '#F7F7F7',
       paper: '#FFFFFF',
     },
+    custom: {
+      gradientPrimary: 'linear-gradient(108.73deg, #F9881F 23.73%, #FF774C 79.34%)',
+    },
   },
   typography: {
     fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
@@ -61,4 +64,4 @@ const theme = createTheme({
   },
 });
 
-export default theme; 
+export default theme;
