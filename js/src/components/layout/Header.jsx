@@ -32,9 +32,6 @@ const Header = () => {
           >
             Indimitra
           </Typography>
-          <Button color="inherit" onClick={() => navigate('/products')}>
-            Products
-          </Button>
           <Button color="inherit" onClick={handleLogout}>
             Logout
           </Button>
