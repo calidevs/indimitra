@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 
-const useStore = create((set) => ({
+const useStore = create((set, get) => ({
   cart: {},
   addToCart: (productId) =>
     set((state) => ({
@@ -19,6 +19,8 @@ const useStore = create((set) => ({
       }
       return { cart: updatedCart };
     }),
+  // Cart count
+  cartCount: () => Object.values(get().cart).reduce((acc, qty) => acc + qty, 0),
 }));
 
 export default useStore;
