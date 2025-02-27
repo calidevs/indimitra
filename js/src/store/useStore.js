@@ -2,9 +2,24 @@ import { create } from 'zustand';
 import { defineUserAbility } from '../ability/defineAbility';
 
 const useStore = create((set) => ({
-  count: 0,
-  increment: () => set((state) => ({ count: state.count + 1 })),
-  decrement: () => set((state) => ({ count: state.count - 1 })),
+  cart: {},
+  addToCart: (productId) =>
+    set((state) => ({
+      cart: {
+        ...state.cart,
+        [productId]: (state.cart[productId] || 0) + 1,
+      },
+    })),
+  removeFromCart: (productId) =>
+    set((state) => {
+      const updatedCart = { ...state.cart };
+      if (updatedCart[productId] > 1) {
+        updatedCart[productId] -= 1;
+      } else {
+        delete updatedCart[productId];
+      }
+      return { cart: updatedCart };
+    }),
 }));
 
 export const useAuthStore = create((set) => ({
