@@ -1,12 +1,14 @@
-import { AppBar, Box, Toolbar, Typography, Button, IconButton } from '@mui/material';
+import { AppBar, Box, Toolbar, Typography, Button, IconButton, Badge } from '@mui/material';
 import { ShoppingCart, Menu as MenuIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'aws-amplify/auth';
 import { useTheme } from '@mui/material/styles';
+import useStore from '@/store/useStore'; // Import Zustand store
 
 const Header = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const cartCount = useStore((state) => state.cartCount()); // Fetch total cart count
 
   const handleLogout = async () => {
     try {
@@ -36,7 +38,9 @@ const Header = () => {
             Logout
           </Button>
           <IconButton color="inherit" onClick={() => navigate('/cart')}>
-            <ShoppingCart />
+            <Badge badgeContent={cartCount} color="error" invisible={cartCount === 0}>
+              <ShoppingCart />
+            </Badge>
           </IconButton>
         </Toolbar>
       </AppBar>
