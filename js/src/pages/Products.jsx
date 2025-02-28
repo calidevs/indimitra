@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Container, Typography } from '@mui/material';
+import { Container, Typography } from '../components/index';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/products/ProductGrid';
 import { LoadingSpinner } from '../components';

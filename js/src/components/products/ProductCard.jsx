@@ -8,7 +8,7 @@ import {
   Rating,
   Box,
   IconButton,
-} from '@mui/material';
+} from '../index';
 import { Add, Remove } from '@mui/icons-material';
 import { PLACEHOLDER_IMAGE } from '@/assets/images';
 import { useTheme } from '@mui/material/styles';

@@ -11,7 +11,7 @@ import {
   Divider,
   InputLabel,
   FormControl,
-} from '@mui/material';
+} from '../index';
 import { Close, Remove, Add } from '@mui/icons-material';
 import useStore from '@/store/useStore';
 
@@ -23,8 +23,8 @@ const CartModal = ({ open, onClose }) => {
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
 
   const subtotal = cartTotal() || 0;
-  const tax = subtotal * 0.08; // 8% tax
-  const deliveryFee = subtotal > 0 ? 5.99 : 0; // No delivery fee if cart is empty
+  const tax = subtotal * 0.08;
+  const deliveryFee = subtotal > 0 ? 5.99 : 0;
   const orderTotal = subtotal + tax + deliveryFee;
 
   const handleOrderPlacement = () => {

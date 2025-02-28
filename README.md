@@ -221,7 +221,6 @@ The application uses Material-UI components with custom theme:
 
 - `Layout`: Base layout with header
 - `Header`: Navigation header with menu
-- `HeroSection`: Landing page hero section
 - `ProductCard`: Individual product display
 - `ProductGrid`: Grid layout for products
 

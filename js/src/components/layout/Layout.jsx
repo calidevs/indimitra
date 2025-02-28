@@ -1,4 +1,4 @@
-import { Box, Container } from '@mui/material';
+import { Box, Container } from '../index';
 import Header from './Header';
 
 const Layout = ({ children }) => {
@@ -12,4 +12,4 @@ const Layout = ({ children }) => {
   );
 };
 
-export default Layout; 
+export default Layout;
