@@ -40,7 +40,7 @@ const ProductCard = ({ product }) => {
           </Typography>
         </Box>
         <Typography variant="h6" sx={{ fontWeight: 700, mt: 1 }}>
-          ₹{price.toFixed(2)}
+          ${price.toFixed(2)}
         </Typography>
       </CardContent>
 

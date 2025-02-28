@@ -20,9 +20,7 @@ const Products = () => {
   if (error) return <Typography>Error fetching products!</Typography>;
 
   return (
-    <Layout>
-      <Container>{isLoading ? <LoadingSpinner /> : <ProductGrid products={products} />}</Container>
-    </Layout>
+    <Container>{isLoading ? <LoadingSpinner /> : <ProductGrid products={products} />}</Container>
   );
 };
 

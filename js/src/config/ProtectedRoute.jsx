@@ -4,6 +4,7 @@ import { fetchAuthSession } from 'aws-amplify/auth';
 import { useAuthStore } from '../store/useStore';
 import { defineUserAbility } from '../ability/defineAbility';
 import { LoadingSpinner } from '../components';
+import Layout from '@/components/layout/Layout';
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, setUser, ability, setAbility } = useAuthStore();
@@ -40,7 +41,7 @@ const ProtectedRoute = ({ children, role }) => {
   if (!user) return <Navigate to="/login" />;
   if (!ability || !ability.can('view', role)) return <Navigate to="/not-authorized" />;
 
-  return children;
+  return isAuthenticated ? <Layout>{children}</Layout> : <Navigate to="/login" replace />;
 };
 
 export default ProtectedRoute;
