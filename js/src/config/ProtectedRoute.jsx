@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { LoadingSpinner } from '../components';
+import Layout from '@/components/layout/Layout';
 
 const ProtectedRoute = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -33,7 +34,7 @@ const ProtectedRoute = ({ children }) => {
     return <LoadingSpinner />;
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" replace />;
+  return isAuthenticated ? <Layout>{children}</Layout> : <Navigate to="/login" replace />;
 };
 
 export default ProtectedRoute;
