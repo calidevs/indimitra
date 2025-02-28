@@ -18,7 +18,7 @@ const ProductCard = ({ product }) => {
   const theme = useTheme();
   const { cart, addToCart, removeFromCart } = useStore();
   const { id, name, price, description, image, rating = 4 } = product;
-  const quantity = cart[id] || 0;
+  const quantity = cart[id]?.quantity || 0;
 
   return (
     <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: '12px' }}>
@@ -100,8 +100,8 @@ const ProductCard = ({ product }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                borderRight: '2px solid #FF6B6B', // Vertical separator
-                borderLeft: '2px solid #FF6B6B', // Vertical separator
+                borderRight: '2px solid #FF6B6B',
+                borderLeft: '2px solid #FF6B6B',
               }}
             >
               <Typography
@@ -127,7 +127,7 @@ const ProductCard = ({ product }) => {
               }}
             >
               <IconButton
-                onClick={() => addToCart(id)}
+                onClick={() => addToCart(product)}
                 sx={{
                   color: '#FF6B6B',
                   p: 0,
@@ -162,7 +162,7 @@ const ProductCard = ({ product }) => {
             }}
             fullWidth
             variant="contained"
-            onClick={() => addToCart(id)}
+            onClick={() => addToCart(product)}
           >
             Add
           </Button>
