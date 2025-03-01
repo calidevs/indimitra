@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Container, Typography } from '@mui/material';
+import { Container, Typography } from '../components/index';
 import Layout from '@/components/layout/Layout';
 import ProductGrid from '@/components/products/ProductGrid';
 import { LoadingSpinner } from '../components';
@@ -20,9 +20,7 @@ const Products = () => {
   if (error) return <Typography>Error fetching products!</Typography>;
 
   return (
-    <Layout>
-      <Container>{isLoading ? <LoadingSpinner /> : <ProductGrid products={products} />}</Container>
-    </Layout>
+    <Container>{isLoading ? <LoadingSpinner /> : <ProductGrid products={products} />}</Container>
   );
 };
 

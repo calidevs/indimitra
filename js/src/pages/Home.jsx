@@ -1,12 +1,7 @@
-import HeroSection from '@/components/home/HeroSection';
-import Layout from '@/components/layout/Layout';
+import Products from '../pages/Products';
 
 const Home = () => {
-  return (
-    <Layout>
-      <HeroSection />
-    </Layout>
-  );
+  return <Products />;
 };
 
-export default Home; 
+export default Home;
