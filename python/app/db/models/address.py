@@ -7,7 +7,7 @@ class AddressModel(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     address = Column(String, nullable=False)
-    userId = Column(Integer, ForeignKey("users.id"), nullable=False)
+    userId = Column(String, ForeignKey("users.id"), nullable=False)
     isPrimary = Column(Boolean, default=False)
     
     # Relationships

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, DateTime, ForeignKey, Enum
+from sqlalchemy import Column, Integer, DateTime, ForeignKey, Enum, String
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 import enum
@@ -14,7 +14,7 @@ class DeliveryModel(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     orderId = Column(Integer, ForeignKey("orders.id"), nullable=False)
-    driverId = Column(Integer, ForeignKey("users.id"), nullable=False)
+    driverId = Column(String, ForeignKey("users.id"), nullable=False)
     schedule = Column(DateTime, nullable=False)
     pickedUpTime = Column(DateTime, nullable=True)
     deliveredTime = Column(DateTime, nullable=True)
