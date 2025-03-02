@@ -8,9 +8,9 @@ __pycache__
 .venv
 
 # Infrastructure
-terraform/.terraform/
-terraform/*.tfstate
-terraform/*.tfstate.backup
+terraform/**/.terraform/
+terraform/**/*.tfstate
+terraform/**/*.tfstate.backup
 
 # Database
 data
