@@ -7,6 +7,7 @@ class ProductModel(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
     categoryId = Column(Integer, ForeignKey("categories.id"), nullable=False)
     stock = Column(Integer, default=0)
     size = Column(Float, nullable=True)
