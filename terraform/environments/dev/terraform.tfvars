@@ -11,7 +11,7 @@ allocated_storage = "5"
 engine_version = "16.3"
 engine = "postgres"
 instance_class = "db.t3.micro"
-db_name = "DEV_USERPOOL_DB"
+db_name = "dev_userpool_db"
 username = "postgres"
-password = "admin123456"
+
 

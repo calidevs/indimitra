@@ -9,5 +9,7 @@ resource "aws_db_instance" "rds_postgres" {
   password              = var.password
   storage_encrypted     = true
   skip_final_snapshot   = true 
+  publicly_accessible = true
   tags = var.tags
+  
 }
