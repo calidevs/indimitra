@@ -14,3 +14,13 @@ class User:
 @mapper.type(models.ProductModel)
 class Product:
     pass
+
+# Generate a GraphQL type for OrderModel.
+@mapper.type(models.OrderModel)
+class Order:
+    pass
+
+# Generate a GraphQL type for OrderItemModel.
+@mapper.type(models.OrderItemModel)
+class OrderItem:
+    pass

@@ -6,14 +6,14 @@ from app.services.user_service import get_all_users, create_user
 @strawberry.type
 class UserQuery:
     @strawberry.field
-    def users(self) -> List[User]:
+    def getAllUsers(self) -> List[User]:
         # Returns a list of UserModel instances auto‑converted to GraphQL User type.
         return get_all_users()
 
 @strawberry.type
 class UserMutation:
     @strawberry.mutation
-    def create_user(
+    def createUser(
         self,
         firstName: str,
         lastName: str,
