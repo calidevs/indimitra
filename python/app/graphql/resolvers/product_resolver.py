@@ -1,51 +1,26 @@
 import strawberry
 from typing import List
-from graphql import GraphQLError
-from app.services.product_service import get_all_products, create_product, delete_product as service_delete_product
+from app.graphql.types import Product
+from app.services.product_service import get_all_products, create_product, delete_product
 
 @strawberry.type
-class Product:
-    id: int
-    name: str
-    price: float
-    description: str
-    category: str
-
-@strawberry.type
-class Query:
+class ProductQuery:
     @strawberry.field
     def products(self) -> List[Product]:
-        products_db = get_all_products()
-        return [
-            Product(
-                id=p.id,
-                name=p.name,
-                price=p.price,
-                description=p.description,
-                category=p.category,
-            )
-            for p in products_db
-        ]
+        return get_all_products()
 
 @strawberry.type
-class Mutation:
+class ProductMutation:
     @strawberry.mutation
-    def create_product(self, name: str, price: float, description: str, category: str) -> Product:
-        product_model = create_product(name, price, description, category)
-        return Product(
-            id=product_model.id,
-            name=product_model.name,
-            price=product_model.price,
-            description=product_model.description,
-            category=product_model.category,
-        )
+    def create_product(
+        self,
+        name: str,
+        price: float,
+        categoryId: int,
+        stock: int = 0
+    ) -> Product:
+        return create_product(name, price, categoryId, stock)
 
     @strawberry.mutation
     def delete_product(self, product_id: int) -> bool:
-        success = service_delete_product(product_id)
-        if not success:
-            raise GraphQLError(
-                message="Product not found",
-                extensions={"status_code": 404}
-            )
-        return True
+        return delete_product(product_id)
