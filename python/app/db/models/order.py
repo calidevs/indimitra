@@ -2,8 +2,10 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 from app.db.base import Base
+import strawberry
 import enum
 
+@strawberry.enum
 class OrderStatus(enum.Enum):
     PENDING = "PENDING"
     CANCELLED = "CANCELLED"

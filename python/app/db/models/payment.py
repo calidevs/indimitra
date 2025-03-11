@@ -1,8 +1,10 @@
 from sqlalchemy import Column, Integer, Enum
 from sqlalchemy.orm import relationship
 from app.db.base import Base
+import strawberry
 import enum
 
+@strawberry.enum
 class PaymentType(enum.Enum):
     CASH = "Cash"
 

@@ -1,6 +1,16 @@
 import React, { useState } from 'react';
-import { AppBar, Box, Toolbar, Typography, Button, IconButton, Badge, Fab } from '@mui/material';
-import { ShoppingCart } from '@mui/icons-material';
+import {
+  AppBar,
+  Box,
+  Toolbar,
+  Typography,
+  IconButton,
+  Badge,
+  Fab,
+  Menu,
+  MenuItem,
+} from '@mui/material';
+import { ShoppingCart, Menu as MenuIcon } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'aws-amplify/auth';
 import { useTheme } from '@mui/material/styles';
@@ -15,6 +25,15 @@ const Header = () => {
   const isMobile = useMediaQuery('(max-width: 600px)');
 
   const [cartOpen, setCartOpen] = useState(false);
+  const [menuAnchor, setMenuAnchor] = useState(null);
+
+  const handleMenuOpen = (event) => {
+    setMenuAnchor(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setMenuAnchor(null);
+  };
 
   const handleLogout = async () => {
     try {
@@ -27,9 +46,10 @@ const Header = () => {
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      {/* Navbar visible on all devices */}
+      {/* Navbar */}
       <AppBar position="static" sx={{ background: theme.palette.custom.gradientPrimary }}>
         <Toolbar>
+          {/* App Title (Clickable) */}
           <Typography
             variant="h6"
             component="div"
@@ -38,17 +58,44 @@ const Header = () => {
           >
             Indimitra
           </Typography>
-          <Button color="inherit" onClick={handleLogout}>
-            Logout
-          </Button>
-          {/* Show cart icon in navbar only for tablets & desktops */}
-          {!isMobile && (
-            <IconButton color="inherit" onClick={() => setCartOpen(true)}>
-              <Badge badgeContent={cartCount} color="error" invisible={cartCount === 0}>
-                <ShoppingCart />
-              </Badge>
-            </IconButton>
-          )}
+
+          {/* Cart Icon (remains the same) */}
+          <IconButton color="inherit" onClick={() => setCartOpen(true)}>
+            <Badge badgeContent={cartCount} color="error" invisible={cartCount === 0}>
+              <ShoppingCart />
+            </Badge>
+          </IconButton>
+
+          {/* Burger Menu Icon (moved to the right) */}
+          <IconButton color="inherit" onClick={handleMenuOpen}>
+            <MenuIcon />
+          </IconButton>
+
+          {/* Dropdown Menu */}
+          <Menu
+            anchorEl={menuAnchor}
+            open={Boolean(menuAnchor)}
+            onClose={handleMenuClose}
+            keepMounted
+            sx={{ mt: 1 }}
+          >
+            <MenuItem
+              onClick={() => {
+                navigate('/orders');
+                handleMenuClose();
+              }}
+            >
+              Orders
+            </MenuItem>
+            <MenuItem
+              onClick={() => {
+                handleLogout();
+                handleMenuClose();
+              }}
+            >
+              Logout
+            </MenuItem>
+          </Menu>
         </Toolbar>
       </AppBar>
 

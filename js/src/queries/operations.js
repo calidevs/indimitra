@@ -5,7 +5,10 @@ export const PRODUCTS_QUERY = `
       name
       price
       description
-      category
+      category {
+      id
+      name
+    }
     }
   }
 `;
