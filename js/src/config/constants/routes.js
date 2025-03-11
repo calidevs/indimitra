@@ -6,4 +6,5 @@ export const ROUTES = {
   DRIVER: '/driver',
   PRODUCTS: '/products',
   HOME: '/',
+  ORDERS: '/orders',
 };

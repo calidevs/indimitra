@@ -16,6 +16,8 @@ import { signOut } from 'aws-amplify/auth';
 import { useTheme } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
 import useStore from '@/store/useStore';
+import { useAuthStore } from '@/store/useStore'; // Import auth store
+import { ROUTES } from '@/config/constants/routes'; // Import routes
 import CartModal from '../Modal/CartModal';
 
 const Header = () => {
@@ -24,6 +26,7 @@ const Header = () => {
   const cartCount = useStore((state) => state.cartCount());
   const isMobile = useMediaQuery('(max-width: 600px)');
 
+  const { user } = useAuthStore(); // Fetch user details
   const [cartOpen, setCartOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
 
@@ -38,9 +41,25 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await signOut();
-      navigate('/login');
+      navigate(ROUTES.LOGIN);
     } catch (error) {
       console.error('Error signing out:', error);
+    }
+  };
+
+  // Determine dashboard route based on user role using ROUTES object
+  const getDashboardRoute = () => {
+    switch (user?.role) {
+      case 'USER':
+        return ROUTES.USER;
+      case 'DELIVERY':
+        return ROUTES.DRIVER;
+      case 'STORE_MANAGER':
+        return '/store-dashboard'; // Define in ROUTES if needed
+      case 'ADMIN':
+        return ROUTES.ADMIN;
+      default:
+        return ROUTES.USER; // Default route
     }
   };
 
@@ -49,12 +68,12 @@ const Header = () => {
       {/* Navbar */}
       <AppBar position="static" sx={{ background: theme.palette.custom.gradientPrimary }}>
         <Toolbar>
-          {/* App Title (Clickable) */}
+          {/* App Title (Clickable) - Navigates based on role */}
           <Typography
             variant="h6"
             component="div"
             sx={{ flexGrow: 1, cursor: 'pointer' }}
-            onClick={() => navigate('/')}
+            onClick={() => navigate(getDashboardRoute())}
           >
             Indimitra
           </Typography>
@@ -81,7 +100,7 @@ const Header = () => {
           >
             <MenuItem
               onClick={() => {
-                navigate('/orders');
+                navigate(ROUTES.ORDERS);
                 handleMenuClose();
               }}
             >

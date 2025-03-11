@@ -38,3 +38,15 @@ export const CREATE_ORDER_MUTATION = `
     }
   }
 `;
+
+export const GET_USER_ORDERS = `
+  query GetUserOrders($userId: String!) {
+    getOrdersByUser(userId: $userId) {
+      id
+      address
+      status
+      totalAmount
+      deliveryDate
+    }
+  }
+`;

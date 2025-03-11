@@ -10,6 +10,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import AuthContainer from './components/auth/AuthContainer';
 import AdminDashboard from './pages/AdminDashboard';
 import DriverDashboard from './pages/DriverDashboard';
+import Orders from './pages/Orders';
 import { useAuthStore } from './store/useStore';
 import { ROUTES } from './config/constants/routes';
 
@@ -59,11 +60,19 @@ const App = () => {
           }
         />
 
-        {/* Default Redirection Based on User Role */}
         <Route
           path={ROUTES.HOME}
           element={
             user ? <Navigate to={`/${user.role}`} replace /> : <Navigate to="/login" replace />
+          }
+        />
+
+        <Route
+          path={ROUTES.ORDERS}
+          element={
+            <ProtectedRoute role="user">
+              <Orders />
+            </ProtectedRoute>
           }
         />
       </Routes>
