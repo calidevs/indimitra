@@ -12,7 +12,11 @@ import {
   Paper,
   Chip,
   CircularProgress,
+  IconButton,
+  Collapse,
+  Box,
 } from '@mui/material';
+import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_USER_ORDERS } from '@/queries/operations';
@@ -43,6 +47,12 @@ const Orders = () => {
     enabled: !!userId, // Only run query when userId is available
   });
 
+  const [expandedOrder, setExpandedOrder] = useState(null);
+
+  const handleExpandClick = (orderId) => {
+    setExpandedOrder(expandedOrder === orderId ? null : orderId);
+  };
+
   if (isLoading) return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />;
   if (error) return <Typography color="error">Error fetching orders!</Typography>;
 
@@ -66,30 +76,81 @@ const Orders = () => {
                 <TableCell>Status</TableCell>
                 <TableCell>Total Amount</TableCell>
                 <TableCell>Delivery Date</TableCell>
+                <TableCell />
               </TableRow>
             </TableHead>
             <TableBody>
               {orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell>{order.id}</TableCell>
-                  <TableCell>{order.address}</TableCell>
-                  <TableCell>
-                    <Chip
-                      label={order.status}
-                      color={
-                        order.status === 'COMPLETE'
-                          ? 'success'
-                          : order.status === 'PENDING'
-                            ? 'warning'
-                            : 'error'
-                      }
-                    />
-                  </TableCell>
-                  <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
-                  <TableCell>
-                    {order.deliveryDate ? new Date(order.deliveryDate).toLocaleDateString() : 'N/A'}
-                  </TableCell>
-                </TableRow>
+                <React.Fragment key={order.id}>
+                  <TableRow>
+                    <TableCell>{order.id}</TableCell>
+                    <TableCell>{order.address}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={order.status}
+                        color={
+                          order.status === 'COMPLETE'
+                            ? 'success'
+                            : order.status === 'PENDING'
+                              ? 'warning'
+                              : 'error'
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
+                    <TableCell>
+                      {order.deliveryDate
+                        ? new Date(order.deliveryDate).toLocaleDateString()
+                        : 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      <IconButton onClick={() => handleExpandClick(order.id)} size="small">
+                        {expandedOrder === order.id ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+
+                  {/* Expandable Row for Order Items */}
+                  <TableRow>
+                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
+                      <Collapse in={expandedOrder === order.id} timeout="auto" unmountOnExit>
+                        <Box sx={{ margin: 2 }}>
+                          <Typography variant="h6" gutterBottom>
+                            Order Items
+                          </Typography>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Product Name</TableCell>
+                                <TableCell>Price</TableCell>
+                                <TableCell>Quantity</TableCell>
+                                <TableCell>Total</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {order.orderItems?.edges?.length > 0 ? (
+                                order.orderItems.edges.map(({ node }) => (
+                                  <TableRow key={node.product.name}>
+                                    <TableCell>{node.product.name}</TableCell>
+                                    <TableCell>${node.product.price.toFixed(2)}</TableCell>
+                                    <TableCell>{node.quantity}</TableCell>
+                                    <TableCell>${node.orderAmount.toFixed(2)}</TableCell>
+                                  </TableRow>
+                                ))
+                              ) : (
+                                <TableRow>
+                                  <TableCell colSpan={4} align="center">
+                                    No items found for this order.
+                                  </TableCell>
+                                </TableRow>
+                              )}
+                            </TableBody>
+                          </Table>
+                        </Box>
+                      </Collapse>
+                    </TableCell>
+                  </TableRow>
+                </React.Fragment>
               ))}
             </TableBody>
           </Table>

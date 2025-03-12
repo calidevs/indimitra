@@ -47,6 +47,18 @@ export const GET_USER_ORDERS = `
       status
       totalAmount
       deliveryDate
+      orderItems {
+        edges {
+          node {
+            orderAmount
+            quantity
+            product {
+              name
+              price
+            }
+          }
+        }
+      }
     }
   }
 `;
