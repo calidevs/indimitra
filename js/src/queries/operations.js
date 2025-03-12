@@ -64,25 +64,25 @@ export const GET_USER_ORDERS = `
 `;
 
 export const GET_ALL_ORDERS = `
-  query GetAllOrders {
-    getAllOrders {
-      id
-      address
-      status
-      totalAmount
-      deliveryDate
-      orderItems {
-        edges {
-          node {
-            orderAmount
-            product {
-              name
-              price
-            }
-            quantity
+query GetAllOrders {
+  getAllOrders {
+    id
+    address
+    status
+    totalAmount
+    deliveryDate
+    orderItems {
+      edges {
+        node {
+          product {
+            name
+            price
           }
+          quantity
+          orderAmount
         }
       }
     }
   }
+}
 `;

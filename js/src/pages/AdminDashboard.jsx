@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Container,
@@ -19,10 +19,12 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Button,
 } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_ALL_ORDERS } from '@/queries/operations';
+import Modal from '@/components/Modal/Modal';
 
 const AdminDashboard = () => {
   const { data, isLoading, error } = useQuery({
@@ -33,23 +35,48 @@ const AdminDashboard = () => {
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [statusUpdates, setStatusUpdates] = useState({});
   const [deliveryAssignments, setDeliveryAssignments] = useState({});
+  const [modalOpen, setModalOpen] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmationText, setConfirmationText] = useState('');
 
   const handleExpandClick = (orderId) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
 
-  const handleStatusChange = (orderId, newStatus) => {
-    setStatusUpdates((prev) => ({
-      ...prev,
-      [orderId]: newStatus,
-    }));
+  // Open confirmation modal
+  const openConfirmationModal = (action, message) => {
+    setConfirmAction(() => action);
+    setConfirmationText(message);
+    setModalOpen(true);
   };
 
+  // Handle order status change
+  const handleStatusChange = (orderId, newStatus) => {
+    openConfirmationModal(
+      () => updateOrderStatus(orderId, newStatus),
+      `Are you sure you want to update order #${orderId} to "${newStatus}"?`
+    );
+  };
+
+  // Handle delivery partner assignment
   const handleDeliveryPartnerChange = (orderId, partner) => {
-    setDeliveryAssignments((prev) => ({
-      ...prev,
-      [orderId]: partner,
-    }));
+    openConfirmationModal(
+      () => assignDeliveryPartner(orderId, partner),
+      `Are you sure you want to assign delivery partner "${partner}" to order #${orderId}?`
+    );
+  };
+
+  // Fake API Call Handlers
+  const updateOrderStatus = (orderId, newStatus) => {
+    console.log(`Updating order ${orderId} to ${newStatus}`);
+    setStatusUpdates((prev) => ({ ...prev, [orderId]: newStatus }));
+    setModalOpen(false);
+  };
+
+  const assignDeliveryPartner = (orderId, partner) => {
+    console.log(`Assigning delivery partner ${partner} to order ${orderId}`);
+    setDeliveryAssignments((prev) => ({ ...prev, [orderId]: partner }));
+    setModalOpen(false);
   };
 
   if (isLoading) return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />;
@@ -82,6 +109,7 @@ const AdminDashboard = () => {
             <TableBody>
               {orders.map((order) => (
                 <React.Fragment key={order.id}>
+                  {/* Main Order Row */}
                   <TableRow>
                     <TableCell>{order.id}</TableCell>
                     <TableCell>{order.address}</TableCell>
@@ -110,7 +138,7 @@ const AdminDashboard = () => {
                         : 'N/A'}
                     </TableCell>
 
-                    {/* Delivery Partner Dropdown */}
+                    {/* Assign Delivery Partner */}
                     <TableCell>
                       <FormControl size="small" fullWidth>
                         <InputLabel>Delivery Partner</InputLabel>
@@ -181,6 +209,21 @@ const AdminDashboard = () => {
           </Table>
         </TableContainer>
       )}
+
+      {/* Confirmation Modal */}
+      <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
+        <Box p={4} sx={{ background: 'white', borderRadius: 2, mx: 'auto' }}>
+          <Typography>{confirmationText}</Typography>
+          <Box mt={2} display="flex" justifyContent="flex-end">
+            <Button onClick={() => setModalOpen(false)} color="secondary">
+              Cancel
+            </Button>
+            <Button onClick={confirmAction} color="primary">
+              Confirm
+            </Button>
+          </Box>
+        </Box>
+      </Modal>
     </Container>
   );
 };
