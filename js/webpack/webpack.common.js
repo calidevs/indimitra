@@ -13,6 +13,7 @@ module.exports = {
     extensions: ['.js', '.jsx'],
     alias: {
       '@': path.resolve(__dirname, '..', 'src'),
+      '@components': path.resolve(__dirname, '..', 'src/components'),
     },
   },
   module: {
@@ -44,4 +45,4 @@ module.exports = {
       template: path.resolve(__dirname, '..', './src/index.html'),
     }),
   ],
-}; 
+};

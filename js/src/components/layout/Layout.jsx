@@ -1,4 +1,4 @@
-import { Box, Container } from '../index';
+import { Box, Container } from '@components';
 import Header from './Header';
 
 const Layout = ({ children }) => {

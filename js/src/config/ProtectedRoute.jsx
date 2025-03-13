@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { fetchAuthSession } from 'aws-amplify/auth';
+import { useAuthStore } from '../store/useStore';
+import { defineUserAbility } from '../ability/defineAbility';
 import { LoadingSpinner } from '../components';
 import Layout from '@/components/layout/Layout';
 
-const ProtectedRoute = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+const ProtectedRoute = ({ children, role }) => {
+  const { user, setUser, ability, setAbility } = useAuthStore();
   const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -14,13 +17,22 @@ const ProtectedRoute = ({ children }) => {
         const session = await fetchAuthSession();
 
         if (session?.tokens?.idToken) {
+          const userRole = session.tokens.idToken.payload['custom:role'].toLowerCase();
+
+          if (!user) {
+            setUser({ role: userRole });
+          }
+
+          const newAbility = defineUserAbility(userRole);
+          setAbility(newAbility);
+
           setIsAuthenticated(true);
         } else {
-          console.warn('No valid session tokens found.');
+          console.warn('⚠️ No valid session tokens found.');
           setIsAuthenticated(false);
         }
       } catch (err) {
-        console.error('Error while checking authentication:', err);
+        console.error('❌ Error while checking authentication:', err);
         setIsAuthenticated(false);
       } finally {
         setLoading(false);
@@ -28,16 +40,13 @@ const ProtectedRoute = ({ children }) => {
     };
 
     checkAuth();
-  }, []);
+  }, [user, setUser, setAbility]);
 
-  if (loading) {
-    return <LoadingSpinner />;
-  }
+  if (loading) return <LoadingSpinner />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!ability || !ability.can('view', role)) return <Navigate to="/not-authorized" replace />;
 
-  if (!user) return <Navigate to="/login" />;
-  if (!ability || !ability.can('view', role)) return <Navigate to="/not-authorized" />;
-
-  return isAuthenticated ? <Layout>{children}</Layout> : <Navigate to="/login" replace />;
+  return <Layout>{children}</Layout>;
 };
 
 export default ProtectedRoute;

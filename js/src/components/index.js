@@ -21,3 +21,4 @@ export { default as CardContent } from './Card/CardContent';
 export { default as Card } from './Card/Card';
 export { default as CardMedia } from './Card/CardMedia';
 export { default as Rating } from './Rating/Rating';
+export { default as ProductGrid } from './products/ProductGrid';

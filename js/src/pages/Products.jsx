@@ -1,9 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Container, Typography } from '../components/index';
-import Layout from '@/components/layout/Layout';
-import ProductGrid from '@/components/products/ProductGrid';
-import { LoadingSpinner } from '../components';
+import { Container, Typography, ProductGrid, LoadingSpinner } from '@components';
 import fetchGraphQL from '../config/graphql/graphqlService';
 import { PRODUCTS_QUERY } from '@/queries/operations';
 

@@ -11,13 +11,14 @@ import {
   Divider,
   InputLabel,
   FormControl,
-} from '../index';
+} from '@components';
 import { Close, Remove, Add } from '@mui/icons-material';
 import useStore from '@/store/useStore';
 import { useMutation } from '@tanstack/react-query';
 import fetchGraphQL from '../../config/graphql/graphqlService';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { CREATE_ORDER_MUTATION } from '../../queries/operations';
+import { DELIVERY_FEE, TAX_RATE } from '../../config/constants/constants';
 
 const CartModal = ({ open, onClose }) => {
   const { cart, removeFromCart, addToCart, cartTotal, clearCart } = useStore();
@@ -26,8 +27,8 @@ const CartModal = ({ open, onClose }) => {
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
 
   const subtotal = cartTotal() || 0;
-  const tax = subtotal * 0.08;
-  const deliveryFee = subtotal > 0 ? 5.99 : 0;
+  const tax = subtotal * TAX_RATE;
+  const deliveryFee = subtotal > 0 ? DELIVERY_FEE : 0;
   const orderTotal = subtotal + tax + deliveryFee;
 
   // Use React Query mutation
