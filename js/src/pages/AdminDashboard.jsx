@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Container,
@@ -21,12 +21,12 @@ import {
   FormControl,
   InputLabel,
   CircularProgress,
-  Box,
   Collapse,
+  Box,
 } from '@mui/material';
 import { Edit, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
-import { GET_ALL_ORDERS } from '@/queries/operations';
+import { GET_ALL_ORDERS, GET_ALL_USERS } from '@/queries/operations';
 
 const AdminDashboard = () => {
   const { data, isLoading, error, refetch } = useQuery({
@@ -34,11 +34,27 @@ const AdminDashboard = () => {
     queryFn: () => fetchGraphQL(GET_ALL_ORDERS),
   });
 
+  const { data: driversData, isLoading: loadingDrivers } = useQuery({
+    queryKey: ['allDeliveryDrivers'],
+    queryFn: () => fetchGraphQL(GET_ALL_USERS),
+  });
+
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orderStatus, setOrderStatus] = useState('');
   const [deliveryPartner, setDeliveryPartner] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const [availableDrivers, setAvailableDrivers] = useState([]);
+
+  // Filter only drivers from users
+  useEffect(() => {
+    if (driversData?.getAllUsers) {
+      const filteredDrivers = driversData.getAllUsers.filter(
+        (user) => user.type === 'DRIVER' || user.type === 'DELIVERY'
+      );
+      setAvailableDrivers(filteredDrivers);
+    }
+  }, [driversData]);
 
   const mutation = useMutation({
     mutationFn: ({ orderId, status, driver }) =>
@@ -50,13 +66,15 @@ const AdminDashboard = () => {
   });
 
   const handleEditClick = (order) => {
+    if (!order) return;
     setSelectedOrder(order);
-    setOrderStatus(order.status);
-    setDeliveryPartner(order.deliveryPartner || '');
+    setOrderStatus(order.status || '');
+    setDeliveryPartner(order.deliveryPartner?.id || '');
     setModalOpen(true);
   };
 
   const handleConfirm = () => {
+    if (!selectedOrder) return;
     mutation.mutate({
       orderId: selectedOrder.id,
       status: orderStatus,
@@ -123,26 +141,24 @@ const AdminDashboard = () => {
                         <Table size="small">
                           <TableHead>
                             <TableRow>
-                              <TableCell>Product Name</TableCell>
-                              <TableCell>Price</TableCell>
+                              <TableCell>Item Name</TableCell>
                               <TableCell>Quantity</TableCell>
-                              <TableCell>Total</TableCell>
+                              <TableCell>Price</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {order.orderItems?.edges?.length > 0 ? (
+                            {order.orderItems?.edges?.length ? (
                               order.orderItems.edges.map(({ node }) => (
                                 <TableRow key={node.product.name}>
                                   <TableCell>{node.product.name}</TableCell>
-                                  <TableCell>${node.product.price.toFixed(2)}</TableCell>
                                   <TableCell>{node.quantity}</TableCell>
-                                  <TableCell>${node.orderAmount.toFixed(2)}</TableCell>
+                                  <TableCell>${node.product.price.toFixed(2)}</TableCell>
                                 </TableRow>
                               ))
                             ) : (
                               <TableRow>
-                                <TableCell colSpan={4} align="center">
-                                  No items found for this order.
+                                <TableCell colSpan={3} align="center">
+                                  No items found
                                 </TableCell>
                               </TableRow>
                             )}
@@ -178,17 +194,26 @@ const AdminDashboard = () => {
             <FormControl fullWidth sx={{ mt: 2 }}>
               <InputLabel>Assign Delivery Partner</InputLabel>
               <Select value={deliveryPartner} onChange={(e) => setDeliveryPartner(e.target.value)}>
-                <MenuItem value="">Select Partner</MenuItem>
-                <MenuItem value="DP_1">John Doe</MenuItem>
-                <MenuItem value="DP_2">Jane Smith</MenuItem>
-                <MenuItem value="DP_3">Mike Johnson</MenuItem>
+                {loadingDrivers ? (
+                  <MenuItem disabled>Loading drivers...</MenuItem>
+                ) : availableDrivers.length > 0 ? (
+                  availableDrivers.map((driver) => (
+                    <MenuItem key={driver.id} value={driver.id}>
+                      {driver.firstName} {driver.lastName} ({driver.email})
+                    </MenuItem>
+                  ))
+                ) : (
+                  <MenuItem disabled>No drivers available</MenuItem>
+                )}
               </Select>
             </FormControl>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setModalOpen(false)}>Cancel</Button>
-          <Button onClick={handleConfirm}>Confirm</Button>
+          <Button onClick={handleConfirm} disabled={mutation.isLoading}>
+            {mutation.isLoading ? <CircularProgress size={24} /> : 'Confirm'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>

@@ -1,10 +1,26 @@
 from app.db.session import SessionLocal
 from app.db.models.user import UserModel, UserType
+from app.graphql.types import User  # Import the GraphQL User type
+
+def convert_user_model_to_user(user: UserModel) -> User:
+    """Convert ORM UserModel to GraphQL User type"""
+    return User(
+        id=user.id,
+        firstName=user.firstName,
+        lastName=user.lastName,
+        email=user.email,
+        mobile=user.mobile,
+        active=user.active,
+        type=user.type.value if isinstance(user.type, UserType) else user.type,
+        referredBy=user.referredBy,
+        referralId=user.referralId,
+    )
 
 def get_all_users():
     db = SessionLocal()
     try:
-        return db.query(UserModel).all()
+        users = db.query(UserModel).all()
+        return [convert_user_model_to_user(user) for user in users]  # Ensure proper conversion
     finally:
         db.close()
 

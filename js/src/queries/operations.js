@@ -86,3 +86,13 @@ query GetAllOrders {
   }
 }
 `;
+
+export const GET_ALL_USERS = `query getAllUsers {
+  getAllUsers {
+    id
+    firstName
+    lastName
+    email
+    type
+  }
+}`;
