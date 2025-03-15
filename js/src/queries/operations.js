@@ -110,3 +110,16 @@ export const UPDATE_ORDER_STATUS = `
     }
   }
 `;
+
+export const GET_DELIVERIES_BY_DRIVER = `
+  query GetDeliveriesByDriver($driverId: String!) {
+    getDeliveriesByDriver(driverId: $driverId) {
+      id
+      orderId
+      schedule
+      pickedUpTime
+      deliveredTime
+      orderStatus
+    }
+  }
+`;

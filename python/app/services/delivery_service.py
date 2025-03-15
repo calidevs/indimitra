@@ -8,24 +8,25 @@ from app.db.models.order import OrderModel
 from app.db.models.user import UserModel
 from app.db.models.delivery import DeliveryStatus
 
-from sqlalchemy.orm import joinedload
-
-def get_delivery_by_driver(driver_id: int) -> List[DeliveryModel]:
+def get_delivery_by_driver(driver_id: str) -> List[DeliveryModel]:
     """
-    Fetch all deliveries assigned to a specific driver
+    Fetch all deliveries assigned to a specific driver along with the order status.
     """
     db = SessionLocal()
     try:
-        return (
+        from sqlalchemy.orm import joinedload
+
+        deliveries = (
             db.query(DeliveryModel)
             .filter(DeliveryModel.driverId == driver_id)
-            .options(
-                joinedload(DeliveryModel.order)
-            )
+            .options(joinedload(DeliveryModel.order))  # ✅ Load related Order
             .all()
         )
+
+        return deliveries  # ✅ Don't modify objects dynamically, let GraphQL handle it
     finally:
         db.close()
+
 
 def assign_delivery(order_id: int, driver_id: int, schedule_time: datetime) -> Optional[DeliveryModel]:
     """

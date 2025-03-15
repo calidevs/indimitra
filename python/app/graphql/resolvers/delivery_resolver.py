@@ -1,12 +1,15 @@
 import strawberry
 from typing import List, Optional
 from datetime import datetime
+from app.db.session import SessionLocal
 
 from app.services.delivery_service import (
     get_delivery_by_driver,
     assign_delivery,
     update_delivery_status
 )
+from app.db.models.delivery import DeliveryStatus
+from app.db.models.order import OrderModel, OrderStatus
 
 # ✅ Define a Strawberry Type for Delivery
 @strawberry.type
@@ -17,6 +20,22 @@ class Delivery:
     schedule: datetime
     pickedUpTime: Optional[datetime] = None
     deliveredTime: Optional[datetime] = None
+    status: DeliveryStatus
+    orderStatus: Optional[str]  # ✅ Add this field to include order status
+
+    @strawberry.field
+    def orderStatus(self) -> Optional[str]:
+        """
+        Fetch the status of the associated order.
+        """
+        db = SessionLocal()
+        try:
+            order = db.query(OrderModel).filter(OrderModel.id == self.orderId).first()
+            return order.status.value if order else None  # ✅ Return order status
+        finally:
+            db.close()
+
+
 
 
 # ✅ Define a Query Resolver
