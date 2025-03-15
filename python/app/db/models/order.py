@@ -8,8 +8,14 @@ import enum
 @strawberry.enum
 class OrderStatus(enum.Enum):
     PENDING = "PENDING"
+    ORDER_PLACED = "ORDER_PLACED"
+    ACCEPTED = "ACCEPTED"
     CANCELLED = "CANCELLED"
+    READY_FOR_DELIVERY = "READY_FOR_DELIVERY"
     COMPLETE = "COMPLETE"
+    SCHEDULED = "SCHEDULED"
+    PICKED_UP = "PICKED_UP"
+    DELIVERED = "DELIVERED"
 
 class OrderModel(Base):
     __tablename__ = 'orders'

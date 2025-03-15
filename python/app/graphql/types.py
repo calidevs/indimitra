@@ -24,3 +24,8 @@ class Order:
 @mapper.type(models.OrderItemModel)
 class OrderItem:
     pass
+
+
+@mapper.type(models.DeliveryModel) 
+class Delivery:
+    pass
