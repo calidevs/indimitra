@@ -8,7 +8,17 @@ import { Amplify } from 'aws-amplify';
 
 Amplify.configure(amplifyConfig);
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 3, // Reduce retries to avoid silent failures
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: 0, // Ensure mutation state updates correctly
+    },
+  },
+});
 
 const root = createRoot(document.getElementById('root'));
 root.render(

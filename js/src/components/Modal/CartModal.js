@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Modal,
   Box,
@@ -11,6 +11,7 @@ import {
   Divider,
   InputLabel,
   FormControl,
+  LoadingSpinner,
 } from '@components';
 import { Close, Remove, Add } from '@mui/icons-material';
 import useStore from '@/store/useStore';
@@ -31,10 +32,11 @@ const CartModal = ({ open, onClose }) => {
   const deliveryFee = subtotal > 0 ? DELIVERY_FEE : 0;
   const orderTotal = subtotal + tax + deliveryFee;
 
-  // Use React Query mutation
-  const mutation = useMutation({
+  const { mutate, isPending } = useMutation({
     mutationKey: ['createOrder'],
-    mutationFn: async (variables) => fetchGraphQL(CREATE_ORDER_MUTATION, variables),
+    mutationFn: async (variables) => {
+      return fetchGraphQL(CREATE_ORDER_MUTATION, variables);
+    },
     onSuccess: (response) => {
       if (response.errors) {
         console.error('Order Placement Error:', response.errors);
@@ -55,8 +57,8 @@ const CartModal = ({ open, onClose }) => {
   const handleOrderPlacement = async () => {
     try {
       const session = await fetchAuthSession();
+      const userId = session?.userSub;
 
-      const userId = session.userSub;
       if (!userId) {
         console.error('User ID not found. Ensure user is authenticated.');
         return;
@@ -73,7 +75,7 @@ const CartModal = ({ open, onClose }) => {
         productItems,
       };
 
-      mutation.mutate(variables);
+      mutate(variables); // ✅ This should trigger the mutation
     } catch (error) {
       console.error('Error fetching user ID:', error);
     }
@@ -171,11 +173,23 @@ const CartModal = ({ open, onClose }) => {
               fullWidth
               variant="contained"
               color="primary"
-              sx={{ mt: 2 }}
+              sx={{
+                mt: 2,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+              }}
               onClick={handleOrderPlacement}
-              disabled={Object.values(cart).length === 0 || mutation.isLoading}
+              disabled={Object.values(cart).length === 0 || isPending} // ✅ Using `isLoading` directly
             >
-              {mutation.isLoading ? 'Placing Order...' : 'Place Order'}
+              {isPending ? (
+                <>
+                  <LoadingSpinner size={20} sx={{ color: 'white' }} /> Placing Order...
+                </>
+              ) : (
+                'Place Order'
+              )}
             </Button>
           </>
         )}
