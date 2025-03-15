@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
+from sqlalchemy.exc import IntegrityError
 
 from app.db.session import SessionLocal
 from app.db.models.delivery import DeliveryModel
@@ -28,30 +29,50 @@ def get_delivery_by_driver(driver_id: int) -> List[DeliveryModel]:
 
 def assign_delivery(order_id: int, driver_id: int, schedule_time: datetime) -> Optional[DeliveryModel]:
     """
-    Assign a delivery partner to an order
+    Assign a delivery partner to an order or update if already assigned.
+    Ensures no duplicate order IDs exist in the delivery table.
+    Handles foreign key violations properly.
     """
     db = SessionLocal()
     try:
+        # ✅ Check if order exists
         order = db.query(OrderModel).filter(OrderModel.id == order_id).first()
         if not order:
-            return None
-        
+            raise ValueError(f"Order with ID {order_id} not found.")
+
+        # ✅ Check if driver exists in users table
         driver = db.query(UserModel).filter(UserModel.id == driver_id, UserModel.type == "DELIVERY").first()
         if not driver:
-            return None
-        
-        delivery = DeliveryModel(
-            orderId=order_id,
-            driverId=driver_id,
-            schedule=schedule_time,
-            pickedUpTime=None,
-            deliveredTime=None,
-            status=DeliveryStatus.SCHEDULED
-        )
-        db.add(delivery)
+            raise ValueError(f"Driver with ID {driver_id} does not exist in users table.")
+
+        # ✅ Check if a delivery already exists for this order
+        delivery = db.query(DeliveryModel).filter(DeliveryModel.orderId == order_id).first()
+
+        if delivery:
+            # ✅ Update the existing delivery record
+            delivery.driverId = driver_id
+            delivery.schedule = schedule_time
+            delivery.status = DeliveryStatus.SCHEDULED
+        else:
+            # ✅ Create a new delivery record if it doesn't exist
+            delivery = DeliveryModel(
+                orderId=order_id,
+                driverId=driver_id,
+                schedule=schedule_time,
+                pickedUpTime=None,
+                deliveredTime=None,
+                status=DeliveryStatus.SCHEDULED
+            )
+            db.add(delivery)
+
         db.commit()
         db.refresh(delivery)
         return delivery
+
+    except IntegrityError:
+        db.rollback()  # ✅ Rollback to prevent corruption
+        raise ValueError("Foreign Key Violation: The driver ID does not exist in users table.")
+
     finally:
         db.close()
 

@@ -48,19 +48,14 @@ class AssignDeliveryInput:
 @strawberry.type
 class DeliveryMutation:
     @strawberry.mutation
-    def assignDelivery(self, input: AssignDeliveryInput) -> Optional[Delivery]:
+    def assignDelivery(orderId: int, driverId: str, scheduleTime: datetime) -> Delivery:
         """
-        Assign a delivery partner to an order
-        
-        Args:
-            input: Contains orderId, driverId, and scheduleTime
-        
-        Returns:
-            Assigned Delivery object or None
+        GraphQL mutation to assign a driver to an order.
         """
-        return assign_delivery(
-            order_id=input.orderId, driver_id=input.driverId, schedule_time=input.scheduleTime
-        )
+        try:
+            return assign_delivery(orderId, driverId, scheduleTime)
+        except ValueError as e:
+            raise ValueError(str(e))
 
     @strawberry.mutation
     def updateDeliveryStatus(
