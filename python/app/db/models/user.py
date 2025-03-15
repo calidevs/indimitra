@@ -1,8 +1,11 @@
+import strawberry
 import enum
 from sqlalchemy import Column, Integer, String, Boolean, Enum
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
+
+@strawberry.enum
 class UserType(enum.Enum):
     ADMIN = "ADMIN"
     USER = "USER"

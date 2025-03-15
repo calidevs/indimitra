@@ -1,8 +1,10 @@
 from sqlalchemy import Column, Integer, DateTime, ForeignKey, Enum, String
 from sqlalchemy.orm import relationship
 from app.db.base import Base
+import strawberry
 import enum
 
+@strawberry.enum
 class DeliveryStatus(enum.Enum):
     SCHEDULED = "SCHEDULED"
     PICKED_UP = "PICKED_UP"

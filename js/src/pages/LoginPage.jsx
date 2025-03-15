@@ -62,10 +62,6 @@ const LoginForm = ({ onSuccess, onError }) => {
           fullWidth
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          sx={{
-            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-            '& .MuiOutlinedInput-root': { fontSize: '0.95rem' },
-          }}
           required
         />
       </Box>
@@ -92,10 +88,6 @@ const LoginForm = ({ onSuccess, onError }) => {
           fullWidth
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          sx={{
-            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-            '& .MuiOutlinedInput-root': { fontSize: '0.95rem' },
-          }}
           required
         />
       </Box>

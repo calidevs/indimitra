@@ -30,4 +30,4 @@ module.exports = merge(common, {
     ],
   },
   plugins: [new ReactRefreshWebpackPlugin()],
-}); 
+});
