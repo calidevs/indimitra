@@ -13,6 +13,7 @@ import DriverDashboard from './pages/DriverDashboard';
 import Orders from './pages/Orders';
 import { useAuthStore } from './store/useStore';
 import { ROUTES } from './config/constants/routes';
+import Profile from './pages/Profile';
 
 const App = () => {
   const { user } = useAuthStore();
@@ -72,6 +73,14 @@ const App = () => {
           element={
             <ProtectedRoute role="user">
               <Orders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.PROFILE}
+          element={
+            <ProtectedRoute>
+              <Profile />
             </ProtectedRoute>
           }
         />
