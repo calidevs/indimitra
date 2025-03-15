@@ -1,6 +1,7 @@
 import strawberry
 from typing import List, Optional
 from strawberry.types import Info
+from datetime import datetime
 
 from app.graphql.types import Order, OrderItem
 from app.services.order_service import (
@@ -11,6 +12,7 @@ from app.services.order_service import (
     cancel_order, 
     update_order_status
 )
+from app.services.delivery_service import assign_delivery
 
 @strawberry.type
 class OrderQuery:
@@ -95,3 +97,44 @@ class OrderMutation:
             The updated order, or None if the order doesn't exist
         """
         return update_order_status(order_id=orderId, status=status) 
+    
+@strawberry.input
+class UpdateOrderStatusInput:
+    orderId: int
+    status: str
+    driverId: Optional[str] = None  # ✅ Only required if status is READY_FOR_DELIVERY
+    scheduleTime: Optional[datetime] = None  # ✅ Only required if status is READY_FOR_DELIVERY
+
+
+@strawberry.type
+class OrderMutation:
+    @strawberry.mutation
+    def updateOrderStatus(self, input: UpdateOrderStatusInput) -> Optional["Order"]:
+        """
+        Update order status and assign delivery if status is READY_FOR_DELIVERY.
+        
+        Args:
+            input: Contains orderId, status, driverId (optional), and scheduleTime (optional).
+        
+        Returns:
+            Updated Order object.
+        """
+
+        # Update order status
+        updated_order = update_order_status(order_id=input.orderId, status=input.status)
+
+        if not updated_order:
+            raise ValueError("Order not found!")
+
+        # ✅ Assign Delivery only if status is READY_FOR_DELIVERY
+        if input.status == "READY_FOR_DELIVERY":
+            if not input.driverId or not input.scheduleTime:
+                raise ValueError("Driver ID and Schedule Time are required for READY_FOR_DELIVERY.")
+
+            assign_delivery(
+                order_id=input.orderId,
+                driver_id=input.driverId,
+                schedule_time=input.scheduleTime
+            )
+
+        return updated_order

@@ -120,31 +120,31 @@ def create_order(user_id: str, address: str, product_items: List[dict]) -> Order
 
 def update_order_status(order_id: int, status: str) -> Optional[OrderModel]:
     """
-    Update the status of an order
-    
+    Update order status and prevent overwriting if already assigned.
+
     Args:
-        order_id: The ID of the order to update
-        status: The new status as a string ("PENDING", "CANCELLED", "COMPLETE")
-        
+        order_id: Order ID to update
+        status: The new status
+
     Returns:
-        The updated order, or None if the order doesn't exist
+        Updated order or None if not found
     """
     db = SessionLocal()
     try:
         order = db.query(OrderModel).filter(OrderModel.id == order_id).first()
-        
         if not order:
             return None
-        
-        # Convert string to enum
-        status_enum = OrderStatus(status)
-        order.status = status_enum
-        db.commit()
-        db.refresh(order)
-        
+
+        # ✅ Only update if status is different
+        if order.status != status:
+            order.status = OrderStatus(status)
+            db.commit()
+            db.refresh(order)
+
         return order
     finally:
         db.close()
+
 
 def cancel_order(order_id: int) -> Optional[OrderModel]:
     """

@@ -17,8 +17,6 @@ class Delivery:
     schedule: datetime
     pickedUpTime: Optional[datetime] = None
     deliveredTime: Optional[datetime] = None
-    photo: Optional[str] = None
-    comments: Optional[str] = None
 
 
 # ✅ Define a Query Resolver
@@ -70,8 +68,6 @@ class DeliveryMutation:
         orderId: int,
         pickedUpTime: Optional[datetime] = None,
         deliveredTime: Optional[datetime] = None,
-        photo: Optional[str] = None,
-        comments: Optional[str] = None
     ) -> Optional[Delivery]:
         """
         Update delivery status (e.g., picked up, delivered)
@@ -90,8 +86,6 @@ class DeliveryMutation:
             order_id=orderId,
             picked_up_time=pickedUpTime,
             delivered_time=deliveredTime,
-            photo=photo,
-            comments=comments
         )
 
 

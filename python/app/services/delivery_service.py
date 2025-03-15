@@ -5,6 +5,7 @@ from app.db.session import SessionLocal
 from app.db.models.delivery import DeliveryModel
 from app.db.models.order import OrderModel
 from app.db.models.user import UserModel
+from app.db.models.delivery import DeliveryStatus
 
 from sqlalchemy.orm import joinedload
 
@@ -45,8 +46,7 @@ def assign_delivery(order_id: int, driver_id: int, schedule_time: datetime) -> O
             schedule=schedule_time,
             pickedUpTime=None,
             deliveredTime=None,
-            photo=None,
-            comments=None,
+            status=DeliveryStatus.SCHEDULED
         )
         db.add(delivery)
         db.commit()
@@ -56,7 +56,7 @@ def assign_delivery(order_id: int, driver_id: int, schedule_time: datetime) -> O
         db.close()
 
 
-def update_delivery_status(order_id: int, picked_up_time: Optional[datetime] = None, delivered_time: Optional[datetime] = None, photo: Optional[str] = None, comments: Optional[str] = None) -> Optional[DeliveryModel]:
+def update_delivery_status(order_id: int, picked_up_time: Optional[datetime] = None, delivered_time: Optional[datetime] = None) -> Optional[DeliveryModel]:
     """
     Update delivery status, including pickup and delivery times
     """
@@ -70,10 +70,6 @@ def update_delivery_status(order_id: int, picked_up_time: Optional[datetime] = N
             delivery.pickedUpTime = picked_up_time
         if delivered_time:
             delivery.deliveredTime = delivered_time
-        if photo:
-            delivery.photo = photo
-        if comments:
-            delivery.comments = comments
         
         db.commit()
         db.refresh(delivery)
