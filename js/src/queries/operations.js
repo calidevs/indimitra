@@ -86,3 +86,40 @@ query GetAllOrders {
   }
 }
 `;
+
+export const GET_ALL_USERS = `query getAllUsers {
+  getAllUsers {
+    id
+    firstName
+    lastName
+    email
+    type
+  }
+}`;
+
+export const UPDATE_ORDER_STATUS = `
+  mutation UpdateOrderStatus($orderId: Int!, $status: String!, $driverId: String, $scheduleTime: DateTime) {
+    updateOrderStatus(input: { 
+      orderId: $orderId, 
+      status: $status, 
+      driverId: $driverId, 
+      scheduleTime: $scheduleTime 
+    }) {
+      id
+      status
+    }
+  }
+`;
+
+export const GET_DELIVERIES_BY_DRIVER = `
+  query GetDeliveriesByDriver($driverId: String!) {
+    getDeliveriesByDriver(driverId: $driverId) {
+      id
+      orderId
+      schedule
+      pickedUpTime
+      deliveredTime
+      orderStatus
+    }
+  }
+`;

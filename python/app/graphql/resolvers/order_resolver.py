@@ -1,8 +1,11 @@
 import strawberry
 from typing import List, Optional
-from strawberry.types import Info
+from datetime import datetime
+from app.db.session import SessionLocal
 
-from app.graphql.types import Order, OrderItem
+from app.graphql.types import Order
+from app.db.models.order import OrderModel, OrderStatus
+from app.db.models.user import UserModel
 from app.services.order_service import (
     get_all_orders, 
     get_orders_by_user, 
@@ -11,40 +14,47 @@ from app.services.order_service import (
     cancel_order, 
     update_order_status
 )
+from app.services.delivery_service import assign_delivery
 
+
+# ✅ Order Queries
 @strawberry.type
 class OrderQuery:
     @strawberry.field
     def getAllOrders(self) -> List[Order]:
-        """Get all orders in the system"""
+        """Fetch all orders"""
         return get_all_orders()
     
     @strawberry.field
     def getOrderById(self, orderId: int) -> Optional[Order]:
-        """
-        Get a specific order by ID
-        
-        Args:
-            orderId: The unique identifier of the order
-        """
+        """Fetch a specific order by ID"""
         return get_order_by_id(order_id=orderId)
     
     @strawberry.field
     def getOrdersByUser(self, userId: str) -> List[Order]:
-        """
-        Get all orders for a specific user
-        
-        Args:
-            userId: The unique identifier of the user
-        """
+        """Fetch all orders placed by a specific user"""
         return get_orders_by_user(user_id=userId)
 
+
+# ✅ Input Type for Order Items
 @strawberry.input
 class OrderItemInput:
-    """Input type for creating order items"""
+    """Defines input format for creating order items"""
     productId: int
     quantity: int
 
+
+# ✅ Input Type for Updating Order Status
+@strawberry.input
+class UpdateOrderStatusInput:
+    """Defines input format for updating order status"""
+    orderId: int
+    status: str
+    driverId: Optional[str] = None  # Required if status = READY_FOR_DELIVERY
+    scheduleTime: Optional[datetime] = None  # Required if status = READY_FOR_DELIVERY
+
+
+# ✅ Order Mutations
 @strawberry.type
 class OrderMutation:
     @strawberry.mutation
@@ -55,43 +65,84 @@ class OrderMutation:
         productItems: List[OrderItemInput]
     ) -> Order:
         """
-        Create a new order with multiple order items
+        Create a new order with multiple order items.
         
         Args:
-            userId: The ID of the user creating the order
-            address: The delivery address
-            productItems: List of product items with product IDs and quantities
+            userId (str): The ID of the user placing the order.
+            address (str): Delivery address.
+            productItems (List[OrderItemInput]): List of items with product IDs and quantities.
         
         Returns:
-            The created order with all its items
+            Order: The newly created order.
         """
-        # Convert OrderItemInput to dict for service function
+        # Convert OrderItemInput to dictionary
         items = [{"product_id": item.productId, "quantity": item.quantity} for item in productItems]
         return create_order(user_id=userId, address=address, product_items=items)
     
     @strawberry.mutation
     def cancelOrderById(self, orderId: int) -> Optional[Order]:
         """
-        Cancel an order by its ID
+        Cancel an order.
         
         Args:
-            orderId: The ID of the order to cancel
+            orderId (int): Order ID to cancel.
         
         Returns:
-            The canceled order, or None if the order doesn't exist
+            Optional[Order]: The canceled order or None if not found.
         """
         return cancel_order(order_id=orderId)
     
     @strawberry.mutation
-    def updateOrderStatus(self, orderId: int, status: str) -> Optional[Order]:
+    def updateOrderStatus(self, input: UpdateOrderStatusInput) -> Optional[Order]:
         """
-        Update the status of an order
+        Update order status and assign a driver if needed.
         
         Args:
-            orderId: The ID of the order to update
-            status: The new status (PENDING, CANCELLED, COMPLETE)
-            
+            input (UpdateOrderStatusInput): Contains orderId, status, driverId, and scheduleTime.
+        
         Returns:
-            The updated order, or None if the order doesn't exist
+            Order: Updated order.
         """
-        return update_order_status(order_id=orderId, status=status) 
+
+        db = SessionLocal()
+        try:
+            # ✅ Check if order exists
+            order = db.query(OrderModel).filter(OrderModel.id == input.orderId).first()
+            if not order:
+                raise ValueError(f"Order with ID {input.orderId} not found.")
+
+            # ✅ Check if status is valid
+            if input.status not in OrderStatus.__members__:
+                raise ValueError(f"Invalid order status: {input.status}. Allowed: {list(OrderStatus.__members__.keys())}")
+
+            # ✅ Assign Delivery only if status is READY_FOR_DELIVERY
+            if input.status == "READY_FOR_DELIVERY":
+                if not input.driverId:
+                    raise ValueError("Driver ID is required for READY_FOR_DELIVERY.")
+                if not input.scheduleTime:
+                    raise ValueError("Schedule time is required for READY_FOR_DELIVERY.")
+
+                # ✅ Check if driver exists
+                driver = db.query(UserModel).filter(UserModel.id == input.driverId, UserModel.type == "DELIVERY").first()
+                if not driver:
+                    raise ValueError(f"Driver with ID {input.driverId} not found or not a delivery driver.")
+
+                # ✅ Assign driver
+                assign_delivery(order_id=input.orderId, driver_id=input.driverId, schedule_time=input.scheduleTime)
+
+            # ✅ Update order status only if changed
+            if order.status != input.status:
+                order.status = OrderStatus[input.status]
+                db.commit()
+                db.refresh(order)
+
+            return order
+
+        except ValueError as e:
+            return str(e)  # Return detailed error message
+
+        except Exception as e:
+            return f"Unexpected error: {str(e)}"  # Catch unexpected errors
+
+        finally:
+            db.close()

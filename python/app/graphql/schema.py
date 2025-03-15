@@ -3,13 +3,16 @@ from app.graphql.types import mapper
 from app.graphql.resolvers.user_resolver import UserQuery, UserMutation
 from app.graphql.resolvers.product_resolver import ProductQuery, ProductMutation
 from app.graphql.resolvers.order_resolver import OrderQuery, OrderMutation
+from app.graphql.resolvers.delivery_resolver import DeliveryQuery, DeliveryMutation
+from app.graphql.resolvers.order_resolver import OrderItemInput 
+
 
 @strawberry.type
-class Query(UserQuery, ProductQuery, OrderQuery):
+class Query(UserQuery, ProductQuery, OrderQuery, DeliveryQuery):
     pass
 
 @strawberry.type
-class Mutation(UserMutation, ProductMutation, OrderMutation):
+class Mutation(UserMutation, ProductMutation, OrderMutation, DeliveryMutation):
     pass
 
 # Finalize the mapper so that all decorated types are registered.
@@ -19,5 +22,6 @@ mapper.finalize()
 schema = strawberry.Schema(
     query=Query,
     mutation=Mutation,
-    types=list(mapper.mapped_types.values())
+    types=[OrderItemInput] + list(mapper.mapped_types.values())
 )
+

@@ -1,12 +1,14 @@
 from app.db.session import SessionLocal
 from app.db.models.user import UserModel, UserType
+from app.graphql.types import User  # Import the GraphQL User type
 
 def get_all_users():
     db = SessionLocal()
     try:
-        return db.query(UserModel).all()
+        return db.query(UserModel).all()  # ✅ No need for manual conversion
     finally:
         db.close()
+
 
 def create_user(firstName: str, lastName: str, email: str, active: bool, user_type: str, referralId: str, mobile: str = None, referredBy: str = None):
     db = SessionLocal()

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Container,
@@ -21,12 +21,12 @@ import {
   FormControl,
   InputLabel,
   CircularProgress,
-  Box,
   Collapse,
+  Box,
 } from '@mui/material';
 import { Edit, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
-import { GET_ALL_ORDERS } from '@/queries/operations';
+import { GET_ALL_ORDERS, GET_ALL_USERS, UPDATE_ORDER_STATUS } from '@/queries/operations';
 
 const AdminDashboard = () => {
   const { data, isLoading, error, refetch } = useQuery({
@@ -34,15 +34,32 @@ const AdminDashboard = () => {
     queryFn: () => fetchGraphQL(GET_ALL_ORDERS),
   });
 
+  const { data: driversData, isLoading: loadingDrivers } = useQuery({
+    queryKey: ['allDeliveryDrivers'],
+    queryFn: () => fetchGraphQL(GET_ALL_USERS),
+  });
+
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orderStatus, setOrderStatus] = useState('');
   const [deliveryPartner, setDeliveryPartner] = useState('');
   const [modalOpen, setModalOpen] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const [availableDrivers, setAvailableDrivers] = useState([]);
+  const [errorMessage, setErrorMessage] = useState('');
+
+  // Filter only drivers from users
+  useEffect(() => {
+    if (driversData?.getAllUsers) {
+      const filteredDrivers = driversData.getAllUsers.filter(
+        (user) => user.type === 'DRIVER' || user.type === 'DELIVERY'
+      );
+      setAvailableDrivers(filteredDrivers);
+    }
+  }, [driversData]);
 
   const mutation = useMutation({
-    mutationFn: ({ orderId, status, driver }) =>
-      fetchGraphQL(UPDATE_ORDER_STATUS, { orderId, status, driver }),
+    mutationFn: ({ orderId, status, driverId, scheduleTime }) =>
+      fetchGraphQL(UPDATE_ORDER_STATUS, { orderId, status, driverId, scheduleTime }), // ✅ Ensure scheduleTime is included
     onSuccess: () => {
       refetch();
       setModalOpen(false);
@@ -50,17 +67,50 @@ const AdminDashboard = () => {
   });
 
   const handleEditClick = (order) => {
+    if (!order) return;
     setSelectedOrder(order);
-    setOrderStatus(order.status);
-    setDeliveryPartner(order.deliveryPartner || '');
+    setOrderStatus(order.status || '');
+    setDeliveryPartner(order.deliveryPartner?.id || '');
     setModalOpen(true);
   };
 
+  const getNextSaturday = () => {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 (Sunday) to 6 (Saturday)
+    const daysUntilNextSaturday = (6 - dayOfWeek + 7) % 7 || 7; // Ensure it's always next Saturday
+    const nextSaturday = new Date(now);
+    nextSaturday.setDate(now.getDate() + daysUntilNextSaturday);
+    nextSaturday.setHours(10, 0, 0, 0); // Default time: 10 AM
+
+    return nextSaturday; // ✅ Return a Date object
+  };
+
   const handleConfirm = () => {
+    if (!selectedOrder) return;
+
+    // ✅ Ensure a driver is selected if status is "READY_FOR_DELIVERY"
+    if (orderStatus === 'READY_FOR_DELIVERY') {
+      if (!deliveryPartner) {
+        setErrorMessage('A delivery partner is required for READY_FOR_DELIVERY.');
+        return;
+      }
+
+      // ✅ Set default scheduleTime to next Saturday if not provided
+      if (!selectedOrder.scheduleTime || isNaN(new Date(selectedOrder.scheduleTime).getTime())) {
+        selectedOrder.scheduleTime = getNextSaturday(); // ✅ Ensure scheduleTime is a Date object
+      } else {
+        selectedOrder.scheduleTime = new Date(selectedOrder.scheduleTime); // ✅ Convert to Date if needed
+      }
+    }
+
+    setErrorMessage(''); // ✅ Clear error when conditions are met
+
     mutation.mutate({
       orderId: selectedOrder.id,
       status: orderStatus,
-      driver: orderStatus === 'READY_FOR_DELIVERY' ? deliveryPartner : null,
+      driverId: orderStatus === 'READY_FOR_DELIVERY' ? deliveryPartner : null,
+      scheduleTime:
+        orderStatus === 'READY_FOR_DELIVERY' ? selectedOrder.scheduleTime.toISOString() : null, // ✅ Convert Date to ISO string safely
     });
   };
 
@@ -71,7 +121,9 @@ const AdminDashboard = () => {
   if (isLoading) return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />;
   if (error) return <Typography color="error">Error fetching orders!</Typography>;
 
-  const orders = data?.getAllOrders || [];
+  const orders = data?.getAllOrders
+    ? [...data.getAllOrders].sort((a, b) => a.id - b.id) // ✅ Sort orders by ID (ascending)
+    : [];
 
   return (
     <Container sx={{ mt: 4 }}>
@@ -123,26 +175,24 @@ const AdminDashboard = () => {
                         <Table size="small">
                           <TableHead>
                             <TableRow>
-                              <TableCell>Product Name</TableCell>
-                              <TableCell>Price</TableCell>
+                              <TableCell>Item Name</TableCell>
                               <TableCell>Quantity</TableCell>
-                              <TableCell>Total</TableCell>
+                              <TableCell>Price</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {order.orderItems?.edges?.length > 0 ? (
+                            {order.orderItems?.edges?.length ? (
                               order.orderItems.edges.map(({ node }) => (
                                 <TableRow key={node.product.name}>
                                   <TableCell>{node.product.name}</TableCell>
-                                  <TableCell>${node.product.price.toFixed(2)}</TableCell>
                                   <TableCell>{node.quantity}</TableCell>
-                                  <TableCell>${node.orderAmount.toFixed(2)}</TableCell>
+                                  <TableCell>${node.product.price.toFixed(2)}</TableCell>
                                 </TableRow>
                               ))
                             ) : (
                               <TableRow>
-                                <TableCell colSpan={4} align="center">
-                                  No items found for this order.
+                                <TableCell colSpan={3} align="center">
+                                  No items found
                                 </TableCell>
                               </TableRow>
                             )}
@@ -175,20 +225,35 @@ const AdminDashboard = () => {
             </Select>
           </FormControl>
           {orderStatus === 'READY_FOR_DELIVERY' && (
-            <FormControl fullWidth sx={{ mt: 2 }}>
+            <FormControl fullWidth sx={{ mt: 2 }} error={!!errorMessage}>
               <InputLabel>Assign Delivery Partner</InputLabel>
               <Select value={deliveryPartner} onChange={(e) => setDeliveryPartner(e.target.value)}>
-                <MenuItem value="">Select Partner</MenuItem>
-                <MenuItem value="DP_1">John Doe</MenuItem>
-                <MenuItem value="DP_2">Jane Smith</MenuItem>
-                <MenuItem value="DP_3">Mike Johnson</MenuItem>
+                {loadingDrivers ? (
+                  <MenuItem disabled>Loading drivers...</MenuItem>
+                ) : availableDrivers.length > 0 ? (
+                  availableDrivers.map((driver) => (
+                    <MenuItem key={driver.id} value={driver.id}>
+                      {driver.firstName} {driver.lastName} ({driver.email})
+                    </MenuItem>
+                  ))
+                ) : (
+                  <MenuItem disabled>No drivers available</MenuItem>
+                )}
               </Select>
+              {errorMessage && <Typography color="error">{errorMessage}</Typography>}
             </FormControl>
           )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setModalOpen(false)}>Cancel</Button>
-          <Button onClick={handleConfirm}>Confirm</Button>
+          <Button
+            onClick={handleConfirm}
+            disabled={
+              mutation.isLoading || (orderStatus === 'READY_FOR_DELIVERY' && !deliveryPartner) // ✅ Disable button if driver not selected
+            }
+          >
+            {mutation.isLoading ? <CircularProgress size={24} /> : 'Confirm'}
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>
