@@ -96,3 +96,17 @@ export const GET_ALL_USERS = `query getAllUsers {
     type
   }
 }`;
+
+export const UPDATE_ORDER_STATUS = `
+  mutation UpdateOrderStatus($orderId: Int!, $status: String!, $driverId: String, $scheduleTime: DateTime) {
+    updateOrderStatus(input: { 
+      orderId: $orderId, 
+      status: $status, 
+      driverId: $driverId, 
+      scheduleTime: $scheduleTime 
+    }) {
+      id
+      status
+    }
+  }
+`;
