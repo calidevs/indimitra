@@ -8,35 +8,7 @@ from app.services.delivery_service import (
     assign_delivery,
     update_delivery_status
 )
-from app.db.models.delivery import DeliveryStatus
-from app.db.models.order import OrderModel, OrderStatus
-
-# ✅ Define a Strawberry Type for Delivery
-@strawberry.type
-class Delivery:
-    id: int
-    orderId: int
-    driverId: int
-    schedule: datetime
-    pickedUpTime: Optional[datetime] = None
-    deliveredTime: Optional[datetime] = None
-    status: DeliveryStatus
-    orderStatus: Optional[str]  # ✅ Add this field to include order status
-
-    @strawberry.field
-    def orderStatus(self) -> Optional[str]:
-        """
-        Fetch the status of the associated order.
-        """
-        db = SessionLocal()
-        try:
-            order = db.query(OrderModel).filter(OrderModel.id == self.orderId).first()
-            return order.status.value if order else None  # ✅ Return order status
-        finally:
-            db.close()
-
-
-
+from app.graphql.types import Delivery
 
 # ✅ Define a Query Resolver
 @strawberry.type
@@ -90,8 +62,6 @@ class DeliveryMutation:
             orderId: ID of the order
             pickedUpTime: Optional timestamp when order was picked up
             deliveredTime: Optional timestamp when order was delivered
-            photo: Optional photo URL of delivered package
-            comments: Optional comments from the driver
         
         Returns:
             Updated Delivery object or None
@@ -102,6 +72,3 @@ class DeliveryMutation:
             delivered_time=deliveredTime,
         )
 
-
-# ✅ Final Schema Setup
-DeliverySchema = strawberry.Schema(query=DeliveryQuery, mutation=DeliveryMutation)
