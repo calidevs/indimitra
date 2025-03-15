@@ -1,16 +1,36 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Container, Typography, Paper, CircularProgress } from '@mui/material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
+import { GET_USER_PROFILE } from '../queries/operations';
 import { useAuthStore } from '@/store/useStore';
+import { fetchAuthSession } from 'aws-amplify/auth';
 
 const Profile = () => {
   const { user } = useAuthStore(); // Get logged-in user details
+  const [userId, setUserId] = useState(null);
+
+  useEffect(() => {
+    const getUserId = async () => {
+      try {
+        const session = await fetchAuthSession();
+        if (session?.tokens?.idToken) {
+          setUserId(session.tokens.idToken.payload.sub);
+        } else {
+          console.warn('No valid session tokens found.');
+        }
+      } catch (error) {
+        console.error('Error fetching user ID:', error);
+      }
+    };
+
+    getUserId();
+  }, []);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['getUserProfile', user?.id],
-    queryFn: () => fetchGraphQL(GET_USER_PROFILE, { userId: user.id }),
-    enabled: !!user?.id, // Only fetch if user is authenticated
+    queryKey: ['getUserProfile', userId],
+    queryFn: () => fetchGraphQL(GET_USER_PROFILE, { userId: userId }),
+    enabled: !!userId, // Only fetch if user is authenticated
   });
 
   if (isLoading) {

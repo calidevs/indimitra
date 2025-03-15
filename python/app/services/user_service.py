@@ -9,6 +9,14 @@ def get_all_users():
     finally:
         db.close()
 
+def get_user_profile(user_id: str):
+    """Fetch user profile by ID"""
+    db = SessionLocal()
+    try:
+        return db.query(UserModel).filter(UserModel.id == user_id).first()
+    finally:
+        db.close()
+
 
 def create_user(firstName: str, lastName: str, email: str, active: bool, user_type: str, referralId: str, mobile: str = None, referredBy: str = None):
     db = SessionLocal()

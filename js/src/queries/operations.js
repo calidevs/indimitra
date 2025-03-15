@@ -123,3 +123,19 @@ export const GET_DELIVERIES_BY_DRIVER = `
     }
   }
 `;
+
+export const GET_USER_PROFILE = `
+  query GetUserProfile($userId: String!) {
+    getUserProfile(userId: $userId) {
+      id
+      firstName
+      lastName
+      email
+      mobile
+      active
+      type
+      referralId
+      referredBy
+    }
+  }
+`;
