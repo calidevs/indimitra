@@ -23,9 +23,9 @@ jobs:
     build:
         runs-on: ubuntu-latest
         # environment: dev
-        # permissions:
-        #     id-token: write  # Grant id-token permission for OIDC
-        #     contents: read 
+        permissions:
+            id-token: write  # Grant id-token permission for OIDC
+            contents: read 
         steps:
             - name: Checkout branch
               uses: actions/checkout@v3
