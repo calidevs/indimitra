@@ -34,6 +34,12 @@ module "rds_postgres" {
   tags = var.tags
 }
 
+module "github_oidc" {
+  source        = "../../modules/oidc"
+  oidc_url      = "https://token.actions.githubusercontent.com"
+  client_id_list = ["sts.amazonaws.com"]
+}
+
 
 # module "ec2_instance" {
 #     source = "../../modules/ec2"
