@@ -22,7 +22,7 @@ env:
 jobs:
     build:
         runs-on: ubuntu-latest
-        environment: dev
+        # environment: dev
         # permissions:
         #     id-token: write  # Grant id-token permission for OIDC
         #     contents: read 
