@@ -36,6 +36,7 @@ jobs:
                 audience: sts.amazonaws.com
                 role-to-assume: arn:aws:iam::783764611086:role/terraform-deploy
                 aws-region: us-east-1
+                id-token: write
 
 
 
