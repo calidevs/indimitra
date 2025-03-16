@@ -1,4 +1,4 @@
-name: Deploy the backend
+name: Test github actions
 
 on:
     push:
