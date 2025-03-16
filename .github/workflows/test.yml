@@ -7,17 +7,17 @@ on:
             - main
             - feature/github-actions
 
-env:
+# env:
 
-    # EC2_USER:  ${{ secrets.EC2_USER }}                  # Replace with your EC2 username
-    # EC2_HOST: ${{ secrets.EC2_HOST }}
-    # SECRET_KEY: ${{ secrets.SECRET_KEY }}
-    # MYSQL_DB: ${{ secrets.MYSQL_DB }}
-    # MYSQL_USER: ${{ secrets.MYSQL_USER }}
-    # MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
-    # MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
-    # DB_ENGINE: ${{ secrets.DB_ENGINE }}
-    # DB_PORT: ${{ secrets.DB_PORT }}
+#     # EC2_USER:  ${{ secrets.EC2_USER }}                  # Replace with your EC2 username
+#     # EC2_HOST: ${{ secrets.EC2_HOST }}
+#     # SECRET_KEY: ${{ secrets.SECRET_KEY }}
+#     # MYSQL_DB: ${{ secrets.MYSQL_DB }}
+#     # MYSQL_USER: ${{ secrets.MYSQL_USER }}
+#     # MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
+#     # MYSQL_HOST: ${{ secrets.MYSQL_HOST }}
+#     # DB_ENGINE: ${{ secrets.DB_ENGINE }}
+#     # DB_PORT: ${{ secrets.DB_PORT }}
 
 jobs:
     build:
