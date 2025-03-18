@@ -1,7 +1,7 @@
 variable "region" {
   description = "The CIDR block for the VPC. Default value is a valid CIDR, but not acceptable by AWS and should be overriden"
   type        = string
-  default     = "us-east-1"
+
 }
 
 #declare ec2 variables
@@ -83,3 +83,25 @@ variable "tags" {
     ManagedBy   = "Terraform"
   }
 }
+
+#declare s3 variables
+variable "bucket" {
+  description = "The name of the S3 bucket"
+  type        = string
+}
+
+variable "s3_tags" {
+  description = "A map of tags to assign to the s3"
+  type        = map(string)
+  default     = {
+    Environment = "dev"
+    Name =""
+  }
+}
+
+# variable "versioning" {
+#   description = "Enable versioning for the S3 bucket"
+#   type        = string
+#   default     = "Enabled"
+  
+# }

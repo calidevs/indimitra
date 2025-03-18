@@ -1,5 +1,5 @@
 #aws region
-region = "us-eas-1"
+region = "us-east-1"
 
 #ec2 variables
 # instance_type = "t2.micro"
@@ -14,4 +14,9 @@ instance_class = "db.t3.micro"
 db_name = "dev_userpool_db"
 username = "postgres"
 
-
+#s3 variables
+bucket = "frontend-indimitra"
+s3_tags = {
+  Environment = "dev"
+  Name = "frontend-indimitra"
+}

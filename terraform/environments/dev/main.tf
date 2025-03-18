@@ -9,13 +9,14 @@ terraform {
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region = var.region
   profile = "Nonprod-devops"
   assume_role {
     role_arn = "arn:aws:iam::783764611086:role/terraform-deploy"
     session_name = "terraform-deploy"
   }
 }
+
 
 module "rds_postgres" {
   source = "../../modules/rds_postgres"
@@ -40,6 +41,12 @@ module "github_oidc" {
   client_id_list = ["sts.amazonaws.com"]
 }
 
+module "frontend_bucket" {
+  source = "../../modules/s3"
+  bucket = var.bucket
+  tags = var.s3_tags
+
+}
 
 # module "ec2_instance" {
 #     source = "../../modules/ec2"
