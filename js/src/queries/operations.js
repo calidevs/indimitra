@@ -139,3 +139,12 @@ export const GET_USER_PROFILE = `
     }
   }
 `;
+
+export const CANCEL_ORDER = `
+  mutation CancelOrder($orderId: Int!) {
+    cancelOrderById(orderId: $orderId) {
+      id
+      status
+    }
+  }
+`;
