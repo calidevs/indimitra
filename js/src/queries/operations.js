@@ -119,7 +119,7 @@ export const GET_DELIVERIES_BY_DRIVER = `
       schedule
       pickedUpTime
       deliveredTime
-      orderStatus
+      status
     }
   }
 `;

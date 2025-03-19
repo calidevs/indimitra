@@ -82,7 +82,10 @@ const Orders = () => {
             <TableBody>
               {orders.map((order) => (
                 <React.Fragment key={order.id}>
-                  <TableRow>
+                  <TableRow
+                    onClick={() => handleExpandClick(order.id)}
+                    sx={{ cursor: 'pointer' }} // Adds a pointer cursor to indicate clickability
+                  >
                     <TableCell>{order.id}</TableCell>
                     <TableCell>{order.address}</TableCell>
                     <TableCell>
@@ -104,7 +107,13 @@ const Orders = () => {
                         : 'N/A'}
                     </TableCell>
                     <TableCell>
-                      <IconButton onClick={() => handleExpandClick(order.id)} size="small">
+                      <IconButton
+                        onClick={(e) => {
+                          e.stopPropagation(); // Prevents the row click from triggering when clicking the icon
+                          handleExpandClick(order.id);
+                        }}
+                        size="small"
+                      >
                         {expandedOrder === order.id ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
                       </IconButton>
                     </TableCell>
