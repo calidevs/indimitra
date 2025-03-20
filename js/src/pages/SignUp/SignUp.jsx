@@ -8,7 +8,7 @@ const SignUp = () => {
   const [isOtpStep, setIsOtpStep] = useState(false);
   const [otpEmail, setOtpEmail] = useState('');
   const [searchParams] = useSearchParams();
-  const referredBy = searchParams.get('referredby') || '';
+  const referredBy = searchParams.get('referredby') || ''; // Read referral code from URL
 
   const handleOtpStep = (email) => {
     setOtpEmail(email);
