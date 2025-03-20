@@ -1,19 +1,19 @@
 version: "3.8"
 
 services:
-  web:
-    build:
-      context: ./js
-      dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./js:/app
-      - /app/node_modules
-    environment:
-      - NODE_ENV=development
-    depends_on:
-      - api
+  # web:
+  #   build:
+  #     context: ./js
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./js:/app
+  #     - /app/node_modules
+  #   environment:
+  #     - NODE_ENV=development
+  #   depends_on:
+  #     - api
 
   api:
     build:
@@ -26,11 +26,15 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - DEBUG=1
-      - PYTHONPATH=/app 
+      - PYTHONPATH=/app
+      - POSTGRES_DB=IndiMart
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - POSTGRES_HOST=$POSTGRES_HOST
+      - POSTGRES_PORT=5432
     depends_on:
-      - db
-      # Override the command: run bootstrap first, then start the server
-      # this will make sure db has records everytime we spin it up
+      db:
+        condition: service_healthy
     command: >
       sh -c "
         cd /app &&
@@ -41,13 +45,27 @@ services:
   db:
     image: postgres:13
     environment:
-      - POSTGRES_DB=indimitra
-      - POSTGRES_USER=indimitra
-      - POSTGRES_PASSWORD=indimitra123
+      - POSTGRES_DB=Indimart
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+      - POSTGRES_PORT=5432
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      
+  nginx:
+      image: nginx:latest
+      ports:
+        - "80:80"
+      volumes:
+        - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      depends_on:
+        - api
 volumes:
   postgres_data:

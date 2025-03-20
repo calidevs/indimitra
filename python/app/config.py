@@ -16,3 +16,4 @@ def get_database_url():
     )
 
 DATABASE_URL = get_database_url()
+print(DATABASE_URL)

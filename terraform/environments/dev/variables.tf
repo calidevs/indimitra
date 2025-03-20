@@ -99,9 +99,11 @@ variable "s3_tags" {
   }
 }
 
-# variable "versioning" {
-#   description = "Enable versioning for the S3 bucket"
-#   type        = string
-#   default     = "Enabled"
-  
-# }
+############################################
+# ECS variables
+############################################
+variable "key_name" {
+  description = "The name of the key pair to use for the instance"
+  type        = string
+}
+

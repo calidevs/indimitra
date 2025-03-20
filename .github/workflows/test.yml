@@ -37,18 +37,13 @@ jobs:
                 role-to-assume: arn:aws:iam::783764611086:role/terraform-deploy
                 aws-region: us-east-1
 
-            - name: Upload file to S3
-              run: |
-                ls -la
-                aws s3 cp docker-compose-local.yml s3://frontend-indimitra/static-files/
 
 
 
-
-
-
-
-
+                    
+            
+                          
+                
 
 
 
