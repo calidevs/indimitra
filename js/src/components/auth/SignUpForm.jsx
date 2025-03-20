@@ -1,12 +1,17 @@
 import React, { useState } from 'react';
 import { signUp } from 'aws-amplify/auth';
-import { Box, TextField, Button, Typography, Alert, LoadingSpinner } from '../index';
+import { Box, TextField, Button, Typography, Alert, InputAdornment } from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LockIcon from '@mui/icons-material/Lock';
+import PersonIcon from '@mui/icons-material/Person';
+import { Link } from 'react-router-dom';
 
-const SignUpForm = ({ onOtpStep, onSuccess, onError }) => {
+const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
   const [email, setEmail] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [password, setPassword] = useState('');
+  const [referralCode, setReferralCode] = useState(referredBy); // Editable if no URL param
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -18,15 +23,23 @@ const SignUpForm = ({ onOtpStep, onSuccess, onError }) => {
     setSuccess('');
 
     try {
-      await signUp({ username: email, password });
+      await signUp({
+        username: email,
+        password,
+        attributes: {
+          given_name: firstName,
+          family_name: lastName,
+          'custom:referred_by': referralCode, // Store referral
+        },
+      });
+
       setSuccess('Signup successful! Enter the OTP sent to your email.');
-      if (onOtpStep) onOtpStep(email); // move to OTP step
+      if (onOtpStep) onOtpStep(email);
       if (onSuccess) onSuccess();
     } catch (err) {
       console.error('Signup error:', err);
-      const errMsg = err.message || 'Signup failed. Please try again.';
-      setError(errMsg);
-      if (onError) onError(errMsg);
+      setError(err.message || 'Signup failed. Please try again.');
+      if (onError) onError(err.message);
     } finally {
       setLoading(false);
     }
@@ -34,98 +47,127 @@ const SignUpForm = ({ onOtpStep, onSuccess, onError }) => {
 
   return (
     <form onSubmit={handleSignUp}>
-      {/* <Typography variant="h4" component="h1" gutterBottom>
-        Sign Up
-      </Typography> */}
-
-      {/* Email Field */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          mt: 2,
-          backgroundColor: '#fff',
-          borderRadius: 2,
-          border: '1px solid #ccc',
-          px: 2,
-          py: 1,
+      {/* First Name */}
+      <TextField
+        label="First Name"
+        variant="outlined"
+        fullWidth
+        value={firstName}
+        onChange={(e) => setFirstName(e.target.value)}
+        required
+        sx={{ mb: 2 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <PersonIcon sx={{ color: '#FF6B6B' }} />
+            </InputAdornment>
+          ),
         }}
-      >
-        <Box sx={{ color: '#FF6B6B', mr: 1 }}>
-          <AccountCircleIcon />
-        </Box>
-        <TextField
-          label="Email"
-          variant="outlined"
-          fullWidth
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          sx={{
-            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-            '& .MuiOutlinedInput-root': { fontSize: '0.95rem' },
-          }}
-          required
-        />
-      </Box>
+      />
 
-      {/* Password Field */}
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          mt: 2,
-          backgroundColor: '#fff',
-          borderRadius: 2,
-          border: '1px solid #ccc',
-          px: 2,
-          py: 1,
+      {/* Last Name */}
+      <TextField
+        label="Last Name"
+        variant="outlined"
+        fullWidth
+        value={lastName}
+        onChange={(e) => setLastName(e.target.value)}
+        required
+        sx={{ mb: 2 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <PersonIcon sx={{ color: '#FF6B6B' }} />
+            </InputAdornment>
+          ),
         }}
-      >
-        <Box sx={{ color: '#FF6B6B', mr: 1 }}>
-          <LockIcon />
-        </Box>
-        <TextField
-          label="Password"
-          variant="outlined"
-          type="password"
-          fullWidth
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          sx={{
-            '& .MuiOutlinedInput-notchedOutline': { border: 'none' },
-            '& .MuiOutlinedInput-root': { fontSize: '0.95rem' },
-          }}
-          required
-        />
-      </Box>
+      />
+
+      {/* Email */}
+      <TextField
+        label="Email"
+        variant="outlined"
+        fullWidth
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        required
+        sx={{ mb: 2 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <AccountCircleIcon sx={{ color: '#FF6B6B' }} />
+            </InputAdornment>
+          ),
+        }}
+      />
+
+      {/* Password */}
+      <TextField
+        label="Password"
+        variant="outlined"
+        type="password"
+        fullWidth
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        required
+        sx={{ mb: 2 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <LockIcon sx={{ color: '#FF6B6B' }} />
+            </InputAdornment>
+          ),
+        }}
+      />
+
+      {/* Referred By (Editable if no URL param) */}
+      <TextField
+        label="Referred By"
+        variant="outlined"
+        fullWidth
+        value={referralCode}
+        onChange={(e) => setReferralCode(e.target.value)}
+        disabled={!!referredBy} // Disable only if referredBy param is present
+        sx={{ mb: 2 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <AccountCircleIcon sx={{ color: '#FF6B6B' }} />
+            </InputAdornment>
+          ),
+        }}
+      />
 
       {error && (
-        <Alert severity="error" sx={{ mt: 2 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
       )}
       {success && (
-        <Alert severity="success" sx={{ mt: 2 }}>
+        <Alert severity="success" sx={{ mb: 2 }}>
           {success}
         </Alert>
       )}
 
+      {/* Sign Up Button */}
       <Button
         type="submit"
         variant="contained"
         color="primary"
         fullWidth
         disabled={loading}
-        sx={{
-          mt: 3,
-          py: 1.2,
-          borderRadius: '8px',
-          textTransform: 'none',
-          fontSize: '1rem',
-        }}
+        sx={{ mt: 1, mb: 2 }}
       >
-        {loading ? <LoadingSpinner size={24} sx={{ color: '#fff' }} /> : 'Sign Up'}
+        {loading ? 'Processing...' : 'Sign Up'}
       </Button>
+
+      {/* Login Link */}
+      <Typography variant="body2" sx={{ textAlign: 'center' }}>
+        Already have an account?{' '}
+        <Link to="/login" style={{ textDecoration: 'underline', color: '#FF6B6B' }}>
+          Login
+        </Link>
+      </Typography>
     </form>
   );
 };

@@ -7,13 +7,16 @@ import Home from './pages/Home';
 import Products from './pages/Products';
 import ProtectedRoute from './config/ProtectedRoute';
 import ForgotPassword from './pages/ForgotPassword';
-import AuthContainer from './components/auth/AuthContainer';
+import AuthContainer from './components/auth/AuthContainer'; // Login Only
+import SignUpPage from './pages/SignUp/SignUp'; // New Page for SignUp & OTP
 import AdminDashboard from './pages/AdminDashboard';
 import DriverDashboard from './pages/DriverDashboard';
 import Orders from './pages/Orders';
+import Profile from './pages/Profile';
+
 import { useAuthStore } from './store/useStore';
 import { ROUTES } from './config/constants/routes';
-import Profile from './pages/Profile';
+import LoginPage from './pages/LoginPage';
 
 const App = () => {
   const { user } = useAuthStore();
@@ -23,7 +26,8 @@ const App = () => {
       <CssBaseline />
       <Routes>
         {/* Public Routes */}
-        <Route path={ROUTES.LOGIN} element={<AuthContainer />} />
+        <Route path={ROUTES.LOGIN} element={<LoginPage />} />
+        <Route path={ROUTES.SIGNUP} element={<SignUpPage />} />
         <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
 
         {/* Protected Routes */}
@@ -51,7 +55,6 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-
         <Route
           path={ROUTES.PRODUCTS}
           element={
@@ -60,14 +63,12 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-
         <Route
           path={ROUTES.HOME}
           element={
             user ? <Navigate to={`/${user.role}`} replace /> : <Navigate to="/login" replace />
           }
         />
-
         <Route
           path={ROUTES.ORDERS}
           element={
