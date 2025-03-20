@@ -4,6 +4,7 @@ import { Box, TextField, Button, Typography, Alert, InputAdornment } from '@mui/
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import PersonIcon from '@mui/icons-material/Person';
+import PhoneIcon from '@mui/icons-material/Phone';
 import { Link } from 'react-router-dom';
 
 const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
@@ -11,6 +12,7 @@ const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState(''); // Optional Phone Number
   const [referralCode, setReferralCode] = useState(referredBy); // Editable if no URL param
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -26,10 +28,13 @@ const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
       await signUp({
         username: email,
         password,
-        attributes: {
-          given_name: firstName,
-          family_name: lastName,
-          'custom:referred_by': referralCode, // Store referral
+        options: {
+          userAttributes: {
+            'custom:given_name': firstName,
+            'custom:family_name': lastName,
+            'custom:phone_number': phone, // Optional
+            'custom:referredBy': referralCode, // Optional
+          },
         },
       });
 
@@ -115,6 +120,23 @@ const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
           startAdornment: (
             <InputAdornment position="start">
               <LockIcon sx={{ color: '#FF6B6B' }} />
+            </InputAdornment>
+          ),
+        }}
+      />
+
+      {/* Phone Number (Optional) */}
+      <TextField
+        label="Phone Number (Optional)"
+        variant="outlined"
+        fullWidth
+        value={phone}
+        onChange={(e) => setPhone(e.target.value)}
+        sx={{ mb: 2 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <PhoneIcon sx={{ color: '#FF6B6B' }} />
             </InputAdornment>
           ),
         }}
