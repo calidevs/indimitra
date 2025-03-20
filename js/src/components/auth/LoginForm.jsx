@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { signIn, fetchUserAttributes } from 'aws-amplify/auth';
+import { signIn, resendSignUpCode, fetchUserAttributes } from 'aws-amplify/auth';
 import { useNavigate } from 'react-router-dom';
-import { Box, TextField, Button, Typography, Alert, LoadingSpinner } from '@components';
+import { Box, TextField, Button, Typography, Alert, CircularProgress } from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import { useAuthStore } from '../../store/useStore';
+import OtpVerificationForm from './OtpVerificationForm';
 
 const LoginForm = ({ onSuccess, onError }) => {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ const LoginForm = ({ onSuccess, onError }) => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isOtpStep, setIsOtpStep] = useState(false); // State to show OTP form
 
   const handleSignIn = async (e) => {
     e.preventDefault();
@@ -22,93 +24,123 @@ const LoginForm = ({ onSuccess, onError }) => {
     try {
       const user = await signIn({ username: email, password });
 
+      console.log('✅ Login successful:', user);
+
+      // Check if user needs to confirm signup
+      if (user.nextStep?.signInStep === 'CONFIRM_SIGN_UP') {
+        console.warn('⚠️ User needs to confirm sign-up. Redirecting to OTP...');
+        await resendSignUpCode({ username: email }); // Resend OTP
+        setIsOtpStep(true); // Switch to OTP verification step
+        return;
+      }
+
       const attributes = await fetchUserAttributes();
       const userRole = attributes['custom:role'].toLowerCase();
 
       setUser({ email: attributes.email, role: userRole });
-
       if (onSuccess) onSuccess();
       navigate(`/${userRole}`);
     } catch (err) {
-      console.error('Login error:', err);
-      const errMsg = err.message || 'Login failed. Please try again.';
-      setError(errMsg);
-      if (onError) onError(errMsg);
+      console.error('❌ Login error:', err);
+
+      if (err.message.includes('User is not confirmed')) {
+        console.warn('⚠️ User not verified. Resending OTP...');
+        try {
+          await resendSignUpCode({ username: email });
+          setIsOtpStep(true); // Show OTP form
+        } catch (resendError) {
+          console.error('❌ Error resending OTP:', resendError);
+          setError(resendError.message || 'Error resending OTP.');
+        }
+      } else {
+        setError(err.message || 'Login failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSignIn}>
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          mt: 2,
-          backgroundColor: '#fff',
-          borderRadius: 2,
-          border: '1px solid #ccc',
-          px: 2,
-          py: 1,
-        }}
-      >
-        <Box sx={{ color: '#FF6B6B', mr: 1 }}>
-          <AccountCircleIcon />
-        </Box>
-        <TextField
-          label="Email"
-          variant="outlined"
-          fullWidth
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
+    <Box>
+      {/* Show OTP form if user is unconfirmed */}
+      {isOtpStep ? (
+        <OtpVerificationForm
+          email={email}
+          onSuccess={() => navigate('/login')} // Redirect after successful verification
+          onComplete={() => setIsOtpStep(false)}
         />
-      </Box>
+      ) : (
+        <form onSubmit={handleSignIn}>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              mt: 2,
+              backgroundColor: '#fff',
+              borderRadius: 2,
+              border: '1px solid #ccc',
+              px: 2,
+              py: 1,
+            }}
+          >
+            <Box sx={{ color: '#FF6B6B', mr: 1 }}>
+              <AccountCircleIcon />
+            </Box>
+            <TextField
+              label="Email"
+              variant="outlined"
+              fullWidth
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </Box>
 
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          mt: 2,
-          backgroundColor: '#fff',
-          borderRadius: 2,
-          border: '1px solid #ccc',
-          px: 2,
-          py: 1,
-        }}
-      >
-        <Box sx={{ color: '#FF6B6B', mr: 1 }}>
-          <LockIcon />
-        </Box>
-        <TextField
-          label="Password"
-          variant="outlined"
-          type="password"
-          fullWidth
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </Box>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              mt: 2,
+              backgroundColor: '#fff',
+              borderRadius: 2,
+              border: '1px solid #ccc',
+              px: 2,
+              py: 1,
+            }}
+          >
+            <Box sx={{ color: '#FF6B6B', mr: 1 }}>
+              <LockIcon />
+            </Box>
+            <TextField
+              label="Password"
+              variant="outlined"
+              type="password"
+              fullWidth
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mt: 2 }}>
-          {error}
-        </Alert>
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            fullWidth
+            disabled={loading}
+            sx={{ mt: 3, py: 1.2, borderRadius: '8px', textTransform: 'none', fontSize: '1rem' }}
+          >
+            {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : 'Login'}
+          </Button>
+        </form>
       )}
-
-      <Button
-        type="submit"
-        variant="contained"
-        color="primary"
-        fullWidth
-        disabled={loading}
-        sx={{ mt: 3, py: 1.2, borderRadius: '8px', textTransform: 'none', fontSize: '1rem' }}
-      >
-        {loading ? <LoadingSpinner size={24} sx={{ color: '#fff' }} /> : 'Login'}
-      </Button>
-    </form>
+    </Box>
   );
 };
 

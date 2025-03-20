@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { signUp } from 'aws-amplify/auth';
+import { signUp, resendSignUpCode } from 'aws-amplify/auth';
 import { Box, TextField, Button, Typography, Alert, InputAdornment } from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LockIcon from '@mui/icons-material/Lock';
@@ -43,8 +43,22 @@ const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
       if (onSuccess) onSuccess();
     } catch (err) {
       console.error('Signup error:', err);
-      setError(err.message || 'Signup failed. Please try again.');
-      if (onError) onError(err.message);
+
+      if (err.message.includes('User already exists')) {
+        console.warn('⚠️ User exists but may not be confirmed.');
+
+        try {
+          // 🔄 Resend OTP if user is unconfirmed
+          await resendSignUpCode({ username: email });
+          setSuccess('OTP resent. Please check your email.');
+          if (onOtpStep) onOtpStep(email);
+        } catch (resendError) {
+          console.error('❌ Error resending OTP:', resendError);
+          setError(resendError.message || 'Error resending OTP.');
+        }
+      } else {
+        setError(err.message || 'Signup failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

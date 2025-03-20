@@ -1,9 +1,10 @@
-// src/components/auth/OtpVerificationForm.jsx
 import React, { useState } from 'react';
 import { confirmSignUp } from 'aws-amplify/auth';
-import { Box, TextField, Button, Typography, Alert, LoadingSpinner } from '../index';
+import { useNavigate } from 'react-router-dom';
+import { Box, TextField, Button, Typography, Alert, CircularProgress } from '@mui/material';
 
-const OtpVerificationForm = ({ email, onComplete, onError, onSuccess }) => {
+const OtpVerificationForm = ({ email, onComplete, onSuccess }) => {
+  const navigate = useNavigate();
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -17,14 +18,17 @@ const OtpVerificationForm = ({ email, onComplete, onError, onSuccess }) => {
 
     try {
       await confirmSignUp({ username: email, confirmationCode: otp });
-      setSuccess('Account verified successfully! You can now log in.');
+
+      setSuccess('Account verified successfully! Redirecting to login...');
+      setTimeout(() => {
+        navigate('/login'); // Redirect to login after OTP verification
+      }, 2000);
+
       if (onSuccess) onSuccess();
-      if (onComplete) onComplete(); // e.g., switch tab to login
+      if (onComplete) onComplete();
     } catch (err) {
       console.error('OTP verification error:', err);
-      const errMsg = err.message || 'OTP verification failed. Please try again.';
-      setError(errMsg);
-      if (onError) onError(errMsg);
+      setError(err.message || 'OTP verification failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -68,7 +72,7 @@ const OtpVerificationForm = ({ email, onComplete, onError, onSuccess }) => {
           fontSize: '1rem',
         }}
       >
-        {loading ? <LoadingSpinner size={24} sx={{ color: '#fff' }} /> : 'Verify OTP'}
+        {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : 'Verify OTP'}
       </Button>
     </form>
   );
