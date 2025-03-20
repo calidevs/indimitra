@@ -1,9 +1,41 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Box, Paper, Divider, Typography } from '@mui/material';
-import { Link } from 'react-router-dom';
+import { LoadingSpinner } from '@components';
+import { Link, useNavigate } from 'react-router-dom';
 import LoginForm from '../components/auth/LoginForm';
+import { fetchAuthSession } from 'aws-amplify/auth';
+import { useAuthStore } from '../store/useStore';
 
 const LoginPage = () => {
+  const navigate = useNavigate();
+  const { user, setUser } = useAuthStore();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkUserSession = async () => {
+      try {
+        const session = await fetchAuthSession();
+        if (session?.tokens?.idToken) {
+          const userId = session.tokens.idToken.payload.sub;
+          const userRole = session.tokens.idToken.payload['custom:role']?.toLowerCase(); // Fetch role
+
+          setUser({ id: userId, role: userRole });
+          navigate(`/${userRole}`); // Redirect to the role-based dashboard
+        } else {
+          console.warn('No valid session tokens found.');
+        }
+      } catch (error) {
+        console.error('Error fetching user session:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUserSession();
+  }, [setUser, navigate]);
+
+  if (loading) return <LoadingSpinner />;
+
   return (
     <Box
       sx={{
