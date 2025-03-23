@@ -8,18 +8,38 @@ import {
   IconButton,
   Tooltip,
   TextField,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Checkbox,
+  FormControlLabel,
+  Stack,
 } from '@mui/material';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import fetchGraphQL from '@/config/graphql/graphqlService';
-import { GET_USER_PROFILE } from '../queries/operations';
+import {
+  GET_ADDRESSES_BY_USER,
+  CREATE_ADDRESS,
+  UPDATE_ADDRESS,
+  DELETE_ADDRESS,
+  GET_USER_PROFILE,
+} from '../queries/operations';
 import { useAuthStore } from '@/store/useStore';
 import { fetchAuthSession } from 'aws-amplify/auth';
 
 const Profile = () => {
-  const { user } = useAuthStore(); // Get logged-in user details
+  const { user } = useAuthStore();
   const [userId, setUserId] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
-  const baseUrl = window.location.origin; // Get the base URL dynamically
+  const baseUrl = window.location.origin;
+
+  const [addresses, setAddresses] = useState([]);
+  const [addressDialogOpen, setAddressDialogOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState(null);
+  const [newAddress, setNewAddress] = useState('');
+  const [isPrimary, setIsPrimary] = useState(false);
 
   useEffect(() => {
     const getUserId = async () => {
@@ -40,9 +60,66 @@ const Profile = () => {
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['getUserProfile', userId],
-    queryFn: () => fetchGraphQL(GET_USER_PROFILE, { userId: userId }),
-    enabled: !!userId, // Only fetch if user is authenticated
+    queryFn: () => fetchGraphQL(GET_USER_PROFILE, { userId }),
+    enabled: !!userId,
   });
+
+  const fetchAddresses = async () => {
+    const res = await fetchGraphQL(GET_ADDRESSES_BY_USER, { userId });
+    setAddresses(res?.getAddressesByUser || []);
+  };
+
+  useEffect(() => {
+    if (userId) {
+      fetchAddresses();
+    }
+  }, [userId]);
+
+  const handleEditAddress = (addr) => {
+    setEditingAddress(addr);
+    setNewAddress(addr.address);
+    setIsPrimary(addr.isPrimary);
+    setAddressDialogOpen(true);
+  };
+
+  const handleDeleteAddress = async (id) => {
+    await fetchGraphQL(DELETE_ADDRESS, { addressId: id });
+    fetchAddresses();
+  };
+
+  const handleSaveAddress = async () => {
+    if (editingAddress) {
+      await fetchGraphQL(UPDATE_ADDRESS, {
+        addressId: parseInt(editingAddress.id),
+        address: newAddress,
+        isPrimary,
+      });
+    } else {
+      await fetchGraphQL(CREATE_ADDRESS, {
+        address: newAddress,
+        userId,
+        isPrimary,
+      });
+    }
+    setAddressDialogOpen(false);
+    setEditingAddress(null);
+    setNewAddress('');
+    setIsPrimary(false);
+    fetchAddresses();
+  };
+
+  const profile = data?.getUserProfile;
+  const referralLink = `${baseUrl}/signup?referredby=${profile?.referralId}`;
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy referral link:', err);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -55,19 +132,6 @@ const Profile = () => {
   if (error) {
     return <Typography color="error">Error fetching profile data</Typography>;
   }
-
-  const profile = data?.getUserProfile;
-  const referralLink = `${baseUrl}/signup?referredby=${profile?.referralId}`;
-
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(referralLink);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000); // Reset success message
-    } catch (err) {
-      console.error('Failed to copy referral link:', err);
-    }
-  };
 
   return (
     <Container maxWidth="sm">
@@ -91,7 +155,6 @@ const Profile = () => {
           <strong>Role:</strong> {profile?.type}
         </Typography>
 
-        {/* Copyable Referral Link */}
         <Typography sx={{ mt: 2, mb: 1 }}>
           <strong>Referral Link:</strong>
         </Typography>
@@ -109,7 +172,70 @@ const Profile = () => {
             ),
           }}
         />
+
+        {/* Address Section */}
+        <Typography variant="h6" sx={{ mt: 4 }}>
+          Addresses
+        </Typography>
+        {addresses.length === 0 ? (
+          <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+            No addresses found.
+          </Typography>
+        ) : (
+          addresses.map((addr) => (
+            <Paper
+              key={addr.id}
+              sx={{ p: 2, mt: 1, display: 'flex', justifyContent: 'space-between' }}
+            >
+              <div>
+                <Typography>{addr.address}</Typography>
+                <Typography variant="caption" color={addr.isPrimary ? 'primary' : 'textSecondary'}>
+                  {addr.isPrimary ? 'Primary Address' : ''}
+                </Typography>
+              </div>
+              <div>
+                <Button size="small" onClick={() => handleEditAddress(addr)}>
+                  Edit
+                </Button>
+                <Button size="small" color="error" onClick={() => handleDeleteAddress(addr.id)}>
+                  Delete
+                </Button>
+              </div>
+            </Paper>
+          ))
+        )}
+
+        <Button variant="contained" sx={{ mt: 2 }} onClick={() => setAddressDialogOpen(true)}>
+          Add Address
+        </Button>
       </Paper>
+
+      {/* Address Dialog */}
+      <Dialog open={addressDialogOpen} onClose={() => setAddressDialogOpen(false)} fullWidth>
+        <DialogTitle>{editingAddress ? 'Edit Address' : 'Add Address'}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} mt={1}>
+            <TextField
+              label="Address"
+              fullWidth
+              value={newAddress}
+              onChange={(e) => setNewAddress(e.target.value)}
+            />
+            <FormControlLabel
+              control={
+                <Checkbox checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} />
+              }
+              label="Set as Primary"
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setAddressDialogOpen(false)}>Cancel</Button>
+          <Button onClick={handleSaveAddress} variant="contained">
+            Save
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };
