@@ -49,7 +49,7 @@ const Header = () => {
 
   // Determine dashboard route based on user role using ROUTES object
   const getDashboardRoute = () => {
-    switch (user?.role) {
+    switch (user?.role?.toUpperCase().trim()) {
       case 'USER':
         return ROUTES.USER;
       case 'DELIVERY':
@@ -106,6 +106,15 @@ const Header = () => {
             >
               Orders
             </MenuItem>
+            <MenuItem
+              onClick={() => {
+                navigate(ROUTES.PROFILE);
+                handleMenuClose();
+              }}
+            >
+              Profile
+            </MenuItem>
+
             <MenuItem
               onClick={() => {
                 handleLogout();

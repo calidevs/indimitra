@@ -5,11 +5,14 @@ import { useAuthStore } from '../store/useStore';
 import { defineUserAbility } from '../ability/defineAbility';
 import { LoadingSpinner } from '../components';
 import Layout from '@/components/layout/Layout';
+import { ROUTES } from '../config/constants/routes';
+import { useLocation } from 'react-router-dom';
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, setUser, ability, setAbility } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -44,6 +47,9 @@ const ProtectedRoute = ({ children, role }) => {
 
   if (loading) return <LoadingSpinner />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  if (location.pathname === ROUTES.PROFILE) return <Layout>{children}</Layout>;
+
   if (!ability || !ability.can('view', role)) return <Navigate to="/not-authorized" replace />;
 
   return <Layout>{children}</Layout>;

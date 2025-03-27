@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Container,
   Typography,
@@ -15,14 +15,22 @@ import {
   IconButton,
   Collapse,
   Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
 } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import fetchGraphQL from '@/config/graphql/graphqlService';
-import { GET_USER_ORDERS } from '@/queries/operations';
+import { GET_USER_ORDERS, CANCEL_ORDER } from '@/queries/operations';
 
 const Orders = () => {
   const [userId, setUserId] = useState(null);
+  const [openModal, setOpenModal] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState(null);
 
   useEffect(() => {
     const getUserId = async () => {
@@ -41,11 +49,35 @@ const Orders = () => {
     getUserId();
   }, []);
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ['userOrders', userId],
     queryFn: () => fetchGraphQL(GET_USER_ORDERS, { userId }),
-    enabled: !!userId, // Only run query when userId is available
+    enabled: !!userId,
   });
+
+  const mutation = useMutation({
+    mutationFn: (orderId) => fetchGraphQL(CANCEL_ORDER, { orderId }),
+    onSuccess: () => {
+      refetch(); // Refresh orders after cancellation
+      handleCloseModal(); // Close modal after successful cancellation
+    },
+  });
+
+  const handleOpenModal = (orderId) => {
+    setSelectedOrderId(orderId);
+    setOpenModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setOpenModal(false);
+    setSelectedOrderId(null);
+  };
+
+  const handleConfirmCancel = () => {
+    if (selectedOrderId) {
+      mutation.mutate(selectedOrderId);
+    }
+  };
 
   const [expandedOrder, setExpandedOrder] = useState(null);
 
@@ -76,13 +108,13 @@ const Orders = () => {
                 <TableCell>Status</TableCell>
                 <TableCell>Total Amount</TableCell>
                 <TableCell>Delivery Date</TableCell>
-                <TableCell />
+                <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {orders.map((order) => (
                 <React.Fragment key={order.id}>
-                  <TableRow>
+                  <TableRow onClick={() => handleExpandClick(order.id)} sx={{ cursor: 'pointer' }}>
                     <TableCell>{order.id}</TableCell>
                     <TableCell>{order.address}</TableCell>
                     <TableCell>
@@ -91,7 +123,7 @@ const Orders = () => {
                         color={
                           order.status === 'COMPLETE'
                             ? 'success'
-                            : order.status === 'PENDING'
+                            : order.status === 'PENDING' || order.status === 'ORDER_PLACED'
                               ? 'warning'
                               : 'error'
                         }
@@ -104,7 +136,24 @@ const Orders = () => {
                         : 'N/A'}
                     </TableCell>
                     <TableCell>
-                      <IconButton onClick={() => handleExpandClick(order.id)} size="small">
+                      <Button
+                        variant="contained"
+                        color="error"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenModal(order.id);
+                        }}
+                        disabled={!['PENDING', 'ORDER_PLACED'].includes(order.status)}
+                      >
+                        Cancel
+                      </Button>
+                      <IconButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleExpandClick(order.id);
+                        }}
+                        size="small"
+                      >
                         {expandedOrder === order.id ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
                       </IconButton>
                     </TableCell>
@@ -156,6 +205,24 @@ const Orders = () => {
           </Table>
         </TableContainer>
       )}
+
+      {/* Confirmation Modal */}
+      <Dialog open={openModal} onClose={handleCloseModal}>
+        <DialogTitle>Cancel Order</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to cancel this order? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseModal} color="primary">
+            No, Keep Order
+          </Button>
+          <Button onClick={handleConfirmCancel} color="error" variant="contained">
+            Yes, Cancel Order
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 };

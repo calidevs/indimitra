@@ -5,6 +5,7 @@ from app.db.session import SessionLocal
 
 from app.graphql.types import Order
 from app.db.models.order import OrderModel, OrderStatus
+from app.db.models.delivery import DeliveryModel
 from app.db.models.user import UserModel
 from app.services.order_service import (
     get_all_orders, 
@@ -95,13 +96,13 @@ class OrderMutation:
     @strawberry.mutation
     def updateOrderStatus(self, input: UpdateOrderStatusInput) -> Optional[Order]:
         """
-        Update order status and assign a driver if needed.
-        
+        Update order status and remove the assigned delivery record if needed.
+
         Args:
-            input (UpdateOrderStatusInput): Contains orderId, status, driverId, and scheduleTime.
-        
+            input: Contains orderId, status, driverId (optional), and scheduleTime (optional).
+
         Returns:
-            Order: Updated order.
+            Updated Order object.
         """
 
         db = SessionLocal()
@@ -115,6 +116,12 @@ class OrderMutation:
             if input.status not in OrderStatus.__members__:
                 raise ValueError(f"Invalid order status: {input.status}. Allowed: {list(OrderStatus.__members__.keys())}")
 
+            # ✅ If order status changes from READY_FOR_DELIVERY → another status, delete the assigned delivery record
+            delivery = db.query(DeliveryModel).filter(DeliveryModel.orderId == input.orderId).first()
+            if delivery and input.status != "READY_FOR_DELIVERY":
+                db.delete(delivery)
+                db.commit() 
+
             # ✅ Assign Delivery only if status is READY_FOR_DELIVERY
             if input.status == "READY_FOR_DELIVERY":
                 if not input.driverId:
@@ -127,7 +134,7 @@ class OrderMutation:
                 if not driver:
                     raise ValueError(f"Driver with ID {input.driverId} not found or not a delivery driver.")
 
-                # ✅ Assign driver
+                # ✅ Assign delivery
                 assign_delivery(order_id=input.orderId, driver_id=input.driverId, schedule_time=input.scheduleTime)
 
             # ✅ Update order status only if changed
@@ -139,10 +146,11 @@ class OrderMutation:
             return order
 
         except ValueError as e:
-            return str(e)  # Return detailed error message
+            return str(e)  # ✅ Return detailed error message
 
         except Exception as e:
-            return f"Unexpected error: {str(e)}"  # Catch unexpected errors
+            return f"Unexpected error: {str(e)}"  # ✅ Catch unexpected errors
 
         finally:
             db.close()
+

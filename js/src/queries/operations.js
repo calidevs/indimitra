@@ -119,7 +119,32 @@ export const GET_DELIVERIES_BY_DRIVER = `
       schedule
       pickedUpTime
       deliveredTime
-      orderStatus
+      status
+    }
+  }
+`;
+
+export const GET_USER_PROFILE = `
+  query GetUserProfile($userId: String!) {
+    getUserProfile(userId: $userId) {
+      id
+      firstName
+      lastName
+      email
+      mobile
+      active
+      type
+      referralId
+      referredBy
+    }
+  }
+`;
+
+export const CANCEL_ORDER = `
+  mutation CancelOrder($orderId: Int!) {
+    cancelOrderById(orderId: $orderId) {
+      id
+      status
     }
   }
 `;
