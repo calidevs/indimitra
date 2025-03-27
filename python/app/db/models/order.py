@@ -12,7 +12,6 @@ class OrderStatus(enum.Enum):
     ACCEPTED = "ACCEPTED"
     CANCELLED = "CANCELLED"
     READY_FOR_DELIVERY = "READY_FOR_DELIVERY"
-    COMPLETE = "COMPLETE"
     SCHEDULED = "SCHEDULED"
     PICKED_UP = "PICKED_UP"
     DELIVERED = "DELIVERED"
@@ -27,6 +26,7 @@ class OrderModel(Base):
     paymentId = Column(Integer, ForeignKey("payment.id"), nullable=True)
     totalAmount = Column(Float, nullable=False)
     deliveryDate = Column(DateTime, nullable=True)
+    deliveryInstructions = Column(String, nullable=True)
     
     # Relationships
     creator = relationship("UserModel", back_populates="orders")
