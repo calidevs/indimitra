@@ -6,6 +6,7 @@ from app.db.models.order import OrderModel, OrderStatus
 from app.db.models.order_item import OrderItemModel
 from app.db.models.product import ProductModel
 from app.db.models.address import AddressModel
+from app.db.models.inventory import InventoryModel
 
 def get_order_by_id(order_id: int) -> Optional[OrderModel]:
     """Get an order by its ID"""
@@ -50,13 +51,14 @@ def get_all_orders() -> List[OrderModel]:
     finally:
         db.close()
 
-def create_order(user_id: int, address_id: int, product_items: List[dict]) -> OrderModel:
+def create_order(user_id: int, address_id: int, store_id: int, product_items: List[dict]) -> OrderModel:
     """
     Create a new order with multiple order items
     
     Args:
         user_id: The ID of the user creating the order
         address_id: The ID of the delivery address
+        store_id: The ID of the store the order is being placed from
         product_items: List of product items [{"product_id": int, "quantity": int}, ...]
     
     Returns:
@@ -76,50 +78,50 @@ def create_order(user_id: int, address_id: int, product_items: List[dict]) -> Or
         # Extract all product IDs from the items
         product_ids = [item["product_id"] for item in product_items]
         
-        # Fetch all products in a single query
-        products = db.query(ProductModel).filter(ProductModel.id.in_(product_ids)).all()
+        # Fetch inventory items for the specific store and products
+        inventory_items = db.query(InventoryModel).filter(
+            InventoryModel.storeId == store_id,
+            InventoryModel.productId.in_(product_ids)
+        ).all()
         
-        # Create a dictionary for quick lookup by product_id
-        products_dict = {product.id: product for product in products}
+        # Create dictionary for quick lookup
+        inventory_dict = {item.productId: item for item in inventory_items}
         
-        # Verify all products exist
+        # Verify all products exist in store's inventory
         for item in product_items:
-            if item["product_id"] not in products_dict:
-                raise ValueError(f"Product with ID {item['product_id']} not found")
+            if item["product_id"] not in inventory_dict:
+                raise ValueError(f"Product with ID {item['product_id']} not found in store inventory")
         
-        # Calculate total amount
+        # Calculate total amount using inventory prices
         total_amount = 0.0
         for item in product_items:
-            product = products_dict[item["product_id"]]
-            total_amount += product.price * item["quantity"]
+            inventory_item = inventory_dict[item["product_id"]]
+            total_amount += inventory_item.price * item["quantity"]
         
         # Create the order
         order = OrderModel(
             createdByUserId=user_id,
             addressId=address_id,
+            storeId=store_id,
             status=OrderStatus.PENDING,
             totalAmount=total_amount,
-            deliveryDate=None  # Will be set when delivery is scheduled
+            deliveryDate=None
         )
         
         db.add(order)
-        db.flush()  # Flush to get the order ID before creating order items
+        db.flush()
         
-        # Create order items
+        # Create order items with inventory prices
         for item in product_items:
-            product = products_dict[item["product_id"]]
+            inventory_item = inventory_dict[item["product_id"]]
             order_item = OrderItemModel(
                 productId=item["product_id"],
                 quantity=item["quantity"],
                 orderId=order.id,
-                orderAmount=product.price * item["quantity"]
+                orderAmount=inventory_item.price * item["quantity"],
+                inventoryId=inventory_item.id
             )
             db.add(order_item)
-        
-        # Update product stock, just putting it out here
-        for item in product_items:
-            product = products_dict[item["product_id"]]
-            product.stock -= item["quantity"]
         
         db.commit()
         db.refresh(order)

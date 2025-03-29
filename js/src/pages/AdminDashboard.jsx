@@ -198,7 +198,7 @@ const AdminDashboard = () => {
                   </TableCell>
                 </TableRow>
                 <TableRow>
-                  <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
+                  <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
                     <Collapse in={expandedOrder === order.id} timeout="auto" unmountOnExit>
                       <Box sx={{ margin: 2 }}>
                         <Typography variant="h6" gutterBottom>
@@ -207,27 +207,44 @@ const AdminDashboard = () => {
                         <Table size="small">
                           <TableHead>
                             <TableRow>
-                              <TableCell>Item Name</TableCell>
-                              <TableCell>Quantity</TableCell>
-                              <TableCell>Price</TableCell>
+                              <TableCell>Product Name</TableCell>
+                              <TableCell align="right">Unit Price</TableCell>
+                              <TableCell align="right">Quantity</TableCell>
+                              <TableCell align="right">Total</TableCell>
                             </TableRow>
                           </TableHead>
                           <TableBody>
-                            {order.orderItems?.edges?.length ? (
-                              order.orderItems.edges.map(({ node }) => (
-                                <TableRow key={node.product.name}>
-                                  <TableCell>{node.product.name}</TableCell>
-                                  <TableCell>{node.quantity}</TableCell>
-                                  <TableCell>${node.product.price.toFixed(2)}</TableCell>
-                                </TableRow>
-                              ))
+                            {order.orderItems?.edges?.length > 0 ? (
+                              order.orderItems.edges.map(({ node }) => {
+                                const price = node.product.inventoryItems?.edges[0]?.node?.price;
+                                return (
+                                  <TableRow key={node.product.id}>
+                                    <TableCell>{node.product.name}</TableCell>
+                                    <TableCell align="right">
+                                      ${price?.toFixed(2) || '0.00'}
+                                    </TableCell>
+                                    <TableCell align="right">{node.quantity}</TableCell>
+                                    <TableCell align="right">
+                                      ${node.orderAmount.toFixed(2)}
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })
                             ) : (
                               <TableRow>
-                                <TableCell colSpan={3} align="center">
-                                  No items found
+                                <TableCell colSpan={4} align="center">
+                                  No items found for this order.
                                 </TableCell>
                               </TableRow>
                             )}
+                            <TableRow>
+                              <TableCell colSpan={3} align="right" sx={{ fontWeight: 'bold' }}>
+                                Order Total:
+                              </TableCell>
+                              <TableCell align="right" sx={{ fontWeight: 'bold' }}>
+                                ${order.totalAmount.toFixed(2)}
+                              </TableCell>
+                            </TableRow>
                           </TableBody>
                         </Table>
                       </Box>

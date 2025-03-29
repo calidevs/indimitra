@@ -21,6 +21,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  TextField,
 } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import { fetchAuthSession } from 'aws-amplify/auth';
@@ -36,6 +37,7 @@ const Orders = () => {
   const [openModal, setOpenModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [expandedOrder, setExpandedOrder] = useState(null);
+  const [cancelMessage, setCancelMessage] = useState('');
 
   // Get zustand state and functions
   const { userProfile, setUserProfile } = useAuthStore();
@@ -117,10 +119,16 @@ const Orders = () => {
   });
 
   const mutation = useMutation({
-    mutationFn: (orderId) => fetchGraphQL(CANCEL_ORDER, { orderId }),
+    mutationFn: (variables) =>
+      fetchGraphQL(CANCEL_ORDER, {
+        orderId: variables.orderId,
+        cancelMessage: variables.cancelMessage,
+        cancelledByUserId: effectiveProfile.id,
+      }),
     onSuccess: () => {
-      refetch(); // Refresh orders after cancellation
-      handleCloseModal(); // Close modal after successful cancellation
+      refetch();
+      handleCloseModal();
+      setCancelMessage('');
     },
   });
 
@@ -135,8 +143,11 @@ const Orders = () => {
   };
 
   const handleConfirmCancel = () => {
-    if (selectedOrderId) {
-      mutation.mutate(selectedOrderId);
+    if (selectedOrderId && cancelMessage.trim()) {
+      mutation.mutate({
+        orderId: selectedOrderId,
+        cancelMessage: cancelMessage.trim(),
+      });
     }
   };
 
@@ -236,24 +247,40 @@ const Orders = () => {
                             <TableHead>
                               <TableRow>
                                 <TableCell>Product Name</TableCell>
-                                <TableCell>Price</TableCell>
+                                <TableCell>Category</TableCell>
+                                <TableCell>Unit Price</TableCell>
                                 <TableCell>Quantity</TableCell>
                                 <TableCell>Total</TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
                               {order.orderItems?.edges?.length > 0 ? (
-                                order.orderItems.edges.map(({ node }) => (
-                                  <TableRow key={node.product.name}>
-                                    <TableCell>{node.product.name}</TableCell>
-                                    <TableCell>${node.product.price.toFixed(2)}</TableCell>
-                                    <TableCell>{node.quantity}</TableCell>
-                                    <TableCell>${node.orderAmount.toFixed(2)}</TableCell>
-                                  </TableRow>
-                                ))
+                                order.orderItems.edges.map(({ node }) => {
+                                  const inventoryItem = node.product.inventoryItems?.edges[0]?.node;
+                                  return (
+                                    <TableRow key={node.product.id}>
+                                      <TableCell>{node.product.name}</TableCell>
+                                      <TableCell>{node.product.category.name}</TableCell>
+                                      <TableCell>
+                                        ${inventoryItem?.price.toFixed(2)}
+                                        {inventoryItem && (
+                                          <Typography
+                                            variant="caption"
+                                            display="block"
+                                            color="textSecondary"
+                                          >
+                                            ({inventoryItem.measurement} {inventoryItem.unit})
+                                          </Typography>
+                                        )}
+                                      </TableCell>
+                                      <TableCell>{node.quantity}</TableCell>
+                                      <TableCell>${node.orderAmount.toFixed(2)}</TableCell>
+                                    </TableRow>
+                                  );
+                                })
                               ) : (
                                 <TableRow>
-                                  <TableCell colSpan={4} align="center">
+                                  <TableCell colSpan={5} align="center">
                                     No items found for this order.
                                   </TableCell>
                                 </TableRow>
@@ -271,19 +298,40 @@ const Orders = () => {
         </TableContainer>
       )}
 
-      {/* Confirmation Modal */}
+      {/* Updated Confirmation Modal */}
       <Dialog open={openModal} onClose={handleCloseModal}>
         <DialogTitle>Cancel Order</DialogTitle>
         <DialogContent>
-          <DialogContentText>
+          <DialogContentText gutterBottom>
             Are you sure you want to cancel this order? This action cannot be undone.
           </DialogContentText>
+          <TextField
+            autoFocus
+            margin="dense"
+            id="cancelMessage"
+            label="Reason for Cancellation"
+            type="text"
+            fullWidth
+            variant="outlined"
+            value={cancelMessage}
+            onChange={(e) => setCancelMessage(e.target.value)}
+            error={openModal && !cancelMessage.trim()}
+            helperText={
+              openModal && !cancelMessage.trim() ? 'Please provide a reason for cancellation' : ''
+            }
+            sx={{ mt: 2 }}
+          />
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCloseModal} color="primary">
             No, Keep Order
           </Button>
-          <Button onClick={handleConfirmCancel} color="error" variant="contained">
+          <Button
+            onClick={handleConfirmCancel}
+            color="error"
+            variant="contained"
+            disabled={!cancelMessage.trim()}
+          >
             Yes, Cancel Order
           </Button>
         </DialogActions>

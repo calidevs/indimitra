@@ -3,6 +3,14 @@ import { defineUserAbility } from '../ability/defineAbility';
 
 const useStore = create((set, get) => ({
   cart: {},
+  selectedStore: null,
+  availableStores: [],
+
+  setAvailableStores: (stores) => set({ availableStores: stores }),
+
+  setSelectedStore: (store) => set({ selectedStore: store }),
+
+  getSelectedStore: () => get().selectedStore,
 
   addToCart: (product) =>
     set((state) => ({

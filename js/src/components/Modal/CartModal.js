@@ -48,7 +48,13 @@ const CartModal = ({ open, onClose }) => {
   const { mutate, isPending } = useMutation({
     mutationKey: ['createOrder'],
     mutationFn: async (variables) => {
-      return fetchGraphQL(CREATE_ORDER_MUTATION, variables);
+      // Get the selected store from your store
+      const selectedStore = useStore.getState().selectedStore;
+
+      return fetchGraphQL(CREATE_ORDER_MUTATION, {
+        ...variables,
+        storeId: selectedStore.id, // Add the store ID
+      });
     },
     onSuccess: (response) => {
       if (response.errors) {
@@ -107,6 +113,22 @@ const CartModal = ({ open, onClose }) => {
     } catch (error) {
       console.error('Error fetching user ID:', error);
     }
+    
+    if (!selectedAddress) {
+      setError('Please select a delivery address');
+      return;
+    }
+
+    const orderItems = Object.values(cart).map((item) => ({
+      productId: item.id,
+      quantity: item.quantity,
+    }));
+
+    mutate({
+      userId: userProfile.id,
+      addressId: selectedAddress,
+      productItems: orderItems,
+    });
   };
 
   return (
