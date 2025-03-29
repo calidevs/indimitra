@@ -69,7 +69,7 @@ const LoginPage = () => {
         <Divider sx={{ backgroundColor: '#ddd', mt: 1, mb: 2 }} />
 
         {/* Login Form */}
-        <Box sx={{ minHeight: 300 }}>
+        <Box sx={{ marginBottom: 2 }}>
           <LoginForm />
         </Box>
 

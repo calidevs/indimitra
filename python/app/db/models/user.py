@@ -1,6 +1,6 @@
 import strawberry
 import enum
-from sqlalchemy import Column, Integer, String, Boolean, Enum
+from sqlalchemy import Column, Integer, String, Boolean, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
@@ -22,7 +22,7 @@ class UserModel(Base):
     mobile = Column(String)
     active = Column(Boolean, default=True)
     type = Column(Enum(UserType), nullable=False)
-    referredBy = Column(String, nullable=True)
+    referredBy = Column(String, ForeignKey("users.id"), nullable=True)
     referralId = Column(String, nullable=False)
     
     # Relationships
@@ -31,3 +31,12 @@ class UserModel(Base):
     addresses = relationship("AddressModel", back_populates="user")
     deliveries = relationship("DeliveryModel", back_populates="driver")
     stores = relationship("StoreModel", back_populates="manager")
+    # Self-referential relationship:
+    # 'referrer' is the user that referred this user.
+    # 'referrals' will contain all users that were referred by this user.
+    referrer = relationship(
+        'UserModel',
+        remote_side=[id],
+        foreign_keys=[referredBy],
+        backref="referrals"
+    )

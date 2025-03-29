@@ -31,9 +31,6 @@ async def get_context(db: Session = Depends(get_db)):
 graphql_app = GraphQLRouter(schema, context_getter=get_context)
 app.include_router(graphql_app, prefix="/graphql")
 
-# Include the REST endpoints under a prefix (e.g., /api)
-app.include_router(product_router, prefix="/api")
-
 # Create tables on startup if they don’t exist yet
 @app.on_event("startup")
 def startup_event():

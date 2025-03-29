@@ -16,6 +16,8 @@ import {
 import { Close, Remove, Add } from '@mui/icons-material';
 import useStore from '@/store/useStore';
 import { useMutation } from '@tanstack/react-query';
+import { GET_ADDRESSES_BY_USER } from '../../queries/operations';
+import { useQuery } from '@tanstack/react-query';
 import fetchGraphQL from '../../config/graphql/graphqlService';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { CREATE_ORDER_MUTATION } from '../../queries/operations';
@@ -26,11 +28,22 @@ const CartModal = ({ open, onClose }) => {
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [selectedAddress, setSelectedAddress] = useState('Home');
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [addresses, setAddresses] = useState([]);
 
   const subtotal = cartTotal() || 0;
   const tax = subtotal * TAX_RATE;
   const deliveryFee = subtotal > 0 ? DELIVERY_FEE : 0;
   const orderTotal = subtotal + tax + deliveryFee;
+
+  useEffect(() => {
+    const getUserId = async () => {
+      const session = await fetchAuthSession();
+      const id = session?.userSub;
+      setUserId(id);
+    };
+    getUserId();
+  }, []);
 
   const { mutate, isPending } = useMutation({
     mutationKey: ['createOrder'],
@@ -51,6 +64,18 @@ const CartModal = ({ open, onClose }) => {
     },
     onError: (error) => {
       console.error('GraphQL Order Placement Failed:', error);
+    },
+  });
+
+  const { data: addressData } = useQuery({
+    queryKey: ['getAddressesByUser', userId],
+    queryFn: () => fetchGraphQL(GET_ADDRESSES_BY_USER, { userId }),
+    enabled: !!userId,
+    onSuccess: (res) => {
+      setAddresses(res?.getAddressesByUser || []);
+      if (res?.getAddressesByUser?.length > 0) {
+        setSelectedAddress(res.getAddressesByUser[0].address); // default
+      }
     },
   });
 
@@ -163,9 +188,11 @@ const CartModal = ({ open, onClose }) => {
             <FormControl fullWidth sx={{ mb: 2 }}>
               <InputLabel>Select Address</InputLabel>
               <Select value={selectedAddress} onChange={(e) => setSelectedAddress(e.target.value)}>
-                <MenuItem value="Home">Home</MenuItem>
-                <MenuItem value="Work">Work</MenuItem>
-                <MenuItem value="Other">Other</MenuItem>
+                {addressData?.getAddressesByUser?.map((addr) => (
+                  <MenuItem key={addr.id} value={addr.address}>
+                    {addr.address} {addr.isPrimary ? '(Primary)' : ''}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
 
