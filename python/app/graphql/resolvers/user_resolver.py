@@ -1,7 +1,7 @@
 import strawberry
 from typing import List, Optional, Union
 from app.graphql.types import User
-from app.services.user_service import get_all_users, create_user, get_user_profile, update_user_type
+from app.services.user_service import get_all_users, create_user, get_user_profile, update_user_type, update_user_mobile
 
 @strawberry.type
 class UserError:
@@ -11,6 +11,12 @@ class UserError:
 @strawberry.type
 class UpdateUserTypeResponse:
     """Response for update user type mutation"""
+    user: Optional[User] = None
+    error: Optional[UserError] = None
+
+@strawberry.type
+class UpdateMobileResponse:
+    """Response for update mobile mutation"""
     user: Optional[User] = None
     error: Optional[UserError] = None
 
@@ -69,3 +75,29 @@ class UserMutation:
             return UpdateUserTypeResponse(user=updated_user)
         except (ValueError, LookupError) as e:
             return UpdateUserTypeResponse(error=UserError(message=str(e)))
+    
+    @strawberry.mutation
+    def updateUserMobile(
+        self,
+        userId: str,  # ID of the user to update
+        newMobile: str  # New mobile number
+    ) -> UpdateMobileResponse:
+        """
+        Update a user's mobile number
+        
+        Args:
+            userId: ID of the user to update
+            newMobile: New mobile number
+            
+        Returns:
+            Response with either the updated user or an error message
+        """
+        try:
+            updated_user = update_user_mobile(userId, newMobile)
+            if not updated_user:
+                return UpdateMobileResponse(
+                    error=UserError(message=f"User with ID {userId} not found")
+                )
+            return UpdateMobileResponse(user=updated_user)
+        except ValueError as e:
+            return UpdateMobileResponse(error=UserError(message=str(e)))
