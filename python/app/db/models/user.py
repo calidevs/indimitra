@@ -17,7 +17,7 @@ class UserModel(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, nullable=False)
-    mobile = Column(String, unique=True, nullable=False)
+    mobile = Column(String, unique=True, nullable=True)
     active = Column(Boolean, default=True)
     type = Column(Enum(UserType), nullable=False)
     referredBy = Column(Integer, ForeignKey("users.id"), nullable=True)
