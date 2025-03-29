@@ -16,8 +16,34 @@ import {
   Checkbox,
   FormControlLabel,
   Stack,
+  Box,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  ListItemButton,
+  Avatar,
+  Divider,
+  Grid,
+  Card,
+  CardContent,
 } from '@mui/material';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import {
+  ContentCopy,
+  Edit,
+  Delete,
+  Add,
+  Person,
+  LocationOn,
+  Settings,
+  Share,
+  Logout,
+  Email,
+  Phone,
+  Badge,
+} from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+import { signOut } from 'aws-amplify/auth';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import {
   GET_ADDRESSES_BY_USER,
@@ -38,7 +64,6 @@ const Profile = () => {
 
   // Local backup state for profile data in case Zustand fails
   const [localUserProfile, setLocalUserProfile] = useState(null);
-
   const [cognitoId, setCognitoId] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const baseUrl = window.location.origin;
@@ -192,7 +217,16 @@ const Profile = () => {
     }
   };
 
-  const referralLink = `${baseUrl}/signup?referredby=${effectiveProfile?.referralId}`;
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      navigate('/login');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
+  const referralLink = `${baseUrl}/signup?referredby=${userProfile?.referralId}`;
 
   const copyToClipboard = async () => {
     try {
@@ -216,107 +250,231 @@ const Profile = () => {
     return <Typography color="error">Error fetching profile data</Typography>;
   }
 
-  return (
-    <Container maxWidth="sm">
-      <Paper elevation={3} sx={{ p: 3, mt: 5, borderRadius: 2 }}>
-        <Typography variant="h5" gutterBottom>
-          User Profile
+  const renderProfileInfo = () => (
+    <Card sx={{ height: '100%' }}>
+      <CardContent>
+        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+          <Avatar
+            sx={{
+              width: 100,
+              height: 100,
+              bgcolor: 'primary.main',
+              fontSize: '2.5rem',
+              mr: 3,
+            }}
+          >
+            {userProfile?.firstName?.[0]}
+          </Avatar>
+          <Box>
+            <Typography variant="h5" gutterBottom>
+              {userProfile?.firstName} {userProfile?.lastName}
+            </Typography>
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                <Email sx={{ mr: 1, color: 'text.secondary' }} />
+                <Typography color="text.secondary">{userProfile?.email}</Typography>
+              </Box>
+              {userProfile?.mobile && (
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <Phone sx={{ mr: 1, color: 'text.secondary' }} />
+                  <Typography color="text.secondary">{userProfile.mobile}</Typography>
+                </Box>
+              )}
+            </Stack>
+          </Box>
+        </Box>
+        <Divider sx={{ my: 2 }} />
+        <Typography variant="h6" gutterBottom>
+          Referral Program
         </Typography>
-        {effectiveProfile ? (
-          <>
-            <Typography>
-              <strong>Name:</strong> {effectiveProfile.firstName} {effectiveProfile.lastName}
-            </Typography>
-            <Typography>
-              <strong>Email:</strong> {effectiveProfile.email}
-            </Typography>
-            <Typography>
-              <strong>Mobile:</strong> {effectiveProfile.mobile || 'N/A'}
-            </Typography>
-            <Typography>
-              <strong>Status:</strong> {effectiveProfile.active ? 'Active' : 'Inactive'}
-            </Typography>
-            <Typography>
-              <strong>Role:</strong> {effectiveProfile.type}
-            </Typography>
-            <Typography>
-              <strong>User ID:</strong> {effectiveProfile.id}
-            </Typography>
-            <Typography>
-              <strong>Cognito ID:</strong> {effectiveProfile.cognitoId || cognitoId}
-            </Typography>
-            <Typography>
-              <strong>Data Source:</strong>{' '}
-              {userProfile ? 'Zustand Store' : localUserProfile ? 'Local State' : 'API Response'}
-            </Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <TextField
+            fullWidth
+            value={referralLink}
+            InputProps={{
+              readOnly: true,
+              endAdornment: (
+                <Tooltip title={copySuccess ? 'Copied!' : 'Copy referral link'}>
+                  <IconButton onClick={copyToClipboard}>
+                    <ContentCopy />
+                  </IconButton>
+                </Tooltip>
+              ),
+            }}
+          />
+          <Button variant="contained" startIcon={<Share />} onClick={copyToClipboard}>
+            Share
+          </Button>
+        </Box>
+      </CardContent>
+    </Card>
+  );
 
-            <Typography sx={{ mt: 2, mb: 1 }}>
-              <strong>Referral Link:</strong>
-            </Typography>
-            <TextField
-              fullWidth
-              value={referralLink}
-              InputProps={{
-                readOnly: true,
-                endAdornment: (
-                  <Tooltip title={copySuccess ? 'Copied!' : 'Copy referral link'}>
-                    <IconButton onClick={copyToClipboard}>
-                      <ContentCopyIcon />
+  const renderAddresses = () => (
+    <Card sx={{ height: '100%' }}>
+      <CardContent>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6">My Addresses</Typography>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => setAddressDialogOpen(true)}
+          >
+            Add Address
+          </Button>
+        </Box>
+        <Grid container spacing={2}>
+          {addresses.map((addr) => (
+            <Grid item xs={12} sm={6} key={addr.id}>
+              <Paper
+                elevation={2}
+                sx={{
+                  p: 2,
+                  position: 'relative',
+                  border: addr.isPrimary ? '2px solid' : '1px solid',
+                  borderColor: addr.isPrimary ? 'primary.main' : 'divider',
+                }}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography variant="subtitle2" color="primary">
+                    {addr.isPrimary ? 'Primary Address' : 'Secondary Address'}
+                  </Typography>
+                  <Box>
+                    <IconButton size="small" onClick={() => handleEditAddress(addr)}>
+                      <Edit fontSize="small" />
                     </IconButton>
-                  </Tooltip>
-                ),
-              }}
-            />
-          </>
-        ) : (
-          <Typography>No profile data available</Typography>
-        )}
+                    <IconButton size="small" onClick={() => handleDeleteAddress(addr.id)}>
+                      <Delete fontSize="small" />
+                    </IconButton>
+                  </Box>
+                </Box>
+                <Typography variant="body2">{addr.address}</Typography>
+              </Paper>
+            </Grid>
+          ))}
+        </Grid>
+      </CardContent>
+    </Card>
+  );
 
-        {/* Address Section */}
-        <Typography variant="h6" sx={{ mt: 4 }}>
-          Addresses
+  const renderSettings = () => (
+    <Card sx={{ height: '100%' }}>
+      <CardContent>
+        <Typography variant="h6" gutterBottom>
+          Account Settings
         </Typography>
-        {!effectiveProfile?.id ? (
-          <CircularProgress size={20} sx={{ mt: 1 }} />
-        ) : addresses.length === 0 ? (
-          <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-            No addresses found.
-          </Typography>
-        ) : (
-          addresses.map((addr) => (
-            <Paper
-              key={addr.id}
-              sx={{ p: 2, mt: 1, display: 'flex', justifyContent: 'space-between' }}
+        <Stack spacing={3}>
+          <Box>
+            <Typography variant="subtitle1" gutterBottom>
+              Notification Preferences
+            </Typography>
+            <FormControlLabel
+              control={<Checkbox defaultChecked />}
+              label="Email notifications for orders"
+            />
+            <FormControlLabel
+              control={<Checkbox defaultChecked />}
+              label="SMS notifications for delivery updates"
+            />
+          </Box>
+          <Box>
+            <Typography variant="subtitle1" gutterBottom>
+              Privacy Settings
+            </Typography>
+            <FormControlLabel
+              control={<Checkbox defaultChecked />}
+              label="Share order history with delivery partners"
+            />
+          </Box>
+          <Box>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<Logout />}
+              onClick={handleLogout}
+              sx={{ mt: 2 }}
             >
-              <div>
-                <Typography>{addr.address}</Typography>
-                <Typography variant="caption" color={addr.isPrimary ? 'primary' : 'textSecondary'}>
-                  {addr.isPrimary ? 'Primary Address' : ''}
-                </Typography>
-              </div>
-              <div>
-                <Button size="small" onClick={() => handleEditAddress(addr)}>
-                  Edit
-                </Button>
-                <Button size="small" color="error" onClick={() => handleDeleteAddress(addr.id)}>
-                  Delete
-                </Button>
-              </div>
-            </Paper>
-          ))
-        )}
+              Logout
+            </Button>
+          </Box>
+        </Stack>
+      </CardContent>
+    </Card>
+  );
 
-        <Button
-          variant="contained"
-          sx={{ mt: 2 }}
-          onClick={() => setAddressDialogOpen(true)}
-          disabled={!effectiveProfile?.id}
-        >
-          Add Address
-        </Button>
-      </Paper>
+  return (
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      <Grid container spacing={3}>
+        {/* Side Navigation */}
+        <Grid item xs={12} md={3}>
+          <Paper elevation={0} sx={{ borderRadius: 2, overflow: 'hidden' }}>
+            <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'white' }}>
+              <Typography variant="h6">My Account</Typography>
+            </Box>
+            <List component="nav" sx={{ pt: 0 }}>
+              <ListItemButton
+                selected={activeTab === 0}
+                onClick={() => setActiveTab(0)}
+                sx={{
+                  borderRadius: '0 0 0 0',
+                  '&.Mui-selected': {
+                    bgcolor: 'rgba(25, 118, 210, 0.08)',
+                    borderLeft: '4px solid',
+                    borderColor: 'primary.main',
+                  },
+                }}
+              >
+                <ListItemIcon>
+                  <Person color={activeTab === 0 ? 'primary' : 'inherit'} />
+                </ListItemIcon>
+                <ListItemText primary="Profile" />
+              </ListItemButton>
+              <ListItemButton
+                selected={activeTab === 1}
+                onClick={() => setActiveTab(1)}
+                sx={{
+                  '&.Mui-selected': {
+                    bgcolor: 'rgba(25, 118, 210, 0.08)',
+                    borderLeft: '4px solid',
+                    borderColor: 'primary.main',
+                  },
+                }}
+              >
+                <ListItemIcon>
+                  <LocationOn color={activeTab === 1 ? 'primary' : 'inherit'} />
+                </ListItemIcon>
+                <ListItemText primary="Addresses" />
+              </ListItemButton>
+              <ListItemButton
+                selected={activeTab === 2}
+                onClick={() => setActiveTab(2)}
+                sx={{
+                  '&.Mui-selected': {
+                    bgcolor: 'rgba(25, 118, 210, 0.08)',
+                    borderLeft: '4px solid',
+                    borderColor: 'primary.main',
+                  },
+                }}
+              >
+                <ListItemIcon>
+                  <Settings color={activeTab === 2 ? 'primary' : 'inherit'} />
+                </ListItemIcon>
+                <ListItemText primary="Settings" />
+              </ListItemButton>
+            </List>
+          </Paper>
+        </Grid>
 
-      {/* Address Dialog */}
+        {/* Content Area */}
+        <Grid item xs={12} md={9}>
+          <Box sx={{ height: '100%' }}>
+            {activeTab === 0 && renderProfileInfo()}
+            {activeTab === 1 && renderAddresses()}
+            {activeTab === 2 && renderSettings()}
+          </Box>
+        </Grid>
+      </Grid>
+
       <Dialog open={addressDialogOpen} onClose={() => setAddressDialogOpen(false)} fullWidth>
         <DialogTitle>{editingAddress ? 'Edit Address' : 'Add Address'}</DialogTitle>
         <DialogContent>
@@ -324,6 +482,8 @@ const Profile = () => {
             <TextField
               label="Address"
               fullWidth
+              multiline
+              rows={3}
               value={newAddress}
               onChange={(e) => setNewAddress(e.target.value)}
             />
@@ -331,7 +491,7 @@ const Profile = () => {
               control={
                 <Checkbox checked={isPrimary} onChange={(e) => setIsPrimary(e.target.checked)} />
               }
-              label="Set as Primary"
+              label="Set as Primary Address"
             />
           </Stack>
         </DialogContent>

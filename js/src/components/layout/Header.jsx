@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
 import {
-  AppBar,
   Box,
   Toolbar,
   Typography,
   IconButton,
   Badge,
-  Fab,
   Menu,
   MenuItem,
-} from '@mui/material';
-import { ShoppingCart, Menu as MenuIcon } from '@mui/icons-material';
+  Tooltip,
+  Button,
+} from '@components';
+import { ShoppingCart, Person } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'aws-amplify/auth';
-import { useTheme } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
 import useStore from '@/store/useStore';
 import { useAuthStore } from '@/store/useStore';
@@ -22,7 +21,6 @@ import CartModal from '../Modal/CartModal';
 
 const Header = () => {
   const navigate = useNavigate();
-  const theme = useTheme();
   const cartCount = useStore((state) => state.cartCount());
   const isMobile = useMediaQuery('(max-width: 600px)');
 
@@ -30,14 +28,8 @@ const Header = () => {
   const [cartOpen, setCartOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
 
-  const handleMenuOpen = (event) => {
-    setMenuAnchor(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setMenuAnchor(null);
-  };
-
+  const handleMenuOpen = (event) => setMenuAnchor(event.currentTarget);
+  const handleMenuClose = () => setMenuAnchor(null);
   const handleLogout = async () => {
     try {
       await signOut();
@@ -64,110 +56,173 @@ const Header = () => {
   };
 
   return (
-    <Box sx={{ flexGrow: 1 }}>
-      {/* Navbar */}
-      <AppBar position="static" sx={{ background: theme.palette.custom.gradientPrimary }}>
-        <Toolbar>
-          {/* App Title (Clickable) - Navigates based on role */}
+    <>
+      <Box
+        sx={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 1100,
+          backgroundColor: '#ffffff',
+          boxShadow: '0 2px 20px rgba(0,0,0,0.08)',
+        }}
+      >
+        <Toolbar
+          sx={{
+            minHeight: { xs: '64px', sm: '70px' },
+            px: { xs: 2, sm: 4 },
+          }}
+        >
+          {/* Logo */}
           <Typography
-            variant="h6"
-            component="div"
-            sx={{ flexGrow: 1, cursor: 'pointer' }}
-            onClick={() => navigate(getDashboardRoute())}
+            variant="h5"
+            onClick={() => navigate('/')}
+            sx={{
+              cursor: 'pointer',
+              fontWeight: 800,
+              fontSize: { xs: '1.5rem', sm: '1.75rem' },
+              background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              letterSpacing: '0.5px',
+            }}
           >
             Indimitra
           </Typography>
 
-          {/* Cart Icon (remains the same) */}
-          <IconButton color="inherit" onClick={() => setCartOpen(true)}>
-            <Badge badgeContent={cartCount} color="error" invisible={cartCount === 0}>
-              <ShoppingCart />
-            </Badge>
-          </IconButton>
+          {/* Spacer */}
+          <Box sx={{ flexGrow: 1 }} />
 
-          {/* Burger Menu Icon (moved to the right) */}
-          <IconButton color="inherit" onClick={handleMenuOpen}>
-            <MenuIcon />
-          </IconButton>
-
-          {/* Dropdown Menu */}
-          <Menu
-            anchorEl={menuAnchor}
-            open={Boolean(menuAnchor)}
-            onClose={handleMenuClose}
-            keepMounted
-            sx={{ mt: 1 }}
-          >
-            {ability.can('view', 'orders') && (
-              <MenuItem
-                onClick={() => {
-                  navigate(ROUTES.ORDERS);
-                  handleMenuClose();
+          {/* Actions */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+            {/* Orders (Desktop) */}
+            {!isMobile && ability.can('view', 'orders') && (
+              <Button
+                onClick={() => navigate(ROUTES.ORDERS)}
+                sx={{
+                  color: '#2A2F4F',
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  fontWeight: 500,
+                  px: 2,
+                  '&:hover': {
+                    backgroundColor: 'rgba(42, 47, 79, 0.08)',
+                  },
                 }}
               >
                 Orders
-              </MenuItem>
+              </Button>
             )}
 
-            {ability.can('view', 'userStatus') && (
-              <MenuItem
-                onClick={() => {
-                  navigate(ROUTES.UPDATE_USER_ROLE);
-                  handleMenuClose();
+            {/* Cart */}
+            <Tooltip title="Cart">
+              <IconButton
+                onClick={() => setCartOpen(true)}
+                sx={{
+                  background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+                  color: 'white',
+                  '&:hover': {
+                    background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
+                  },
                 }}
               >
-                Change User Status
-              </MenuItem>
-            )}
+                <Badge badgeContent={cartCount}>
+                  <ShoppingCart />
+                </Badge>
+              </IconButton>
+            </Tooltip>
 
-            <MenuItem
-              onClick={() => {
-                navigate(ROUTES.PROFILE);
-                handleMenuClose();
-              }}
-            >
-              Profile
-            </MenuItem>
-
-            <MenuItem
-              onClick={() => {
-                handleLogout();
-                handleMenuClose();
-              }}
-            >
-              Logout
-            </MenuItem>
-          </Menu>
+            {/* Profile */}
+            <Tooltip title="Profile">
+              <IconButton
+                onClick={handleMenuOpen}
+                sx={{
+                  background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+                  color: 'white',
+                  '&:hover': {
+                    background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
+                  },
+                }}
+              >
+                <Person />
+              </IconButton>
+            </Tooltip>
+          </Box>
         </Toolbar>
-      </AppBar>
+      </Box>
 
-      {/* Floating Cart Button for Mobile */}
-      {isMobile && (
-        <Fab
-          color="primary"
-          aria-label="cart"
-          onClick={() => setCartOpen(true)}
+      {/* Profile Menu */}
+      <Menu
+        anchorEl={menuAnchor}
+        open={Boolean(menuAnchor)}
+        onClose={handleMenuClose}
+        PaperProps={{
+          elevation: 3,
+          sx: {
+            mt: 2,
+            minWidth: '200px',
+            borderRadius: '12px',
+            overflow: 'hidden',
+          },
+        }}
+      >
+        {/* Orders (Mobile) */}
+        {isMobile && ability.can('view', 'orders') && (
+          <MenuItem
+            onClick={() => {
+              navigate(ROUTES.ORDERS);
+              handleMenuClose();
+            }}
+            sx={{
+              py: 1.5,
+              px: 3,
+              '&:hover': {
+                backgroundColor: 'rgba(145, 127, 179, 0.1)',
+              },
+            }}
+          >
+            <Typography variant="body1">Orders</Typography>
+          </MenuItem>
+        )}
+        <MenuItem
+          onClick={() => {
+            navigate(ROUTES.PROFILE);
+            handleMenuClose();
+          }}
           sx={{
-            position: 'fixed',
-            bottom: 16,
-            right: 16,
-            background: theme.palette.custom.gradientPrimary,
-            color: 'white',
-            boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.2)',
+            py: 1.5,
+            px: 3,
             '&:hover': {
-              opacity: 0.9,
+              backgroundColor: 'rgba(145, 127, 179, 0.1)',
             },
           }}
         >
-          <Badge badgeContent={cartCount} color="error" invisible={cartCount === 0}>
-            <ShoppingCart />
-          </Badge>
-        </Fab>
-      )}
+          <Typography variant="body1">Profile</Typography>
+        </MenuItem>
+        <MenuItem
+          onClick={() => {
+            handleLogout();
+            handleMenuClose();
+          }}
+          sx={{
+            py: 1.5,
+            px: 3,
+            color: '#FF5757',
+            '&:hover': {
+              backgroundColor: 'rgba(255, 87, 87, 0.1)',
+            },
+          }}
+        >
+          <Typography variant="body1">Logout</Typography>
+        </MenuItem>
+      </Menu>
 
-      {/* Cart Modal */}
+      {/* Spacer for fixed header */}
+      <Box sx={{ height: { xs: '64px', sm: '70px' } }} />
+
       <CartModal open={cartOpen} onClose={() => setCartOpen(false)} />
-    </Box>
+    </>
   );
 };
 

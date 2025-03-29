@@ -34,3 +34,7 @@ export { default as DialogTitle } from './Dialog/DialogTitle';
 export { default as DialogContent } from './Dialog/DialogContent';
 export { default as DialogActions } from './Dialog/DialogActions';
 export { default as Snackbar } from './Snackbar/Snackbar';
+export { default as Toolbar } from './Toolbar/Toolbar';
+export { default as Tooltip } from './Tooltip/Tooltip';
+export { default as Badge } from './Badge/Badge';
+export { default as Menu } from './Menu/Menu';

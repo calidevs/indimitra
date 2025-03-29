@@ -88,32 +88,6 @@ const CartModal = ({ open, onClose }) => {
   });
 
   const handleOrderPlacement = async () => {
-    try {
-      const userId = userProfile.id;
-
-      if (!userId) {
-        console.error('User ID not found. Ensure user is authenticated.');
-        return;
-      }
-
-      const productItems = Object.values(cart).map((item) => ({
-        productId: item.id,
-        quantity: item.quantity,
-      }));
-
-      // Update variable to use addressId instead of address string
-      const variables = {
-        userId,
-        addressId: selectedAddress,
-        productItems,
-        deliveryInstructions,
-      };
-
-      mutate(variables); // Trigger the mutation
-    } catch (error) {
-      console.error('Error fetching user ID:', error);
-    }
-    
     if (!selectedAddress) {
       setError('Please select a delivery address');
       return;

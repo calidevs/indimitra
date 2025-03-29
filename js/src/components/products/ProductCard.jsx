@@ -8,46 +8,129 @@ import {
   Rating,
   Box,
   IconButton,
-} from '@components';
-import { Add, Remove } from '@mui/icons-material';
-import { PLACEHOLDER_IMAGE } from '@/assets/images';
+  Chip,
+  Tooltip,
+} from '@mui/material';
+import { Add, Remove, ShoppingCart } from '@mui/icons-material';
+import { PLACEHOLDER_IMAGE, getRandomGroceryImage } from '@/assets/images';
 import { useTheme } from '@mui/material/styles';
 import useStore from '@/store/useStore';
 
 const ProductCard = ({ product }) => {
   const theme = useTheme();
   const { cart, addToCart, removeFromCart } = useStore();
-  const { id, name, price, description, image, rating = 4 } = product;
+  const { id, name, price, description, image, rating = 4, categoryName } = product;
   const quantity = cart[id]?.quantity || 0;
 
+  // Use product image if available, otherwise use category-based Indian grocery image
+  const productImage =
+    image || (categoryName ? getRandomGroceryImage(categoryName) : PLACEHOLDER_IMAGE);
+
   return (
-    <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: '12px' }}>
+    <Card
+      sx={{
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        borderRadius: '16px',
+        overflow: 'hidden',
+        transition: 'transform 0.3s, box-shadow 0.3s',
+        position: 'relative',
+        border: '1px solid',
+        borderColor: 'divider',
+      }}
+    >
+      {/* Category Chip */}
+      {categoryName && (
+        <Chip
+          label={categoryName}
+          size="small"
+          sx={{
+            position: 'absolute',
+            top: 12,
+            right: 12,
+            zIndex: 1,
+            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+            fontWeight: 600,
+            fontSize: '0.7rem',
+            borderRadius: '12px',
+            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+          }}
+        />
+      )}
+
       <CardMedia
         component="img"
-        height="160"
-        image={image || PLACEHOLDER_IMAGE}
+        height="140"
+        image={productImage}
         alt={name}
-        sx={{ objectFit: 'cover', borderTopLeftRadius: '12px', borderTopRightRadius: '12px' }}
+        sx={{
+          objectFit: 'cover',
+          transition: 'transform 0.5s',
+          '&:hover': {
+            transform: 'scale(1.05)',
+          },
+        }}
       />
-      <CardContent sx={{ flexGrow: 1 }}>
-        <Typography gutterBottom variant="h6" sx={{ fontWeight: 600 }}>
+
+      <CardContent sx={{ flexGrow: 1, p: 2.5 }}>
+        <Typography
+          gutterBottom
+          variant="h6"
+          sx={{
+            fontWeight: 600,
+            fontSize: '1.1rem',
+            mb: 1,
+            lineHeight: 1.3,
+          }}
+        >
           {name}
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Rating value={rating} readOnly precision={0.5} size="small" />
-          <Typography variant="body2" color="text.secondary">
-            ({rating})
+
+        {description && (
+          <Typography
+            variant="body2"
+            color="text.secondary"
+            sx={{
+              mb: 1.5,
+              display: '-webkit-box',
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              fontSize: '0.85rem',
+              lineHeight: 1.4,
+            }}
+          >
+            {description}
+          </Typography>
+        )}
+
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            mt: 'auto',
+          }}
+        >
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              color: 'primary.main',
+              fontSize: '1.2rem',
+            }}
+          >
+            ${price.toFixed(2)}
           </Typography>
         </Box>
-        <Typography variant="h6" sx={{ fontWeight: 700, mt: 1 }}>
-          ${price.toFixed(2)}
-        </Typography>
       </CardContent>
 
       <CardActions
         sx={{
           justifyContent: 'center',
-          pb: 2,
+          pb: 2.5,
+          px: 2.5,
         }}
       >
         {quantity > 0 ? (
@@ -56,115 +139,78 @@ const ProductCard = ({ product }) => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: '75%',
-              minWidth: '120px',
-              maxWidth: '250px',
-              height: '50px',
-              borderRadius: '50px',
-              background:
-                'linear-gradient(white, white) padding-box, linear-gradient(45deg, #FF6B6B, #FFA07A) border-box',
-              border: '2px solid transparent',
+              width: '100%',
+              height: '48px',
+              borderRadius: '24px',
+              background: 'linear-gradient(45deg, #FF6B6B, #FFA07A)',
               p: 1,
-              '@media (max-width: 600px)': {
-                height: '48px',
-                width: '80%',
-              },
+              boxShadow: '0 4px 10px rgba(255, 107, 107, 0.3)',
             }}
           >
-            {/* Minus Button Section */}
-            <Box
-              sx={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+            {/* Minus Button */}
+            <Tooltip title="Remove from cart">
               <IconButton
                 onClick={() => removeFromCart(id)}
                 sx={{
-                  color: '#FF6B6B',
-                  p: 0,
-                  fontSize: '20px',
-                  '&:hover': { backgroundColor: 'transparent' },
+                  color: 'white',
+                  p: 0.5,
+                  '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
                 }}
               >
-                <Remove fontSize="inherit" />
+                <Remove fontSize="small" />
               </IconButton>
-            </Box>
+            </Tooltip>
 
-            {/* Quantity Section */}
-            <Box
+            {/* Quantity */}
+            <Typography
+              variant="h6"
               sx={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderRight: '2px solid #FF6B6B',
-                borderLeft: '2px solid #FF6B6B',
+                color: 'white',
+                fontWeight: 600,
+                mx: 2,
+                minWidth: '30px',
+                textAlign: 'center',
               }}
             >
-              <Typography
-                variant="h6"
-                sx={{
-                  color: '#FF6B6B',
-                  fontWeight: 600,
-                  fontSize: '18px',
-                  '@media (max-width: 600px)': { fontSize: '20px' },
-                }}
-              >
-                {quantity}
-              </Typography>
-            </Box>
+              {quantity}
+            </Typography>
 
-            {/* Plus Button Section */}
-            <Box
-              sx={{
-                flex: 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
+            {/* Plus Button */}
+            <Tooltip title="Add to cart">
               <IconButton
                 onClick={() => addToCart(product)}
                 sx={{
-                  color: '#FF6B6B',
-                  p: 0,
-                  fontSize: '20px',
-                  '&:hover': { backgroundColor: 'transparent' },
+                  color: 'white',
+                  p: 0.5,
+                  '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
                 }}
               >
-                <Add fontSize="inherit" />
+                <Add fontSize="small" />
               </IconButton>
-            </Box>
+            </Tooltip>
           </Box>
         ) : (
           <Button
-            size="small"
+            size="medium"
             sx={{
-              width: '75%',
-              minWidth: '120px',
-              maxWidth: '250px',
-              height: '42px',
+              width: '100%',
+              height: '48px',
               background: 'linear-gradient(45deg, #FF6B6B, #FFA07A)',
               color: 'white',
-              borderRadius: '50px',
+              borderRadius: '24px',
               fontWeight: 600,
-              fontSize: '16px',
-              '&:hover': { opacity: 0.9 },
-              boxShadow: '0px 4px 10px rgba(0, 0, 0, 0.1)',
-              '@media (max-width: 600px)': {
-                height: '48px',
-                width: '80%',
-                fontSize: '18px',
+              fontSize: '0.95rem',
+              textTransform: 'none',
+              boxShadow: '0 4px 10px rgba(255, 107, 107, 0.3)',
+              '&:hover': {
+                background: 'linear-gradient(45deg, #FF5252, #FF8C69)',
+                boxShadow: '0 6px 15px rgba(255, 107, 107, 0.4)',
               },
             }}
-            fullWidth
-            variant="contained"
+            startIcon={<ShoppingCart />}
             onClick={() => addToCart(product)}
           >
-            Add
+            Add to Cart
           </Button>
         )}
       </CardActions>

@@ -64,7 +64,8 @@ const Products = () => {
         name: node.product.name,
         price: node.price,
         description: node.product.description,
-        categoryId: node.product.categoryId,
+        categoryId: node.product.category.id,
+        categoryName: node.product.category.name,
         inventoryId: node.id,
         quantity: node.quantity,
         measurement: node.measurement,
@@ -123,7 +124,7 @@ const Products = () => {
         sx={{ mb: 3 }}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search by product name or category (minimum 3 characters)..."
+        placeholder="Search by product name or category..."
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
