@@ -135,7 +135,6 @@ export const GET_USER_PROFILE = `
       active
       type
       referralId
-      referredBy
     }
   }
 `;

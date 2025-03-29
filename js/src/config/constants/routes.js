@@ -8,4 +8,5 @@ export const ROUTES = {
   HOME: '/',
   ORDERS: '/orders',
   PROFILE: '/profile',
+  SIGNUP: '/signup',
 };

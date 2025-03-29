@@ -1,6 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Container, Typography, Paper, CircularProgress } from '@mui/material';
+import {
+  Container,
+  Typography,
+  Paper,
+  CircularProgress,
+  IconButton,
+  Tooltip,
+  TextField,
+} from '@mui/material';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_USER_PROFILE } from '../queries/operations';
 import { useAuthStore } from '@/store/useStore';
@@ -9,6 +18,8 @@ import { fetchAuthSession } from 'aws-amplify/auth';
 const Profile = () => {
   const { user } = useAuthStore(); // Get logged-in user details
   const [userId, setUserId] = useState(null);
+  const [copySuccess, setCopySuccess] = useState(false);
+  const baseUrl = window.location.origin; // Get the base URL dynamically
 
   useEffect(() => {
     const getUserId = async () => {
@@ -46,6 +57,17 @@ const Profile = () => {
   }
 
   const profile = data?.getUserProfile;
+  const referralLink = `${baseUrl}/signup?referredby=${profile?.referralId}`;
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(referralLink);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000); // Reset success message
+    } catch (err) {
+      console.error('Failed to copy referral link:', err);
+    }
+  };
 
   return (
     <Container maxWidth="sm">
@@ -68,12 +90,25 @@ const Profile = () => {
         <Typography>
           <strong>Role:</strong> {profile?.type}
         </Typography>
-        <Typography>
-          <strong>Referral ID:</strong> {profile?.referralId}
+
+        {/* Copyable Referral Link */}
+        <Typography sx={{ mt: 2, mb: 1 }}>
+          <strong>Referral Link:</strong>
         </Typography>
-        <Typography>
-          <strong>Referred By:</strong> {profile?.referredBy || 'N/A'}
-        </Typography>
+        <TextField
+          fullWidth
+          value={referralLink}
+          InputProps={{
+            readOnly: true,
+            endAdornment: (
+              <Tooltip title={copySuccess ? 'Copied!' : 'Copy referral link'}>
+                <IconButton onClick={copyToClipboard}>
+                  <ContentCopyIcon />
+                </IconButton>
+              </Tooltip>
+            ),
+          }}
+        />
       </Paper>
     </Container>
   );

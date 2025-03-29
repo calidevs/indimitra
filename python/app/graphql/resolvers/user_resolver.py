@@ -7,13 +7,22 @@ from app.services.user_service import get_all_users, create_user, get_user_profi
 class UserQuery:
     @strawberry.field
     def getAllUsers(self) -> List[User]:
-        # Returns a list of UserModel instances auto‑converted to GraphQL User type.
+        """Returns a list of all users"""
         return get_all_users()
     
     @strawberry.field
     def getUserProfile(self, userId: str) -> Optional[User]:
-        """Fetch a single user's profile"""
-        return get_user_profile(userId)  # ✅ Call service to get user by ID
+        """Fetch a single user's profile without exposing referredBy"""
+        user_data = get_user_profile(userId)
+
+        if user_data:
+            # Ensure 'referredBy' is present with a default None value
+            user_data.setdefault("referredBy", None)
+
+            return User(**user_data)  # Create a User instance from sanitized data
+        
+        return None
+
 
 @strawberry.type
 class UserMutation:

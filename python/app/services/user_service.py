@@ -10,12 +10,19 @@ def get_all_users():
         db.close()
 
 def get_user_profile(user_id: str):
-    """Fetch user profile by ID"""
+    """Fetch user profile by ID without exposing SQLAlchemy metadata"""
     db = SessionLocal()
     try:
-        return db.query(UserModel).filter(UserModel.id == user_id).first()
+        user = db.query(UserModel).filter(UserModel.id == user_id).first()
+        if user:
+            # Convert SQLAlchemy model instance to dictionary and remove `_sa_instance_state`
+            user_dict = {key: value for key, value in user.__dict__.items() if key != "_sa_instance_state"}
+            user_dict.pop("referredBy", None)  # Also remove referredBy for security
+            return user_dict
+        return None
     finally:
         db.close()
+
 
 
 def create_user(firstName: str, lastName: str, email: str, active: bool, user_type: str, referralId: str, mobile: str = None, referredBy: str = None):
