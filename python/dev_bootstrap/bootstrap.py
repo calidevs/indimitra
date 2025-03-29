@@ -6,25 +6,41 @@ from app.db.models.category import CategoryModel
 from app.db.models.user import UserModel, UserType
 
 def create_data():
-    # Create tables if they don’t exist yet.
+    # Create tables if they don't exist yet.
     Base.metadata.create_all(bind=engine)
     db = SessionLocal()
 
     # Create a dummy user if not exists (needed for CategoryModel.createdByUserId).
-    dummy_user = db.query(UserModel).filter_by(id="bootstrap").first()
+    dummy_user = db.query(UserModel).filter_by(cognitoId="bootstrapCognito").first()
     if not dummy_user:
         dummy_user = UserModel(
-            id="bootstrap",
-            firstName="Bootstrap",
-            lastName="User",
+            # id field will be auto-incremented
             email="bootstrap@example.com",
+            mobile="1234567890",  # Added a dummy mobile number
             active=True,
             type=UserType.ADMIN,
-            referralId="bootstrap"
+            referralId="bootstrap",
+            cognitoId="bootstrapCognito"
         )
         db.add(dummy_user)
         db.commit()
         db.refresh(dummy_user)
+        
+    # Create another dummy user if not exists (needed for CategoryModel.createdByUserId).
+    dummy_user_new = db.query(UserModel).filter_by(cognitoId="bootstrapNewCognito").first()
+    if not dummy_user_new:
+        dummy_user_new = UserModel(
+            # id field will be auto-incremented
+            email="bootstrapNew@example.com",
+            mobile="0987654321",  # Added a dummy mobile number
+            active=True,
+            type=UserType.ADMIN,
+            referralId="bootstrapNew",
+            cognitoId="bootstrapNewCognito"
+        )
+        db.add(dummy_user_new)
+        db.commit()
+        db.refresh(dummy_user_new)
 
     # Check if there is already at least one product.
     if db.query(ProductModel).first():

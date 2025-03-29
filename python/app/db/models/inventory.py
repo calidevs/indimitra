@@ -10,7 +10,7 @@ class InventoryModel(Base):
     storeId = Column(Integer, ForeignKey("store.id"), nullable=False)
     productId = Column(Integer, ForeignKey("products.id"), nullable=False)
     quantity = Column(Integer, nullable=False)
-    updatedAt = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updatedAt = Column(DateTime, default=datetime.utcnow, nullable=True)
     
     # Relationships
     store = relationship("StoreModel", back_populates="inventory")

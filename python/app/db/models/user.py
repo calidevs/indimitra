@@ -9,21 +9,20 @@ from app.db.base import Base
 class UserType(enum.Enum):
     ADMIN = "ADMIN"
     USER = "USER"
-    DELIVERY = "DELIVERY"
+    DELIVERY = "DELIVERY_AGENT"
     STORE_MANAGER = "STORE_MANAGER"
 
 class UserModel(Base):
     __tablename__ = 'users'
     
-    id = Column(String, primary_key=True, index=True)
-    firstName = Column(String, nullable=False)
-    lastName = Column(String, nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, nullable=False)
-    mobile = Column(String)
+    mobile = Column(String, unique=True, nullable=False)
     active = Column(Boolean, default=True)
     type = Column(Enum(UserType), nullable=False)
-    referredBy = Column(String, ForeignKey("users.id"), nullable=True)
+    referredBy = Column(Integer, ForeignKey("users.id"), nullable=True)
     referralId = Column(String, nullable=False)
+    cognitoId = Column(String, nullable=False)
     
     # Relationships
     categories = relationship("CategoryModel", back_populates="creator")

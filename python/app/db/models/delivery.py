@@ -16,7 +16,7 @@ class DeliveryModel(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     orderId = Column(Integer, ForeignKey("orders.id"), nullable=False)
-    driverId = Column(String, ForeignKey("users.id"), nullable=False)
+    driverId = Column(Integer, ForeignKey("users.id"), nullable=True)
     schedule = Column(DateTime, nullable=False)
     pickedUpTime = Column(DateTime, nullable=True)
     deliveredTime = Column(DateTime, nullable=True)

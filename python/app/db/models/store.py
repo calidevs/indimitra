@@ -9,7 +9,7 @@ class StoreModel(Base):
     name = Column(String, nullable=False)
     address = Column(String, nullable=False)
     radius = Column(Float, nullable=True)
-    managerUserId = Column(String, ForeignKey("users.id"), nullable=False)
+    managerUserId = Column(Integer, ForeignKey("users.id"), nullable=False)
     
     # Relationships
     manager = relationship("UserModel", back_populates="stores")

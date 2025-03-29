@@ -20,7 +20,7 @@ class OrderModel(Base):
     __tablename__ = 'orders'
     
     id = Column(Integer, primary_key=True, index=True)
-    createdByUserId = Column(String, ForeignKey("users.id"), nullable=False)
+    createdByUserId = Column(Integer, ForeignKey("users.id"), nullable=False)
     address = Column(String, nullable=False)
     status = Column(Enum(OrderStatus), nullable=False)
     paymentId = Column(Integer, ForeignKey("payment.id"), nullable=True)
