@@ -7,10 +7,10 @@ import Home from './pages/Home';
 import Products from './pages/Products';
 import ProtectedRoute from './config/ProtectedRoute';
 import ForgotPassword from './pages/ForgotPassword';
-import AuthContainer from './components/auth/AuthContainer'; // Login Only
-import SignUpPage from './pages/SignUp/SignUp'; // New Page for SignUp & OTP
+import SignUpPage from './pages/SignUp/SignUp';
 import AdminDashboard from './pages/AdminDashboard';
 import DriverDashboard from './pages/DriverDashboard';
+import UpdateUserRole from './pages/Admin/UpdateUserRole';
 import Orders from './pages/Orders';
 import Profile from './pages/Profile';
 
@@ -36,6 +36,14 @@ const App = () => {
           element={
             <ProtectedRoute role="admin">
               <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.UPDATE_USER_ROLE}
+          element={
+            <ProtectedRoute role="admin">
+              <UpdateUserRole />
             </ProtectedRoute>
           }
         />

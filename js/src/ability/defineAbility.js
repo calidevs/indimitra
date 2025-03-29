@@ -7,9 +7,15 @@ export const defineUserAbility = (role) => {
 
     if (role === ROLES.ADMIN) {
       can('view', ROLES.ADMIN);
-    } else if (role === ROLES.USER) {
+      can('view', ROLES.USER_STATUS);
+    }
+
+    if (role === ROLES.USER) {
       can('view', ROLES.USER);
-    } else if (role === ROLES.DRIVER) {
+      can('view', ROLES.ORDERS);
+    }
+
+    if (role === ROLES.DRIVER) {
       can('view', ROLES.DRIVER);
     }
   });

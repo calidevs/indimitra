@@ -16,8 +16,8 @@ import { signOut } from 'aws-amplify/auth';
 import { useTheme } from '@mui/material/styles';
 import { useMediaQuery } from '@mui/material';
 import useStore from '@/store/useStore';
-import { useAuthStore } from '@/store/useStore'; // Import auth store
-import { ROUTES } from '@/config/constants/routes'; // Import routes
+import { useAuthStore } from '@/store/useStore';
+import { ROUTES } from '@/config/constants/routes';
 import CartModal from '../Modal/CartModal';
 
 const Header = () => {
@@ -26,7 +26,7 @@ const Header = () => {
   const cartCount = useStore((state) => state.cartCount());
   const isMobile = useMediaQuery('(max-width: 600px)');
 
-  const { user } = useAuthStore(); // Fetch user details
+  const { user, ability } = useAuthStore();
   const [cartOpen, setCartOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
 
@@ -55,11 +55,11 @@ const Header = () => {
       case 'DELIVERY':
         return ROUTES.DRIVER;
       case 'STORE_MANAGER':
-        return '/store-dashboard'; // Define in ROUTES if needed
+        return '/store-dashboard';
       case 'ADMIN':
         return ROUTES.ADMIN;
       default:
-        return ROUTES.USER; // Default route
+        return ROUTES.USER;
     }
   };
 
@@ -98,14 +98,28 @@ const Header = () => {
             keepMounted
             sx={{ mt: 1 }}
           >
-            <MenuItem
-              onClick={() => {
-                navigate(ROUTES.ORDERS);
-                handleMenuClose();
-              }}
-            >
-              Orders
-            </MenuItem>
+            {ability.can('view', 'orders') && (
+              <MenuItem
+                onClick={() => {
+                  navigate(ROUTES.ORDERS);
+                  handleMenuClose();
+                }}
+              >
+                Orders
+              </MenuItem>
+            )}
+
+            {ability.can('view', 'userStatus') && (
+              <MenuItem
+                onClick={() => {
+                  navigate(ROUTES.UPDATE_USER_ROLE);
+                  handleMenuClose();
+                }}
+              >
+                Change User Status
+              </MenuItem>
+            )}
+
             <MenuItem
               onClick={() => {
                 navigate(ROUTES.PROFILE);
