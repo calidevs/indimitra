@@ -14,7 +14,7 @@ import {
   LoadingSpinner,
 } from '@components';
 import { Close, Remove, Add } from '@mui/icons-material';
-import useStore from '@/store/useStore';
+import useStore, { useAuthStore } from '@/store/useStore';
 import { useMutation } from '@tanstack/react-query';
 import { GET_ADDRESSES_BY_USER } from '../../queries/operations';
 import { useQuery } from '@tanstack/react-query';
@@ -30,6 +30,7 @@ const CartModal = ({ open, onClose }) => {
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
   const [userId, setUserId] = useState(null);
   const [addresses, setAddresses] = useState([]);
+  const { userProfile } = useAuthStore();
 
   const subtotal = cartTotal() || 0;
   const tax = subtotal * TAX_RATE;
@@ -68,10 +69,11 @@ const CartModal = ({ open, onClose }) => {
   });
 
   const { data: addressData } = useQuery({
-    queryKey: ['getAddressesByUser', userId],
-    queryFn: () => fetchGraphQL(GET_ADDRESSES_BY_USER, { userId }),
-    enabled: !!userId,
+    queryKey: ['getAddressesByUser', userProfile?.id],
+    queryFn: () => fetchGraphQL(GET_ADDRESSES_BY_USER, { userId: userProfile.id }),
+    enabled: !!userProfile?.id,
     onSuccess: (res) => {
+      console.log('Address data fetched:', res);
       setAddresses(res?.getAddressesByUser || []);
       if (res?.getAddressesByUser?.length > 0) {
         setSelectedAddress(res.getAddressesByUser[0].address); // default

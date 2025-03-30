@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useReducer } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Container,
@@ -30,8 +30,16 @@ import { useAuthStore } from '@/store/useStore';
 import { fetchAuthSession } from 'aws-amplify/auth';
 
 const Profile = () => {
-  const { user } = useAuthStore();
-  const [userId, setUserId] = useState(null);
+  // Get zustand state and functions
+  const { userProfile, setUserProfile } = useAuthStore();
+
+  // Function to get latest profile directly from store
+  const getLatestProfile = () => useAuthStore.getState().userProfile || null;
+
+  // Local backup state for profile data in case Zustand fails
+  const [localUserProfile, setLocalUserProfile] = useState(null);
+
+  const [cognitoId, setCognitoId] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
   const baseUrl = window.location.origin;
 
@@ -41,39 +49,100 @@ const Profile = () => {
   const [newAddress, setNewAddress] = useState('');
   const [isPrimary, setIsPrimary] = useState(false);
 
+  // Get Cognito ID from session
   useEffect(() => {
-    const getUserId = async () => {
+    const getCognitoId = async () => {
       try {
         const session = await fetchAuthSession();
         if (session?.tokens?.idToken) {
-          setUserId(session.tokens.idToken.payload.sub);
-        } else {
-          console.warn('No valid session tokens found.');
+          setCognitoId(session.tokens.idToken.payload.sub);
         }
       } catch (error) {
-        console.error('Error fetching user ID:', error);
+        console.error('Error fetching Cognito ID:', error);
       }
     };
 
-    getUserId();
+    getCognitoId();
   }, []);
 
-  const { data, isLoading, error } = useQuery({
-    queryKey: ['getUserProfile', userId],
-    queryFn: () => fetchGraphQL(GET_USER_PROFILE, { userId }),
-    enabled: !!userId,
+  // Fetch user profile with Cognito ID and store in both Zustand and local state
+  const {
+    data: profileData,
+    isLoading: profileLoading,
+    error: profileError,
+  } = useQuery({
+    queryKey: ['getUserProfile', cognitoId],
+    queryFn: async () => {
+      console.log('QUERY EXECUTING with cognitoId:', cognitoId);
+      const response = await fetchGraphQL(GET_USER_PROFILE, { userId: cognitoId });
+      console.log('Raw API response:', response);
+
+      // Important: Set profile data immediately when we get it
+      if (response?.getUserProfile) {
+        console.log('Setting profile immediately:', response.getUserProfile);
+        setLocalUserProfile(response.getUserProfile);
+        setUserProfile(response.getUserProfile);
+      }
+
+      return response;
+    },
+    enabled: !!cognitoId,
+    onSuccess: (data) => {
+      console.log('onSuccess handler with data:', data);
+
+      if (data?.getUserProfile) {
+        console.log('Profile in onSuccess:', data.getUserProfile);
+
+        // Set in Zustand again to be sure
+        setUserProfile(data.getUserProfile);
+
+        // Force re-render after a small delay
+        setTimeout(() => {
+          console.log('Checking store after timeout:', useAuthStore.getState().userProfile);
+          forceUpdate();
+        }, 200);
+      } else {
+        console.warn('No profile data found in API response');
+      }
+    },
+    onError: (error) => {
+      console.error('Error in profile query:', error);
+    },
   });
 
-  const fetchAddresses = async () => {
-    const res = await fetchGraphQL(GET_ADDRESSES_BY_USER, { userId });
-    setAddresses(res?.getAddressesByUser || []);
-  };
-
+  // useEffect to grab profile data directly from the query result
   useEffect(() => {
-    if (userId) {
-      fetchAddresses();
+    if (profileData?.getUserProfile && !userProfile) {
+      console.log('Setting profile from useEffect:', profileData.getUserProfile);
+      setUserProfile(profileData.getUserProfile);
+      setLocalUserProfile(profileData.getUserProfile);
     }
-  }, [userId]);
+  }, [profileData, userProfile, setUserProfile]);
+
+  // Create an effective profile using any available source,
+  // with preference for direct store access, then hook, then local state, then API
+  const directStoreProfile = getLatestProfile();
+  const effectiveProfile = directStoreProfile;
+
+  // Fetch addresses after profile data is available
+  useEffect(() => {
+    const fetchAddresses = async () => {
+      if (effectiveProfile?.id) {
+        try {
+          const numericId = parseInt(effectiveProfile.id);
+          console.log('Fetching addresses with user ID:', numericId);
+          const res = await fetchGraphQL(GET_ADDRESSES_BY_USER, {
+            userId: numericId, // Always use numeric ID
+          });
+          setAddresses(res?.getAddressesByUser || []);
+        } catch (error) {
+          console.error('Error fetching addresses:', error);
+        }
+      }
+    };
+
+    fetchAddresses();
+  }, [effectiveProfile?.id]);
 
   const handleEditAddress = (addr) => {
     setEditingAddress(addr);
@@ -83,33 +152,56 @@ const Profile = () => {
   };
 
   const handleDeleteAddress = async (id) => {
-    await fetchGraphQL(DELETE_ADDRESS, { addressId: id });
-    fetchAddresses();
+    if (window.confirm('Are you sure you want to delete this address?')) {
+      await fetchGraphQL(DELETE_ADDRESS, { addressId: id });
+
+      // Refetch addresses after deletion
+      if (effectiveProfile?.id) {
+        const numericId = parseInt(effectiveProfile.id);
+        const res = await fetchGraphQL(GET_ADDRESSES_BY_USER, { userId: numericId });
+        setAddresses(res?.getAddressesByUser || []);
+      }
+    }
   };
 
   const handleSaveAddress = async () => {
-    if (editingAddress) {
-      await fetchGraphQL(UPDATE_ADDRESS, {
-        addressId: parseInt(editingAddress.id),
-        address: newAddress,
-        isPrimary,
-      });
-    } else {
-      await fetchGraphQL(CREATE_ADDRESS, {
-        address: newAddress,
-        userId,
-        isPrimary,
-      });
+    if (!effectiveProfile?.id) {
+      alert('Could not save address: user information not available');
+      return;
     }
-    setAddressDialogOpen(false);
-    setEditingAddress(null);
-    setNewAddress('');
-    setIsPrimary(false);
-    fetchAddresses();
+
+    try {
+      const numericId = parseInt(effectiveProfile.id);
+
+      if (editingAddress) {
+        await fetchGraphQL(UPDATE_ADDRESS, {
+          addressId: parseInt(editingAddress.id),
+          address: newAddress,
+          isPrimary,
+        });
+      } else {
+        await fetchGraphQL(CREATE_ADDRESS, {
+          address: newAddress,
+          userId: numericId,
+          isPrimary,
+        });
+      }
+
+      setAddressDialogOpen(false);
+      setEditingAddress(null);
+      setNewAddress('');
+      setIsPrimary(false);
+
+      // Refetch addresses after creating/updating
+      const res = await fetchGraphQL(GET_ADDRESSES_BY_USER, { userId: numericId });
+      setAddresses(res?.getAddressesByUser || []);
+    } catch (error) {
+      console.error('Error saving address:', error);
+      alert('Failed to save address. Please try again.');
+    }
   };
 
-  const profile = data?.getUserProfile;
-  const referralLink = `${baseUrl}/signup?referredby=${profile?.referralId}`;
+  const referralLink = `${baseUrl}/signup?referredby=${effectiveProfile?.referralId}`;
 
   const copyToClipboard = async () => {
     try {
@@ -117,11 +209,11 @@ const Profile = () => {
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     } catch (err) {
-      console.error('Failed to copy referral link:', err);
+      console.error('Error copying to clipboard:', err);
     }
   };
 
-  if (isLoading) {
+  if (profileLoading) {
     return (
       <Container>
         <CircularProgress />
@@ -129,7 +221,7 @@ const Profile = () => {
     );
   }
 
-  if (error) {
+  if (profileError) {
     return <Typography color="error">Error fetching profile data</Typography>;
   }
 
@@ -139,45 +231,63 @@ const Profile = () => {
         <Typography variant="h5" gutterBottom>
           User Profile
         </Typography>
-        <Typography>
-          <strong>Name:</strong> {profile?.firstName} {profile?.lastName}
-        </Typography>
-        <Typography>
-          <strong>Email:</strong> {profile?.email}
-        </Typography>
-        <Typography>
-          <strong>Mobile:</strong> {profile?.mobile || 'N/A'}
-        </Typography>
-        <Typography>
-          <strong>Status:</strong> {profile?.active ? 'Active' : 'Inactive'}
-        </Typography>
-        <Typography>
-          <strong>Role:</strong> {profile?.type}
-        </Typography>
+        {effectiveProfile ? (
+          <>
+            <Typography>
+              <strong>Name:</strong> {effectiveProfile.firstName} {effectiveProfile.lastName}
+            </Typography>
+            <Typography>
+              <strong>Email:</strong> {effectiveProfile.email}
+            </Typography>
+            <Typography>
+              <strong>Mobile:</strong> {effectiveProfile.mobile || 'N/A'}
+            </Typography>
+            <Typography>
+              <strong>Status:</strong> {effectiveProfile.active ? 'Active' : 'Inactive'}
+            </Typography>
+            <Typography>
+              <strong>Role:</strong> {effectiveProfile.type}
+            </Typography>
+            <Typography>
+              <strong>User ID:</strong> {effectiveProfile.id}
+            </Typography>
+            <Typography>
+              <strong>Cognito ID:</strong> {effectiveProfile.cognitoId || cognitoId}
+            </Typography>
+            <Typography>
+              <strong>Data Source:</strong>{' '}
+              {userProfile ? 'Zustand Store' : localUserProfile ? 'Local State' : 'API Response'}
+            </Typography>
 
-        <Typography sx={{ mt: 2, mb: 1 }}>
-          <strong>Referral Link:</strong>
-        </Typography>
-        <TextField
-          fullWidth
-          value={referralLink}
-          InputProps={{
-            readOnly: true,
-            endAdornment: (
-              <Tooltip title={copySuccess ? 'Copied!' : 'Copy referral link'}>
-                <IconButton onClick={copyToClipboard}>
-                  <ContentCopyIcon />
-                </IconButton>
-              </Tooltip>
-            ),
-          }}
-        />
+            <Typography sx={{ mt: 2, mb: 1 }}>
+              <strong>Referral Link:</strong>
+            </Typography>
+            <TextField
+              fullWidth
+              value={referralLink}
+              InputProps={{
+                readOnly: true,
+                endAdornment: (
+                  <Tooltip title={copySuccess ? 'Copied!' : 'Copy referral link'}>
+                    <IconButton onClick={copyToClipboard}>
+                      <ContentCopyIcon />
+                    </IconButton>
+                  </Tooltip>
+                ),
+              }}
+            />
+          </>
+        ) : (
+          <Typography>No profile data available</Typography>
+        )}
 
         {/* Address Section */}
         <Typography variant="h6" sx={{ mt: 4 }}>
           Addresses
         </Typography>
-        {addresses.length === 0 ? (
+        {!effectiveProfile?.id ? (
+          <CircularProgress size={20} sx={{ mt: 1 }} />
+        ) : addresses.length === 0 ? (
           <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
             No addresses found.
           </Typography>
@@ -205,7 +315,12 @@ const Profile = () => {
           ))
         )}
 
-        <Button variant="contained" sx={{ mt: 2 }} onClick={() => setAddressDialogOpen(true)}>
+        <Button
+          variant="contained"
+          sx={{ mt: 2 }}
+          onClick={() => setAddressDialogOpen(true)}
+          disabled={!effectiveProfile?.id}
+        >
           Add Address
         </Button>
       </Paper>
@@ -231,7 +346,7 @@ const Profile = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddressDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleSaveAddress} variant="contained">
+          <Button onClick={handleSaveAddress} variant="contained" disabled={!newAddress}>
             Save
           </Button>
         </DialogActions>

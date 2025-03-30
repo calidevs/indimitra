@@ -90,8 +90,6 @@ query GetAllOrders {
 export const GET_ALL_USERS = `query getAllUsers {
   getAllUsers {
     id
-    firstName
-    lastName
     email
     type
   }
@@ -128,8 +126,6 @@ export const GET_USER_PROFILE = `
   query GetUserProfile($userId: String!) {
     getUserProfile(userId: $userId) {
       id
-      firstName
-      lastName
       email
       mobile
       active
@@ -149,7 +145,7 @@ export const CANCEL_ORDER = `
 `;
 
 export const GET_ADDRESSES_BY_USER = `
-  query GetAddressesByUser($userId: String!) {
+  query GetAddressesByUser($userId: Int!) {
     getAddressesByUser(userId: $userId) {
       id
       address
@@ -159,7 +155,7 @@ export const GET_ADDRESSES_BY_USER = `
 `;
 
 export const CREATE_ADDRESS = `
-  mutation CreateAddress($address: String!, $userId: String!, $isPrimary: Boolean) {
+  mutation CreateAddress($address: String!, $userId: Int!, $isPrimary: Boolean) {
     createAddress(address: $address, userId: $userId, isPrimary: $isPrimary) {
       id
       address
