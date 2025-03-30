@@ -23,10 +23,25 @@ import {
   CircularProgress,
   Collapse,
   Box,
+  TextField,
 } from '@mui/material';
 import { Edit, KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_ALL_ORDERS, GET_ALL_USERS, UPDATE_ORDER_STATUS } from '@/queries/operations';
+
+// Define getNextSaturday before it's used
+const getNextSaturday = () => {
+  const now = new Date();
+  const dayOfWeek = now.getDay(); // 0 (Sunday) to 6 (Saturday)
+  const daysUntilNextSaturday = (6 - dayOfWeek + 7) % 7 || 7; // Ensure it's always next Saturday
+  const nextSaturday = new Date(now);
+  nextSaturday.setDate(now.getDate() + daysUntilNextSaturday);
+  nextSaturday.setHours(10, 0, 0, 0); // Default time: 10 AM
+  return nextSaturday;
+};
 
 const AdminDashboard = () => {
   const { data, isLoading, error, refetch } = useQuery({
@@ -42,6 +57,7 @@ const AdminDashboard = () => {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [orderStatus, setOrderStatus] = useState('');
   const [deliveryPartner, setDeliveryPartner] = useState('');
+  const [scheduleDate, setScheduleDate] = useState(getNextSaturday());
   const [modalOpen, setModalOpen] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [availableDrivers, setAvailableDrivers] = useState([]);
@@ -58,11 +74,26 @@ const AdminDashboard = () => {
   }, [driversData]);
 
   const mutation = useMutation({
-    mutationFn: ({ orderId, status, driverId, scheduleTime }) =>
-      fetchGraphQL(UPDATE_ORDER_STATUS, { orderId, status, driverId, scheduleTime }), // ✅ Ensure scheduleTime is included
-    onSuccess: () => {
+    mutationFn: ({ orderId, status, driverId, scheduleTime }) => {
+      // Create mutation variables object with only necessary fields
+      const variables = {
+        orderId,
+        status,
+        driverId,
+        scheduleTime,
+      };
+
+      console.log('Sending mutation with variables:', variables);
+      return fetchGraphQL(UPDATE_ORDER_STATUS, variables);
+    },
+    onSuccess: (response) => {
+      console.log('Update response:', response);
       refetch();
       setModalOpen(false);
+    },
+    onError: (error) => {
+      console.error('Error updating order:', error);
+      setErrorMessage(`Error updating order: ${error.message}`);
     },
   });
 
@@ -71,47 +102,50 @@ const AdminDashboard = () => {
     setSelectedOrder(order);
     setOrderStatus(order.status || '');
     setDeliveryPartner(order.deliveryPartner?.id || '');
+
+    // Set initial schedule date either from order or default to next Saturday
+    if (order.deliveryDate) {
+      setScheduleDate(new Date(order.deliveryDate));
+    } else {
+      setScheduleDate(getNextSaturday());
+    }
+
     setModalOpen(true);
-  };
-
-  const getNextSaturday = () => {
-    const now = new Date();
-    const dayOfWeek = now.getDay(); // 0 (Sunday) to 6 (Saturday)
-    const daysUntilNextSaturday = (6 - dayOfWeek + 7) % 7 || 7; // Ensure it's always next Saturday
-    const nextSaturday = new Date(now);
-    nextSaturday.setDate(now.getDate() + daysUntilNextSaturday);
-    nextSaturday.setHours(10, 0, 0, 0); // Default time: 10 AM
-
-    return nextSaturday; // ✅ Return a Date object
   };
 
   const handleConfirm = () => {
     if (!selectedOrder) return;
 
-    // ✅ Ensure a driver is selected if status is "READY_FOR_DELIVERY"
+    // Validate required fields for READY_FOR_DELIVERY status
     if (orderStatus === 'READY_FOR_DELIVERY') {
       if (!deliveryPartner) {
-        setErrorMessage('A delivery partner is required for READY_FOR_DELIVERY.');
+        setErrorMessage('A delivery partner is required for READY_FOR_DELIVERY status.');
         return;
       }
-
-      // ✅ Set default scheduleTime to next Saturday if not provided
-      if (!selectedOrder.scheduleTime || isNaN(new Date(selectedOrder.scheduleTime).getTime())) {
-        selectedOrder.scheduleTime = getNextSaturday(); // ✅ Ensure scheduleTime is a Date object
-      } else {
-        selectedOrder.scheduleTime = new Date(selectedOrder.scheduleTime); // ✅ Convert to Date if needed
+      if (!scheduleDate || !(scheduleDate instanceof Date) || isNaN(scheduleDate)) {
+        setErrorMessage(
+          'A valid delivery schedule date is required for READY_FOR_DELIVERY status.'
+        );
+        return;
       }
     }
 
-    setErrorMessage(''); // ✅ Clear error when conditions are met
+    setErrorMessage(''); // Clear error when conditions are met
 
-    mutation.mutate({
+    // Use the Date object directly - no need to convert to ISO string
+    // The GraphQL client will handle serialization automatically
+    console.log('Sending update with schedule time:', scheduleDate);
+
+    // Create mutation variables - use the Date object directly
+    const mutationVariables = {
       orderId: selectedOrder.id,
       status: orderStatus,
-      driverId: orderStatus === 'READY_FOR_DELIVERY' ? deliveryPartner : null,
-      scheduleTime:
-        orderStatus === 'READY_FOR_DELIVERY' ? selectedOrder.scheduleTime.toISOString() : null, // ✅ Convert Date to ISO string safely
-    });
+      driverId: orderStatus === 'READY_FOR_DELIVERY' ? Number(deliveryPartner) : null,
+      scheduleTime: orderStatus === 'READY_FOR_DELIVERY' ? scheduleDate : null,
+    };
+
+    console.log('Mutation variables:', mutationVariables);
+    mutation.mutate(mutationVariables);
   };
 
   const handleExpandClick = (orderId) => {
@@ -121,9 +155,7 @@ const AdminDashboard = () => {
   if (isLoading) return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />;
   if (error) return <Typography color="error">Error fetching orders!</Typography>;
 
-  const orders = data?.getAllOrders
-    ? [...data.getAllOrders].sort((a, b) => a.id - b.id) // ✅ Sort orders by ID (ascending)
-    : [];
+  const orders = data?.getAllOrders ? [...data.getAllOrders].sort((a, b) => a.id - b.id) : [];
 
   return (
     <Container sx={{ mt: 4 }}>
@@ -224,24 +256,53 @@ const AdminDashboard = () => {
               <MenuItem value="DELIVERED">Delivered</MenuItem>
             </Select>
           </FormControl>
+
           {orderStatus === 'READY_FOR_DELIVERY' && (
-            <FormControl fullWidth sx={{ mt: 2 }} error={!!errorMessage}>
-              <InputLabel>Assign Delivery Partner</InputLabel>
-              <Select value={deliveryPartner} onChange={(e) => setDeliveryPartner(e.target.value)}>
-                {loadingDrivers ? (
-                  <MenuItem disabled>Loading drivers...</MenuItem>
-                ) : availableDrivers.length > 0 ? (
-                  availableDrivers.map((driver) => (
-                    <MenuItem key={driver.id} value={driver.id}>
-                      {driver.firstName} {driver.lastName} ({driver.email})
-                    </MenuItem>
-                  ))
-                ) : (
-                  <MenuItem disabled>No drivers available</MenuItem>
-                )}
-              </Select>
-              {errorMessage && <Typography color="error">{errorMessage}</Typography>}
-            </FormControl>
+            <>
+              <FormControl fullWidth sx={{ mt: 2 }} error={!!errorMessage && !deliveryPartner}>
+                <InputLabel>Assign Delivery Partner</InputLabel>
+                <Select
+                  value={deliveryPartner}
+                  onChange={(e) => setDeliveryPartner(e.target.value)}
+                >
+                  {loadingDrivers ? (
+                    <MenuItem disabled>Loading drivers...</MenuItem>
+                  ) : availableDrivers.length > 0 ? (
+                    availableDrivers.map((driver) => (
+                      <MenuItem key={driver.id} value={driver.id}>
+                        {driver.email} - {driver.type}
+                      </MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled>No drivers available</MenuItem>
+                  )}
+                </Select>
+              </FormControl>
+
+              <Box sx={{ mt: 2 }}>
+                <LocalizationProvider dateAdapter={AdapterDateFns}>
+                  <DateTimePicker
+                    label="Schedule Delivery Date & Time"
+                    value={scheduleDate}
+                    onChange={(newValue) => setScheduleDate(newValue)}
+                    renderInput={(params) => <TextField {...params} fullWidth />}
+                    slotProps={{
+                      textField: {
+                        fullWidth: true,
+                        error: !!errorMessage && !scheduleDate,
+                      },
+                    }}
+                    minDateTime={new Date()}
+                  />
+                </LocalizationProvider>
+              </Box>
+            </>
+          )}
+
+          {errorMessage && (
+            <Typography color="error" sx={{ mt: 2 }}>
+              {errorMessage}
+            </Typography>
           )}
         </DialogContent>
         <DialogActions>
@@ -249,10 +310,13 @@ const AdminDashboard = () => {
           <Button
             onClick={handleConfirm}
             disabled={
-              mutation.isLoading || (orderStatus === 'READY_FOR_DELIVERY' && !deliveryPartner) // ✅ Disable button if driver not selected
+              mutation.isLoading ||
+              (orderStatus === 'READY_FOR_DELIVERY' && (!deliveryPartner || !scheduleDate))
             }
+            variant="contained"
+            color="primary"
           >
-            {mutation.isLoading ? <CircularProgress size={24} /> : 'Confirm'}
+            {mutation.isLoading ? <CircularProgress size={24} /> : 'Update Order'}
           </Button>
         </DialogActions>
       </Dialog>

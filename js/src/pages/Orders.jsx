@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useReducer } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Container,
@@ -25,19 +25,31 @@ import {
 import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import fetchGraphQL from '@/config/graphql/graphqlService';
-import { GET_USER_ORDERS, CANCEL_ORDER } from '@/queries/operations';
+import { GET_USER_ORDERS, CANCEL_ORDER, GET_USER_PROFILE } from '@/queries/operations';
+import useStore, { useAuthStore } from '@/store/useStore';
 
 const Orders = () => {
-  const [userId, setUserId] = useState(null);
+  // Force re-render function
+  const [, forceUpdate] = useReducer((x) => x + 1, 0);
+
+  const [cognitoId, setCognitoId] = useState(null);
   const [openModal, setOpenModal] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState(null);
+  const [expandedOrder, setExpandedOrder] = useState(null);
 
+  // Get zustand state and functions
+  const { userProfile, setUserProfile } = useAuthStore();
+  const getLatestProfile = () => useAuthStore.getState().userProfile;
+
+  // Fetch Cognito ID from session
   useEffect(() => {
     const getUserId = async () => {
       try {
         const session = await fetchAuthSession();
         if (session?.tokens?.idToken) {
-          setUserId(session.tokens.idToken.payload.sub);
+          const id = session.tokens.idToken.payload.sub;
+          console.log('Fetched Cognito ID:', id);
+          setCognitoId(id);
         } else {
           console.warn('No valid session tokens found.');
         }
@@ -49,10 +61,59 @@ const Orders = () => {
     getUserId();
   }, []);
 
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['userOrders', userId],
-    queryFn: () => fetchGraphQL(GET_USER_ORDERS, { userId }),
-    enabled: !!userId,
+  // Fetch user profile with Cognito ID and store in Zustand
+  const {
+    data: profileData,
+    isLoading: profileLoading,
+    error: profileError,
+  } = useQuery({
+    queryKey: ['getUserProfile', cognitoId],
+    queryFn: async () => {
+      console.log('Fetching user profile with cognitoId:', cognitoId);
+      const response = await fetchGraphQL(GET_USER_PROFILE, { userId: cognitoId });
+      console.log('User profile API response:', response);
+
+      // Set profile data immediately when we get it
+      if (response?.getUserProfile) {
+        console.log('Setting profile in store:', response.getUserProfile);
+        setUserProfile(response.getUserProfile);
+
+        // Force refresh after a small delay
+        setTimeout(() => {
+          console.log('Current profile in store:', getLatestProfile());
+          forceUpdate();
+        }, 200);
+      }
+
+      return response;
+    },
+    enabled: !!cognitoId,
+    onError: (error) => {
+      console.error('Error fetching user profile:', error);
+    },
+  });
+
+  // Get the effective profile from any available source
+  const directStoreProfile = getLatestProfile();
+  const effectiveProfile = directStoreProfile || userProfile || profileData?.getUserProfile;
+
+  console.log('Orders Page State:', {
+    directStoreProfile,
+    zustandHookProfile: userProfile,
+    apiProfile: profileData?.getUserProfile,
+    using: effectiveProfile,
+  });
+
+  // Fetch orders using the user's numeric ID
+  const {
+    data: ordersData,
+    isLoading: ordersLoading,
+    error: ordersError,
+    refetch,
+  } = useQuery({
+    queryKey: ['userOrders', effectiveProfile?.id],
+    queryFn: () => fetchGraphQL(GET_USER_ORDERS, { userId: effectiveProfile.id }),
+    enabled: !!effectiveProfile?.id,
   });
 
   const mutation = useMutation({
@@ -79,16 +140,20 @@ const Orders = () => {
     }
   };
 
-  const [expandedOrder, setExpandedOrder] = useState(null);
-
   const handleExpandClick = (orderId) => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
 
-  if (isLoading) return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />;
-  if (error) return <Typography color="error">Error fetching orders!</Typography>;
+  // Show loading while fetching profile or orders
+  if (profileLoading || (ordersLoading && effectiveProfile?.id))
+    return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />;
 
-  const orders = data?.getOrdersByUser || [];
+  if (profileError) return <Typography color="error">Error fetching user profile!</Typography>;
+
+  if (ordersError && effectiveProfile?.id)
+    return <Typography color="error">Error fetching orders!</Typography>;
+
+  const orders = ordersData?.getOrdersByUser || [];
 
   return (
     <Container sx={{ mt: 4 }}>
@@ -116,7 +181,7 @@ const Orders = () => {
                 <React.Fragment key={order.id}>
                   <TableRow onClick={() => handleExpandClick(order.id)} sx={{ cursor: 'pointer' }}>
                     <TableCell>{order.id}</TableCell>
-                    <TableCell>{order.address}</TableCell>
+                    <TableCell>{order.address.address}</TableCell>
                     <TableCell>
                       <Chip
                         label={order.status}

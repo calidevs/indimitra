@@ -42,10 +42,14 @@ export const CREATE_ORDER_MUTATION = `
 `;
 
 export const GET_USER_ORDERS = `
-  query GetUserOrders($userId: String!) {
+  query GetUserOrders($userId: Int!) {
     getOrdersByUser(userId: $userId) {
       id
-      address
+      address { 
+        id
+        address
+        isPrimary
+      }
       status
       totalAmount
       deliveryDate
@@ -108,10 +112,11 @@ export const UPDATE_ORDER_STATUS = `
       orderId: $orderId, 
       status: $status, 
       driverId: $driverId, 
-      scheduleTime: $scheduleTime 
+      scheduleTime: $scheduleTime
     }) {
       id
       status
+      deliveryDate
     }
   }
 `;
