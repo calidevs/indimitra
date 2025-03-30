@@ -28,9 +28,15 @@ class OrderModel(Base):
     deliveryDate = Column(DateTime, nullable=True)
     deliveryInstructions = Column(String, nullable=True)
     
+    # Cancellation tracking fields
+    cancelMessage = Column(String, nullable=True)
+    cancelledByUserId = Column(Integer, ForeignKey("users.id"), nullable=True)
+    cancelledAt = Column(DateTime, nullable=True)
+    
     # Relationships
-    creator = relationship("UserModel", back_populates="orders")
+    creator = relationship("UserModel", foreign_keys=[createdByUserId], back_populates="orders")
     payment = relationship("PaymentModel", back_populates="orders")
     order_items = relationship("OrderItemModel", back_populates="order")
     delivery = relationship("DeliveryModel", uselist=False, back_populates="order")
     address = relationship("AddressModel", foreign_keys=[addressId])
+    cancelled_by = relationship("UserModel", foreign_keys=[cancelledByUserId], back_populates="cancelled_orders")

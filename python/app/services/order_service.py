@@ -156,14 +156,36 @@ def update_order_status(order_id: int, status: str) -> Optional[OrderModel]:
         db.close()
 
 
-def cancel_order(order_id: int) -> Optional[OrderModel]:
+def cancel_order(order_id: int, cancel_message: str, cancelled_by_user_id: int) -> Optional[OrderModel]:
     """
-    Cancel an order
+    Cancel an order and record cancellation details
     
     Args:
         order_id: The ID of the order to cancel
+        cancel_message: The reason for cancellation
+        cancelled_by_user_id: The ID of the user who cancelled the order (customer, manager, delivery)
         
     Returns:
         The canceled order, or None if the order doesn't exist
     """
-    return update_order_status(order_id, "CANCELLED") 
+    db = SessionLocal()
+    try:
+        order = db.query(OrderModel).filter(OrderModel.id == order_id).first()
+        if not order:
+            return None
+            
+        # Check if order is already cancelled
+        if order.status == OrderStatus.CANCELLED:
+            return order
+            
+        # Store cancellation details
+        order.status = OrderStatus.CANCELLED
+        order.cancelMessage = cancel_message
+        order.cancelledByUserId = cancelled_by_user_id
+        order.cancelledAt = datetime.now()
+        
+        db.commit()
+        db.refresh(order)
+        return order
+    finally:
+        db.close() 

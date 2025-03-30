@@ -25,7 +25,8 @@ class UserModel(Base):
     cognitoId = Column(String, nullable=False)
     
     # Relationships
-    orders = relationship("OrderModel", back_populates="creator")
+    orders = relationship("OrderModel", foreign_keys="OrderModel.createdByUserId", back_populates="creator")
+    cancelled_orders = relationship("OrderModel", foreign_keys="OrderModel.cancelledByUserId", back_populates="cancelled_by")
     addresses = relationship("AddressModel", back_populates="user")
     deliveries = relationship("DeliveryModel", back_populates="driver")
     stores = relationship("StoreModel", back_populates="manager")

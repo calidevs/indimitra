@@ -81,17 +81,23 @@ class OrderMutation:
         return create_order(user_id=userId, address_id=addressId, product_items=items)
     
     @strawberry.mutation
-    def cancelOrderById(self, orderId: int) -> Optional[Order]:
+    def cancelOrderById(self, orderId: int, cancelMessage: str, cancelledByUserId: int) -> Optional[Order]:
         """
-        Cancel an order.
+        Cancel an order and record cancellation details.
         
         Args:
             orderId (int): Order ID to cancel.
+            cancelMessage (str): Reason for cancellation.
+            cancelledByUserId (int): ID of the user who cancelled the order (customer, manager, delivery).
         
         Returns:
             Optional[Order]: The canceled order or None if not found.
         """
-        return cancel_order(order_id=orderId)
+        return cancel_order(
+            order_id=orderId,
+            cancel_message=cancelMessage,
+            cancelled_by_user_id=cancelledByUserId
+        )
     
     @strawberry.mutation
     def updateOrderStatus(self, input: UpdateOrderStatusInput) -> Optional[Order]:
