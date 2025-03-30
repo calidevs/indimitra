@@ -21,7 +21,7 @@ class OrderModel(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     createdByUserId = Column(Integer, ForeignKey("users.id"), nullable=False)
-    addressId = Column(Integer, ForeignKey("addresses.id"), nullable=False)
+    addressId = Column(Integer, ForeignKey("address.id"), nullable=False)
     status = Column(Enum(OrderStatus), nullable=False)
     paymentId = Column(Integer, ForeignKey("payment.id"), nullable=True)
     totalAmount = Column(Float, nullable=False)

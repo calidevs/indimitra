@@ -11,5 +11,5 @@ class AddressModel(Base):
     isPrimary = Column(Boolean, default=False)
     
     # Relationships
-    user = relationship("UserModel", back_populates="addresses")
+    user = relationship("UserModel", back_populates="address")
     orders = relationship("OrderModel", back_populates="address", foreign_keys="OrderModel.addressId")
