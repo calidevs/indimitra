@@ -206,3 +206,58 @@ export const UPDATE_USER_TYPE = `
     }
   }
 `;
+
+export const GET_STORE_INFO = `
+  query GetStoreInfo($managerId: Int!) {
+    getStoreByManager(managerId: $managerId) {
+      id
+      name
+      address
+      radius
+    }
+  }
+`;
+
+export const GET_STORE_INVENTORY = `
+  query GetStoreInventory($storeId: Int!) {
+    getStoreInventory(storeId: $storeId) {
+      id
+      quantity
+      price
+      size
+      measurement_unit
+      updatedAt
+      product {
+        id
+        name
+        description
+        category {
+          id
+          name
+        }
+        image
+      }
+    }
+  }
+`;
+
+export const UPDATE_INVENTORY_ITEM = `
+  mutation UpdateInventoryItem($inventoryId: Int!, $price: Float!, $quantity: Int!) {
+    updateInventoryItem(inventoryId: $inventoryId, price: $price, quantity: $quantity) {
+      id
+      price
+      quantity
+      updatedAt
+    }
+  }
+`;
+
+export const ADD_PRODUCT_TO_INVENTORY = `
+  mutation AddProductToInventory($storeId: Int!, $productId: Int!, $price: Float!, $quantity: Int!, $size: Float, $measurement_unit: Int) {
+    addProductToInventory(storeId: $storeId, productId: $productId, price: $price, quantity: $quantity, size: $size, measurement_unit: $measurement_unit) {
+      id
+      price
+      quantity
+    }
+  }
+`;

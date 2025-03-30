@@ -18,5 +18,10 @@ export const defineUserAbility = (role) => {
     if (role === ROLES.DRIVER) {
       can('view', ROLES.DRIVER);
     }
+
+    if (role === ROLES.STORE_MANAGER) {
+      can('view', ROLES.STORE_MANAGER);
+      can('manage', 'inventory');
+    }
   });
 };
