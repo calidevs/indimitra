@@ -25,7 +25,6 @@ class UserModel(Base):
     cognitoId = Column(String, nullable=False)
     
     # Relationships
-    categories = relationship("CategoryModel", back_populates="creator")
     orders = relationship("OrderModel", back_populates="creator")
     addresses = relationship("AddressModel", back_populates="user")
     deliveries = relationship("DeliveryModel", back_populates="driver")

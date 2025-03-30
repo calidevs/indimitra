@@ -1,5 +1,7 @@
 from app.db.session import SessionLocal
 from app.db.models.product import ProductModel
+from app.db.models.inventory import InventoryModel
+from app.db.models.category import CategoryModel
 
 def get_all_products():
     db = SessionLocal()
@@ -8,14 +10,18 @@ def get_all_products():
     finally:
         db.close()
 
-def create_product(name: str, price: float, description: str, category: str):
+def create_product(name: str, description: str, category_id: int):
     db = SessionLocal()
     try:
+        # Check if the category exists
+        category = db.query(CategoryModel).get(category_id)
+        if not category:
+            raise ValueError(f"Category with ID {category_id} does not exist")
+            
         product = ProductModel(
             name=name,
-            price=price,
             description=description,
-            category=category
+            categoryId=category_id
         )
         db.add(product)
         db.commit()

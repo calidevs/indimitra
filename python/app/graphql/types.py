@@ -1,6 +1,8 @@
 import strawberry
 from strawberry_sqlalchemy_mapper import StrawberrySQLAlchemyMapper
 from app.db import models
+from typing import Optional
+from datetime import datetime
 
 # Create a single mapper instance.
 mapper = StrawberrySQLAlchemyMapper()
@@ -29,7 +31,7 @@ class Order:
 @mapper.type(models.DeliveryModel) 
 class Delivery:
     @strawberry.field
-    def schedule(self) -> strawberry.auto:
+    def schedule(self) -> Optional[datetime]:
         """
         Get the schedule time from the related order's deliveryDate.
         This maintains backward compatibility with clients expecting a schedule field.
@@ -46,4 +48,12 @@ class OrderItem:
 # Generate a GraphQL type for AddressModel
 @mapper.type(models.AddressModel)
 class Address:
+    pass
+
+@mapper.type(models.InventoryModel)
+class Inventory:
+    pass
+
+@mapper.type(models.StoreModel)
+class Store:
     pass
