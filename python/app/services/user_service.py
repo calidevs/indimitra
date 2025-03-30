@@ -23,7 +23,7 @@ def get_user_profile(user_id: str):
 
 
 
-def create_user(cognitoId: str, firstName: str, lastName: str, email: str, active: bool, user_type: str, referralId: str, mobile: str = None, referredBy: str = None):
+def create_user(cognitoId: str, firstName: str, lastName: str, email: str, active: bool, user_type: str, referralId: str, mobile: str = None, referredBy: int = None):
     db = SessionLocal()
     try:
         # Convert the user_type string to the corresponding enum value

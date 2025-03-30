@@ -12,7 +12,7 @@ from app.services.address_service import (
 @strawberry.type
 class AddressQuery:
     @strawberry.field
-    def get_addresses_by_user(self, user_id: str) -> List[Address]:
+    def get_addresses_by_user(self, user_id: int) -> List[Address]:
         return get_addresses_by_user(user_id)
 
 
@@ -22,7 +22,7 @@ class AddressMutation:
     def create_address(
         self,
         address: str,
-        user_id: str,
+        user_id: int,
         is_primary: bool = False
     ) -> Address:
         return create_address(address, user_id, is_primary)

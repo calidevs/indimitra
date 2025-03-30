@@ -32,7 +32,7 @@ class OrderQuery:
         return get_order_by_id(order_id=orderId)
     
     @strawberry.field
-    def getOrdersByUser(self, userId: str) -> List[Order]:
+    def getOrdersByUser(self, userId: int) -> List[Order]:
         """Fetch all orders placed by a specific user"""
         return get_orders_by_user(user_id=userId)
 
@@ -51,7 +51,7 @@ class UpdateOrderStatusInput:
     """Defines input format for updating order status"""
     orderId: int
     status: str
-    driverId: Optional[str] = None  # Required if status = READY_FOR_DELIVERY
+    driverId: Optional[int] = None  # Required if status = READY_FOR_DELIVERY
     scheduleTime: Optional[datetime] = None  # Required if status = READY_FOR_DELIVERY
 
 
@@ -61,7 +61,7 @@ class OrderMutation:
     @strawberry.mutation
     def createOrder(
         self,
-        userId: str,
+        userId: int,
         address: str,
         productItems: List[OrderItemInput]
     ) -> Order:
@@ -69,7 +69,7 @@ class OrderMutation:
         Create a new order with multiple order items.
         
         Args:
-            userId (str): The ID of the user placing the order.
+            userId (int): The ID of the user placing the order.
             address (str): Delivery address.
             productItems (List[OrderItemInput]): List of items with product IDs and quantities.
         

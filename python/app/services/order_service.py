@@ -14,7 +14,7 @@ def get_order_by_id(order_id: int) -> Optional[OrderModel]:
     finally:
         db.close()
 
-def get_orders_by_user(user_id: str) -> List[OrderModel]:
+def get_orders_by_user(user_id: int) -> List[OrderModel]:
     """
     Get all orders for a specific user with their order items and product details
     
@@ -49,7 +49,7 @@ def get_all_orders() -> List[OrderModel]:
     finally:
         db.close()
 
-def create_order(user_id: str, address: str, product_items: List[dict]) -> OrderModel:
+def create_order(user_id: int, address: str, product_items: List[dict]) -> OrderModel:
     """
     Create a new order with multiple order items
     

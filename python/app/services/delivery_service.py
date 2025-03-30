@@ -8,7 +8,7 @@ from app.db.models.order import OrderModel
 from app.db.models.user import UserModel
 from app.db.models.delivery import DeliveryStatus
 
-def get_delivery_by_driver(driver_id: str) -> List[DeliveryModel]:
+def get_delivery_by_driver(driver_id: int) -> List[DeliveryModel]:
     """
     Fetch all deliveries assigned to a specific driver along with the order status.
     """

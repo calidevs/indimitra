@@ -14,7 +14,7 @@ from app.graphql.types import Delivery
 @strawberry.type
 class DeliveryQuery:
     @strawberry.field
-    def getDeliveriesByDriver(self, driverId: str) -> List[Delivery]:
+    def getDeliveriesByDriver(self, driverId: int) -> List[Delivery]:
         """
         Fetch all deliveries assigned to a specific driver
         
@@ -39,7 +39,7 @@ class AssignDeliveryInput:
 @strawberry.type
 class DeliveryMutation:
     @strawberry.mutation
-    def assignDelivery(orderId: int, driverId: str, scheduleTime: datetime) -> Delivery:
+    def assignDelivery(orderId: int, driverId: int, scheduleTime: datetime) -> Delivery:
         """
         GraphQL mutation to assign a driver to an order.
         """

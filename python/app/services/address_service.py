@@ -2,7 +2,7 @@ from app.db.session import SessionLocal
 from app.db.models.address import AddressModel
 
 
-def create_address(address: str, user_id: str, is_primary: bool = False) -> AddressModel:
+def create_address(address: str, user_id: int, is_primary: bool = False) -> AddressModel:
     db = SessionLocal()
     try:
         # Check if this address already exists for this user
@@ -47,7 +47,7 @@ def create_address(address: str, user_id: str, is_primary: bool = False) -> Addr
         db.close()
 
 
-def get_addresses_by_user(user_id: str):
+def get_addresses_by_user(user_id: int):
     db = SessionLocal()
     try:
         return db.query(AddressModel).filter(AddressModel.userId == user_id).all()
