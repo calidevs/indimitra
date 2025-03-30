@@ -1,15 +1,6 @@
-from sqlalchemy import Column, Integer, DateTime, ForeignKey, Enum, String
+from sqlalchemy import Column, Integer, DateTime, ForeignKey, String
 from sqlalchemy.orm import relationship
 from app.db.base import Base
-import strawberry
-import enum
-
-@strawberry.enum
-class DeliveryStatus(enum.Enum):
-    SCHEDULED = "SCHEDULED"
-    PICKED_UP = "PICKED_UP"
-    DELIVERED = "DELIVERED"
-    FAILED = "FAILED"
 
 class DeliveryModel(Base):
     __tablename__ = 'delivery'
@@ -19,7 +10,6 @@ class DeliveryModel(Base):
     driverId = Column(Integer, ForeignKey("users.id"), nullable=True)
     pickedUpTime = Column(DateTime, nullable=True)
     deliveredTime = Column(DateTime, nullable=True)
-    status = Column(Enum(DeliveryStatus), nullable=False)
     photo = Column(String, nullable=True)
     comments = Column(String, nullable=True)
     

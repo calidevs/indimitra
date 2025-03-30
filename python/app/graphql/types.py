@@ -1,8 +1,9 @@
 import strawberry
 from strawberry_sqlalchemy_mapper import StrawberrySQLAlchemyMapper
 from app.db import models
-from typing import Optional
+from typing import Optional, Union
 from datetime import datetime
+from app.db.models.order import OrderStatus
 
 # Create a single mapper instance.
 mapper = StrawberrySQLAlchemyMapper()
@@ -38,6 +39,16 @@ class Delivery:
         """
         if hasattr(self, 'order') and self.order and self.order.deliveryDate:
             return self.order.deliveryDate
+        return None
+        
+    @strawberry.field
+    def status(self) -> Optional[OrderStatus]:
+        """
+        Get the status from the related order.
+        This maintains backward compatibility with clients expecting a status field on delivery.
+        """
+        if hasattr(self, 'order') and self.order:
+            return self.order.status
         return None
 
 # Generate a GraphQL type for OrderItemModel
