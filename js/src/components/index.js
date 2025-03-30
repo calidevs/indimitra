@@ -33,3 +33,4 @@ export { default as Dialog } from './Dialog/Dialog';
 export { default as DialogTitle } from './Dialog/DialogTitle';
 export { default as DialogContent } from './Dialog/DialogContent';
 export { default as DialogActions } from './Dialog/DialogActions';
+export { default as Snackbar } from './Snackbar/Snackbar';
