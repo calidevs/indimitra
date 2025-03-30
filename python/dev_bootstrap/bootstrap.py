@@ -4,6 +4,7 @@ from app.db.base import Base
 from app.db.models.product import ProductModel
 from app.db.models.category import CategoryModel
 from app.db.models.user import UserModel, UserType
+from app.db.models.address import AddressModel
 
 def create_data():
     # Create tables if they don't exist yet.
@@ -26,6 +27,15 @@ def create_data():
         db.commit()
         db.refresh(dummy_user)
         
+        # Create an address for the dummy user
+        address = AddressModel(
+            address="123 Admin St, Admin City, AC 12345",
+            userId=dummy_user.id,
+            isPrimary=True
+        )
+        db.add(address)
+        db.commit()
+        
     # Create another dummy user if not exists (needed for CategoryModel.createdByUserId).
     dummy_user_new = db.query(UserModel).filter_by(cognitoId="bootstrapNewCognito").first()
     if not dummy_user_new:
@@ -41,6 +51,15 @@ def create_data():
         db.add(dummy_user_new)
         db.commit()
         db.refresh(dummy_user_new)
+        
+        # Create an address for the new user
+        address_new = AddressModel(
+            address="456 New St, New City, NC 67890",
+            userId=dummy_user_new.id,
+            isPrimary=True
+        )
+        db.add(address_new)
+        db.commit()
 
     # Check if there is already at least one product.
     if db.query(ProductModel).first():

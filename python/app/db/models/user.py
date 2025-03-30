@@ -27,7 +27,7 @@ class UserModel(Base):
     # Relationships
     categories = relationship("CategoryModel", back_populates="creator")
     orders = relationship("OrderModel", back_populates="creator")
-    address = relationship("AddressModel", back_populates="user")
+    addresses = relationship("AddressModel", back_populates="user")
     deliveries = relationship("DeliveryModel", back_populates="driver")
     stores = relationship("StoreModel", back_populates="manager")
     # Self-referential relationship:
