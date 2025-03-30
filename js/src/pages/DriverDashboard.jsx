@@ -169,7 +169,7 @@ const DriverDashboard = () => {
               >
                 <CardContent>
                   <Typography variant="h6">Order #{delivery.orderId}</Typography>
-                  <Typography>Status: {delivery.orderStatus}</Typography>
+                  <Typography>Status: {delivery.status}</Typography>
                   <Typography>Scheduled: {new Date(delivery.schedule).toLocaleString()}</Typography>
                 </CardContent>
               </Card>
