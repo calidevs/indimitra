@@ -100,6 +100,7 @@ class OrderMutation:
 
         Args:
             input: Contains orderId, status, driverId (optional), and scheduleTime (optional).
+            scheduleTime is used to set the deliveryDate for the order.
 
         Returns:
             Updated Order object.
@@ -138,12 +139,12 @@ class OrderMutation:
                 if not driver:
                     raise ValueError(f"Driver with ID {input.driverId} not found or not a delivery driver.")
 
-                # ✅ Assign delivery
-                assign_delivery(order_id=input.orderId, driver_id=input.driverId, schedule_time=input.scheduleTime)
-
-                # Use scheduleTime for the order's deliveryDate
+                # ✅ Set order's deliveryDate first
                 order.deliveryDate = input.scheduleTime
                 db.commit()
+                
+                # ✅ Then assign delivery
+                assign_delivery(order_id=input.orderId, driver_id=input.driverId, schedule_time=input.scheduleTime)
 
             # ✅ Update order status only if changed
             if order.status != input.status:

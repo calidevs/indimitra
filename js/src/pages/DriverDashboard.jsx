@@ -134,11 +134,14 @@ const DriverDashboard = () => {
   const handleUpdateStatus = () => {
     if (!selectedDelivery || !selectedStatus) return;
 
+    // Get scheduleTime from the order's deliveryDate
+    const orderScheduleTime = selectedDelivery.schedule;
+
     mutation.mutate({
       orderId: selectedDelivery.orderId,
       status: selectedStatus,
       driverId: effectiveProfile?.id,
-      scheduleTime: selectedDelivery.schedule,
+      scheduleTime: orderScheduleTime, // This is now coming from the order's deliveryDate
     });
   };
 

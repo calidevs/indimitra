@@ -45,6 +45,10 @@ def assign_delivery(order_id: int, driver_id: int, schedule_time: datetime) -> O
         driver = db.query(UserModel).filter(UserModel.id == driver_id, UserModel.type == "DELIVERY").first()
         if not driver:
             raise ValueError(f"Driver with ID {driver_id} does not exist in users table.")
+            
+        # ✅ Update the order's deliveryDate
+        order.deliveryDate = schedule_time
+        db.commit()
 
         # ✅ Check if a delivery already exists for this order
         delivery = db.query(DeliveryModel).filter(DeliveryModel.orderId == order_id).first()
@@ -52,14 +56,12 @@ def assign_delivery(order_id: int, driver_id: int, schedule_time: datetime) -> O
         if delivery:
             # ✅ Update the existing delivery record
             delivery.driverId = driver_id
-            delivery.schedule = schedule_time
             delivery.status = DeliveryStatus.SCHEDULED
         else:
             # ✅ Create a new delivery record if it doesn't exist
             delivery = DeliveryModel(
                 orderId=order_id,
                 driverId=driver_id,
-                schedule=schedule_time,
                 pickedUpTime=None,
                 deliveredTime=None,
                 status=DeliveryStatus.SCHEDULED
