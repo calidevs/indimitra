@@ -5,6 +5,7 @@ from app.db.session import SessionLocal
 from app.db.models.order import OrderModel, OrderStatus
 from app.db.models.order_item import OrderItemModel
 from app.db.models.product import ProductModel
+from app.db.models.address import AddressModel
 
 def get_order_by_id(order_id: int) -> Optional[OrderModel]:
     """Get an order by its ID"""
@@ -49,13 +50,13 @@ def get_all_orders() -> List[OrderModel]:
     finally:
         db.close()
 
-def create_order(user_id: int, address: str, product_items: List[dict]) -> OrderModel:
+def create_order(user_id: int, address_id: int, product_items: List[dict]) -> OrderModel:
     """
     Create a new order with multiple order items
     
     Args:
         user_id: The ID of the user creating the order
-        address: The delivery address
+        address_id: The ID of the delivery address
         product_items: List of product items [{"product_id": int, "quantity": int}, ...]
     
     Returns:
@@ -63,6 +64,15 @@ def create_order(user_id: int, address: str, product_items: List[dict]) -> Order
     """
     db = SessionLocal()
     try:
+        # Verify the address exists and belongs to the user
+        address = db.query(AddressModel).filter(
+            AddressModel.id == address_id,
+            AddressModel.userId == user_id
+        ).first()
+        
+        if not address:
+            raise ValueError(f"Address with ID {address_id} not found or does not belong to user {user_id}")
+        
         # Extract all product IDs from the items
         product_ids = [item["product_id"] for item in product_items]
         
@@ -86,7 +96,7 @@ def create_order(user_id: int, address: str, product_items: List[dict]) -> Order
         # Create the order
         order = OrderModel(
             createdByUserId=user_id,
-            address=address,
+            addressId=address_id,
             status=OrderStatus.PENDING,
             totalAmount=total_amount,
             deliveryDate=None  # Will be set when delivery is scheduled

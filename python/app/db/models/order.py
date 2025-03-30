@@ -21,7 +21,7 @@ class OrderModel(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     createdByUserId = Column(Integer, ForeignKey("users.id"), nullable=False)
-    address = Column(String, nullable=False)
+    addressId = Column(Integer, ForeignKey("addresses.id"), nullable=False)
     status = Column(Enum(OrderStatus), nullable=False)
     paymentId = Column(Integer, ForeignKey("payment.id"), nullable=True)
     totalAmount = Column(Float, nullable=False)
@@ -33,3 +33,4 @@ class OrderModel(Base):
     payment = relationship("PaymentModel", back_populates="orders")
     order_items = relationship("OrderItemModel", back_populates="order")
     delivery = relationship("DeliveryModel", uselist=False, back_populates="order")
+    address = relationship("AddressModel", foreign_keys=[addressId])

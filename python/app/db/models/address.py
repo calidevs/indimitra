@@ -12,3 +12,4 @@ class AddressModel(Base):
     
     # Relationships
     user = relationship("UserModel", back_populates="addresses")
+    orders = relationship("OrderModel", back_populates="address", foreign_keys="OrderModel.addressId")

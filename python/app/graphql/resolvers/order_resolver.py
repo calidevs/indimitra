@@ -62,7 +62,7 @@ class OrderMutation:
     def createOrder(
         self,
         userId: int,
-        address: str,
+        addressId: int,
         productItems: List[OrderItemInput]
     ) -> Order:
         """
@@ -70,7 +70,7 @@ class OrderMutation:
         
         Args:
             userId (int): The ID of the user placing the order.
-            address (str): Delivery address.
+            addressId (int): The ID of the delivery address.
             productItems (List[OrderItemInput]): List of items with product IDs and quantities.
         
         Returns:
@@ -78,7 +78,7 @@ class OrderMutation:
         """
         # Convert OrderItemInput to dictionary
         items = [{"product_id": item.productId, "quantity": item.quantity} for item in productItems]
-        return create_order(user_id=userId, address=address, product_items=items)
+        return create_order(user_id=userId, address_id=addressId, product_items=items)
     
     @strawberry.mutation
     def cancelOrderById(self, orderId: int) -> Optional[Order]:
