@@ -68,3 +68,7 @@ class Inventory:
 @mapper.type(models.StoreModel)
 class Store:
     pass
+
+@mapper.type(models.StoreDriverModel)
+class StoreDriver:
+    pass

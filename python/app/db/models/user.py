@@ -30,6 +30,7 @@ class UserModel(Base):
     addresses = relationship("AddressModel", back_populates="user")
     deliveries = relationship("DeliveryModel", back_populates="driver")
     stores = relationship("StoreModel", back_populates="manager")
+    driver_stores = relationship("StoreDriverModel", back_populates="driver")
     # Self-referential relationship:
     # 'referrer' is the user that referred this user.
     # 'referrals' will contain all users that were referred by this user.

@@ -14,3 +14,4 @@ class StoreModel(Base):
     # Relationships
     manager = relationship("UserModel", back_populates="stores")
     inventory = relationship("InventoryModel", back_populates="store")
+    drivers = relationship("StoreDriverModel", back_populates="store")

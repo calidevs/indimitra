@@ -8,14 +8,15 @@ from app.graphql.resolvers.order_resolver import OrderItemInput
 from app.graphql.resolvers.address_resolver import AddressQuery, AddressMutation
 from app.graphql.resolvers.inventory_resolver import InventoryQuery, InventoryMutation
 from app.graphql.resolvers.store_resolver import StoreQuery, StoreMutation
+from app.graphql.resolvers.store_driver_resolver import StoreDriverQuery, StoreDriverMutation
 
 
 @strawberry.type
-class Query(UserQuery, ProductQuery, OrderQuery, DeliveryQuery, AddressQuery, InventoryQuery, StoreQuery):
+class Query(UserQuery, ProductQuery, OrderQuery, DeliveryQuery, AddressQuery, InventoryQuery, StoreQuery, StoreDriverQuery):
     pass
 
 @strawberry.type
-class Mutation(UserMutation, ProductMutation, OrderMutation, DeliveryMutation, AddressMutation, InventoryMutation, StoreMutation):
+class Mutation(UserMutation, ProductMutation, OrderMutation, DeliveryMutation, AddressMutation, InventoryMutation, StoreMutation, StoreDriverMutation):
     pass
 
 # Finalize the mapper so that all decorated types are registered.

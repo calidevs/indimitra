@@ -10,3 +10,4 @@ from .payment import PaymentModel, PaymentType
 from .address import AddressModel
 from .store import StoreModel
 from .inventory import InventoryModel
+from .store_driver import StoreDriverModel
