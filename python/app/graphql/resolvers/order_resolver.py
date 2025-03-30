@@ -116,10 +116,11 @@ class OrderMutation:
             if input.status not in OrderStatus.__members__:
                 raise ValueError(f"Invalid order status: {input.status}. Allowed: {list(OrderStatus.__members__.keys())}")
 
-            # ✅ If order status changes from READY_FOR_DELIVERY → another status, delete the assigned delivery record
+            # ✅ If order status changes from READY_FOR_DELIVERY → another status, soft delete the delivery record
             delivery = db.query(DeliveryModel).filter(DeliveryModel.orderId == input.orderId).first()
             if delivery and input.status != "READY_FOR_DELIVERY":
-                db.delete(delivery)
+                # Instead of deleting, set the driver to null and update status to FAILED
+                delivery.driverId = None
                 db.commit() 
 
             # ✅ Assign Delivery only if status is READY_FOR_DELIVERY
