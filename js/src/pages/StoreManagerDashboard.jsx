@@ -34,11 +34,9 @@ import { useAuthStore } from '@/store/useStore';
 import { fetchUserAttributes } from 'aws-amplify/auth';
 import {
   GET_USER_PROFILE,
-  GET_STORE_INFO,
-  GET_STORE_INVENTORY,
+  GET_STORE_WITH_INVENTORY,
   UPDATE_INVENTORY_ITEM,
   ADD_PRODUCT_TO_INVENTORY,
-  PRODUCTS_QUERY,
 } from '@/queries/operations';
 
 const StoreManagerDashboard = () => {
@@ -88,37 +86,22 @@ const StoreManagerDashboard = () => {
     enabled: !!cognitoId,
   });
 
-  // Fetch store information
+  // Fetch store, inventory, and products data in a single query
   const {
     data: storeData,
     isLoading: storeLoading,
     error: storeError,
+    refetch: refetchStoreData,
   } = useQuery({
-    queryKey: ['storeInfo', userProfile?.id],
-    queryFn: () => fetchGraphQL(GET_STORE_INFO, { managerId: userProfile.id }),
+    queryKey: ['storeWithInventory', userProfile?.id],
+    queryFn: () => fetchGraphQL(GET_STORE_WITH_INVENTORY, { managerId: userProfile.id }),
     enabled: !!userProfile?.id,
   });
 
-  const store = storeData?.getStoreByManager;
-
-  // Fetch store inventory
-  const {
-    data: inventoryData,
-    isLoading: inventoryLoading,
-    error: inventoryError,
-    refetch: refetchInventory,
-  } = useQuery({
-    queryKey: ['storeInventory', store?.id],
-    queryFn: () => fetchGraphQL(GET_STORE_INVENTORY, { storeId: store.id }),
-    enabled: !!store?.id,
-  });
-
-  // Fetch available products for adding to inventory
-  const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ['availableProducts'],
-    queryFn: () => fetchGraphQL(PRODUCTS_QUERY),
-    enabled: !!store?.id,
-  });
+  // Extract store, inventory, and products from the combined query response
+  const store = storeData?.storesByManager && storeData.storesByManager[0];
+  const inventory = store?.inventory?.edges?.map((edge) => edge.node) || [];
+  const availableProducts = storeData?.products || [];
 
   // Mutation for updating inventory
   const updateMutation = useMutation({
@@ -130,7 +113,7 @@ const StoreManagerDashboard = () => {
       });
     },
     onSuccess: () => {
-      refetchInventory();
+      refetchStoreData();
       setEditModalOpen(false);
       setSelectedItem(null);
       setNewPrice('');
@@ -154,7 +137,7 @@ const StoreManagerDashboard = () => {
       });
     },
     onSuccess: () => {
-      refetchInventory();
+      refetchStoreData();
       setAddModalOpen(false);
       resetAddForm();
     },
@@ -162,9 +145,6 @@ const StoreManagerDashboard = () => {
       setErrorMessage(`Error adding product: ${error.message}`);
     },
   });
-
-  const inventory = inventoryData?.getStoreInventory || [];
-  const availableProducts = productsData?.products || [];
 
   // Filter inventory items based on search term and low stock filter
   const filteredInventory = inventory.filter((item) => {
@@ -387,13 +367,13 @@ const StoreManagerDashboard = () => {
             />
           </Box>
 
-          {inventoryLoading ? (
+          {storeLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
               <CircularProgress />
             </Box>
-          ) : inventoryError ? (
+          ) : storeError ? (
             <Alert severity="error" sx={{ my: 2 }}>
-              Error loading inventory: {inventoryError.message}
+              Error loading store data: {storeError.message}
             </Alert>
           ) : (
             <>
@@ -588,7 +568,7 @@ const StoreManagerDashboard = () => {
                 onChange={(e) => setSelectedProduct(e.target.value)}
                 label="Select Product"
               >
-                {productsLoading ? (
+                {storeLoading ? (
                   <MenuItem disabled>Loading products...</MenuItem>
                 ) : (
                   availableProducts.map((product) => (
@@ -609,7 +589,7 @@ const StoreManagerDashboard = () => {
               sx={{ mt: 2 }}
             />
             <TextField
-              label="Quantity"
+              label="Quantity (No of Items In Inventory)"
               type="number"
               fullWidth
               value={addQuantity}
@@ -618,7 +598,7 @@ const StoreManagerDashboard = () => {
               sx={{ mt: 2 }}
             />
             <TextField
-              label="Size"
+              label="Measurement"
               type="number"
               fullWidth
               value={addSize}
@@ -627,12 +607,8 @@ const StoreManagerDashboard = () => {
               sx={{ mt: 2 }}
             />
             <FormControl fullWidth sx={{ mt: 2 }}>
-              <InputLabel>Measurement Unit</InputLabel>
-              <Select
-                value={addUnit}
-                onChange={(e) => setAddUnit(e.target.value)}
-                label="Measurement Unit"
-              >
+              <InputLabel>Unit</InputLabel>
+              <Select value={addUnit} onChange={(e) => setAddUnit(e.target.value)} label="Unit">
                 <MenuItem value="">None</MenuItem>
                 <MenuItem value="1">Grams (g)</MenuItem>
                 <MenuItem value="2">Kilograms (kg)</MenuItem>

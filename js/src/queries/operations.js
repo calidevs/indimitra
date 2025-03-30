@@ -209,7 +209,7 @@ export const UPDATE_USER_TYPE = `
 
 export const GET_STORE_INFO = `
   query GetStoreInfo($managerId: Int!) {
-    getStoreByManager(managerId: $managerId) {
+    storesByManager(managerUserId: $managerId) {
       id
       name
       address
@@ -258,6 +258,47 @@ export const ADD_PRODUCT_TO_INVENTORY = `
       id
       price
       quantity
+    }
+  }
+`;
+
+export const GET_STORE_WITH_INVENTORY = `
+  query GetStoreWithInventory($managerId: Int!) {
+    storesByManager(managerUserId: $managerId) {
+      id
+      name
+      address
+      radius
+      inventory {
+        edges {
+          node {
+            id
+            quantity
+            price
+            measurement
+            updatedAt
+            product {
+              id
+              name
+              description
+              category {
+                id
+                name
+              }
+              image
+            }
+          }
+        }
+      }
+    }
+    products {
+      id
+      name
+      description
+      category {
+        id
+        name
+      }
     }
   }
 `;
