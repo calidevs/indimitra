@@ -15,20 +15,22 @@ export const PRODUCTS_QUERY = `
 
 export const CREATE_ORDER_MUTATION = `
   mutation CreateOrder(
-    $userId: String!,
-    $address: String!,
+    $userId: Int!,
+    $addressId: Int!,
     $productItems: [OrderItemInput!]!
   ) {
-    createOrder(userId: $userId, address: $address, productItems: $productItems) {
+    createOrder(userId: $userId, addressId: $addressId, productItems: $productItems) {
       id
       createdByUserId
-      address
+      address { 
+        id
+      }
       status
       totalAmount
       deliveryDate
       orderItems {
-        edges {  
-          node { 
+        edges {
+          node {
             id
             productId
             quantity
@@ -67,7 +69,11 @@ export const GET_ALL_ORDERS = `
 query GetAllOrders {
   getAllOrders {
     id
-    address
+      address { 
+        id
+        address
+        isPrimary
+      }
     status
     totalAmount
     deliveryDate
@@ -96,7 +102,7 @@ export const GET_ALL_USERS = `query getAllUsers {
 }`;
 
 export const UPDATE_ORDER_STATUS = `
-  mutation UpdateOrderStatus($orderId: Int!, $status: String!, $driverId: String, $scheduleTime: DateTime) {
+  mutation UpdateOrderStatus($orderId: Int!, $status: String!, $driverId: Int, $scheduleTime: DateTime) {
     updateOrderStatus(input: { 
       orderId: $orderId, 
       status: $status, 
@@ -110,7 +116,7 @@ export const UPDATE_ORDER_STATUS = `
 `;
 
 export const GET_DELIVERIES_BY_DRIVER = `
-  query GetDeliveriesByDriver($driverId: String!) {
+  query GetDeliveriesByDriver($driverId: Int!) {
     getDeliveriesByDriver(driverId: $driverId) {
       id
       orderId

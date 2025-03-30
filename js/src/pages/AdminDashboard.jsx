@@ -153,7 +153,7 @@ const AdminDashboard = () => {
                     </IconButton>
                   </TableCell>
                   <TableCell>{order.id}</TableCell>
-                  <TableCell>{order.address}</TableCell>
+                  <TableCell>{order.address.address}</TableCell>
                   <TableCell>{order.status}</TableCell>
                   <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
                   <TableCell>

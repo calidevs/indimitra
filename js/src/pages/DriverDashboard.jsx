@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useReducer } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Container,
@@ -17,22 +17,34 @@ import {
 } from '@mui/material';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import fetchGraphQL from '@/config/graphql/graphqlService';
-import { GET_DELIVERIES_BY_DRIVER, UPDATE_ORDER_STATUS } from '@/queries/operations';
+import {
+  GET_DELIVERIES_BY_DRIVER,
+  UPDATE_ORDER_STATUS,
+  GET_USER_PROFILE,
+} from '@/queries/operations';
+import useStore, { useAuthStore } from '@/store/useStore';
 
 const DriverDashboard = () => {
+  // Force re-render function
+  const [, forceUpdate] = useReducer((x) => x + 1, 0);
+
   const [selectedDelivery, setSelectedDelivery] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [userId, setUserId] = useState(null);
+  const [cognitoId, setCognitoId] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState('');
 
+  const { userProfile, setUserProfile } = useAuthStore();
+  const getLatestProfile = () => useAuthStore.getState().userProfile;
+
+  // Fetch user ID from Cognito
   useEffect(() => {
     const getUserId = async () => {
       try {
         const session = await fetchAuthSession();
         if (session?.tokens?.idToken) {
           const id = session.tokens.idToken.payload.sub;
-          console.log('Fetched userId:', id); // ✅ Debugging
-          setUserId(id);
+          console.log('Fetched Cognito ID:', id);
+          setCognitoId(id);
         } else {
           console.warn('No valid session tokens found.');
         }
@@ -44,18 +56,64 @@ const DriverDashboard = () => {
     getUserId();
   }, []);
 
+  // Fetch user profile with Cognito ID and store in Zustand
+  const {
+    data: profileData,
+    isLoading: profileLoading,
+    error: profileError,
+  } = useQuery({
+    queryKey: ['getUserProfile', cognitoId],
+    queryFn: async () => {
+      console.log('Fetching user profile with cognitoId:', cognitoId);
+      const response = await fetchGraphQL(GET_USER_PROFILE, { userId: cognitoId });
+      console.log('User profile API response:', response);
+
+      // Set profile data immediately when we get it
+      if (response?.getUserProfile) {
+        console.log('Setting profile in store:', response.getUserProfile);
+        setUserProfile(response.getUserProfile);
+
+        // Force refresh after a small delay
+        setTimeout(() => {
+          console.log('Current profile in store:', getLatestProfile());
+          forceUpdate();
+        }, 200);
+      }
+
+      return response;
+    },
+    enabled: !!cognitoId,
+    onError: (error) => {
+      console.error('Error fetching user profile:', error);
+    },
+  });
+
+  // Get the effective profile from any available source
+  const directStoreProfile = getLatestProfile();
+  const effectiveProfile = directStoreProfile || userProfile || profileData?.getUserProfile;
+
+  console.log('Driver Dashboard State:', {
+    directStoreProfile,
+    zustandHookProfile: userProfile,
+    apiProfile: profileData?.getUserProfile,
+    using: effectiveProfile,
+  });
+
   // Fetch deliveries assigned to this driver
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['driverDeliveries', userId],
-    queryFn: () => (userId ? fetchGraphQL(GET_DELIVERIES_BY_DRIVER, { driverId: userId }) : null),
-    enabled: !!userId, // ✅ Only execute when userId is set
+    queryKey: ['driverDeliveries', effectiveProfile?.id],
+    queryFn: () =>
+      effectiveProfile?.id
+        ? fetchGraphQL(GET_DELIVERIES_BY_DRIVER, { driverId: effectiveProfile.id })
+        : null,
+    enabled: !!effectiveProfile?.id,
   });
 
   // Mutation to update order status
   const mutation = useMutation({
     mutationFn: (variables) => fetchGraphQL(UPDATE_ORDER_STATUS, variables),
     onSuccess: () => {
-      refetch(); // ✅ Refresh the deliveries after updating status
+      refetch(); // Refresh the deliveries after updating status
       setModalOpen(false);
     },
     onError: (error) => {
@@ -65,7 +123,7 @@ const DriverDashboard = () => {
 
   const handleOpenModal = (delivery) => {
     setSelectedDelivery(delivery);
-    setSelectedStatus(delivery.orderStatus); // ✅ Set initial status
+    setSelectedStatus(delivery.orderStatus || delivery.status);
     setModalOpen(true);
   };
 
@@ -79,13 +137,19 @@ const DriverDashboard = () => {
     mutation.mutate({
       orderId: selectedDelivery.orderId,
       status: selectedStatus,
-      driverId: userId, // Ensure driver ID is included if needed
-      scheduleTime: selectedDelivery.schedule, // ✅ Ensure you send scheduleTime if needed
+      driverId: effectiveProfile?.id,
+      scheduleTime: selectedDelivery.schedule,
     });
   };
 
-  if (isLoading) return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />;
-  if (error) return <Typography color="error">Error fetching deliveries!</Typography>;
+  // Show loading while fetching profile or deliveries
+  if (profileLoading || (isLoading && effectiveProfile?.id))
+    return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />;
+
+  if (profileError) return <Typography color="error">Error fetching user profile!</Typography>;
+
+  if (error && effectiveProfile?.id)
+    return <Typography color="error">Error fetching deliveries!</Typography>;
 
   const deliveries = data?.getDeliveriesByDriver || [];
 
