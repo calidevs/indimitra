@@ -2,6 +2,8 @@ from app.db.session import SessionLocal
 from app.db.models.user import UserModel, UserType
 from app.graphql.types import User  # Import the GraphQL User type
 from typing import Optional
+from sqlalchemy.exc import IntegrityError
+from app.services.aws_service import update_cognito_user_role
 
 def get_all_users():
     db = SessionLocal()
@@ -49,6 +51,7 @@ def create_user(cognitoId: str, firstName: str, lastName: str, email: str, activ
 def update_user_type(requester_id: str, target_user_id: str, new_user_type: str):
     """
     Update a user's type/role - only ADMIN users can perform this action
+    Updates both the database and the Cognito user attribute
     
     Args:
         requester_id: Cognito ID of the user making the request
@@ -59,7 +62,7 @@ def update_user_type(requester_id: str, target_user_id: str, new_user_type: str)
         The updated user model
         
     Raises:
-        ValueError: If the requester is not an admin or the new user type is invalid
+        ValueError: If the requester is not an admin, the new user type is invalid, or Cognito update fails
         LookupError: If the requester or target user cannot be found
     """
     db = SessionLocal()
@@ -78,16 +81,29 @@ def update_user_type(requester_id: str, target_user_id: str, new_user_type: str)
         if not target_user:
             raise LookupError(f"Target user with ID {target_user_id} not found")
             
-        # Validate and set the new user type
+        # Validate the new user type first
         try:
             new_type_enum = UserType(new_user_type)
+            
+            # Update Cognito FIRST, before making any database changes
+            cognito_updated = update_cognito_user_role(target_user_id, new_user_type)
+            if not cognito_updated:
+                # If Cognito update fails, don't update the database
+                raise ValueError(f"Failed to update Cognito role for user {target_user_id}. Database not updated to maintain consistency.")
+            
+            # Only update the database if Cognito update was successful
             target_user.type = new_type_enum
             db.commit()
             db.refresh(target_user)
+            
             return target_user
-        except ValueError:
-            valid_types = [t.value for t in UserType]
-            raise ValueError(f"Invalid user type: {new_user_type}. Valid types are: {', '.join(valid_types)}")
+        except ValueError as ve:
+            # Check if this is our custom error or a UserType validation error
+            if "Failed to update Cognito role" in str(ve):
+                raise ve
+            else:
+                valid_types = [t.value for t in UserType]
+                raise ValueError(f"Invalid user type: {new_user_type}. Valid types are: {', '.join(valid_types)}")
     finally:
         db.close()
 

@@ -16,3 +16,8 @@ def get_database_url():
     )
 
 DATABASE_URL = get_database_url()
+
+# AWS Cognito Configuration
+AWS_REGION = os.getenv("AWS_REGION")
+COGNITO_USER_POOL_ID = os.getenv("COGNITO_USER_POOL_ID")
+COGNITO_USER_POOL_CLIENT_ID = os.getenv("COGNITO_USER_POOL_CLIENT_ID")
