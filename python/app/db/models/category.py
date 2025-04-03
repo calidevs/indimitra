@@ -9,8 +9,6 @@ class CategoryModel(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     createdAt = Column(DateTime, default=datetime.utcnow, nullable=False)
-    createdByUserId = Column(String, ForeignKey("users.id"), nullable=False)
     
     # Relationships
-    creator = relationship("UserModel", back_populates="categories")
     products = relationship("ProductModel", back_populates="category")

@@ -55,7 +55,7 @@ const Header = () => {
       case 'DELIVERY':
         return ROUTES.DRIVER;
       case 'STORE_MANAGER':
-        return '/store-dashboard';
+        return ROUTES.STORE_MANAGER;
       case 'ADMIN':
         return ROUTES.ADMIN;
       default:

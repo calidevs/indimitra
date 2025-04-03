@@ -15,20 +15,22 @@ export const PRODUCTS_QUERY = `
 
 export const CREATE_ORDER_MUTATION = `
   mutation CreateOrder(
-    $userId: String!,
-    $address: String!,
+    $userId: Int!,
+    $addressId: Int!,
     $productItems: [OrderItemInput!]!
   ) {
-    createOrder(userId: $userId, address: $address, productItems: $productItems) {
+    createOrder(userId: $userId, addressId: $addressId, productItems: $productItems) {
       id
       createdByUserId
-      address
+      address { 
+        id
+      }
       status
       totalAmount
       deliveryDate
       orderItems {
-        edges {  
-          node { 
+        edges {
+          node {
             id
             productId
             quantity
@@ -40,10 +42,14 @@ export const CREATE_ORDER_MUTATION = `
 `;
 
 export const GET_USER_ORDERS = `
-  query GetUserOrders($userId: String!) {
+  query GetUserOrders($userId: Int!) {
     getOrdersByUser(userId: $userId) {
       id
-      address
+      address { 
+        id
+        address
+        isPrimary
+      }
       status
       totalAmount
       deliveryDate
@@ -67,7 +73,11 @@ export const GET_ALL_ORDERS = `
 query GetAllOrders {
   getAllOrders {
     id
-    address
+      address { 
+        id
+        address
+        isPrimary
+      }
     status
     totalAmount
     deliveryDate
@@ -90,29 +100,29 @@ query GetAllOrders {
 export const GET_ALL_USERS = `query getAllUsers {
   getAllUsers {
     id
-    firstName
-    lastName
     email
     type
+    cognitoId
   }
 }`;
 
 export const UPDATE_ORDER_STATUS = `
-  mutation UpdateOrderStatus($orderId: Int!, $status: String!, $driverId: String, $scheduleTime: DateTime) {
+  mutation UpdateOrderStatus($orderId: Int!, $status: String!, $driverId: Int, $scheduleTime: DateTime) {
     updateOrderStatus(input: { 
       orderId: $orderId, 
       status: $status, 
       driverId: $driverId, 
-      scheduleTime: $scheduleTime 
+      scheduleTime: $scheduleTime
     }) {
       id
       status
+      deliveryDate
     }
   }
 `;
 
 export const GET_DELIVERIES_BY_DRIVER = `
-  query GetDeliveriesByDriver($driverId: String!) {
+  query GetDeliveriesByDriver($driverId: Int!) {
     getDeliveriesByDriver(driverId: $driverId) {
       id
       orderId
@@ -128,8 +138,6 @@ export const GET_USER_PROFILE = `
   query GetUserProfile($userId: String!) {
     getUserProfile(userId: $userId) {
       id
-      firstName
-      lastName
       email
       mobile
       active
@@ -149,7 +157,7 @@ export const CANCEL_ORDER = `
 `;
 
 export const GET_ADDRESSES_BY_USER = `
-  query GetAddressesByUser($userId: String!) {
+  query GetAddressesByUser($userId: Int!) {
     getAddressesByUser(userId: $userId) {
       id
       address
@@ -159,7 +167,7 @@ export const GET_ADDRESSES_BY_USER = `
 `;
 
 export const CREATE_ADDRESS = `
-  mutation CreateAddress($address: String!, $userId: String!, $isPrimary: Boolean) {
+  mutation CreateAddress($address: String!, $userId: Int!, $isPrimary: Boolean) {
     createAddress(address: $address, userId: $userId, isPrimary: $isPrimary) {
       id
       address
@@ -181,5 +189,116 @@ export const UPDATE_ADDRESS = `
 export const DELETE_ADDRESS = `
   mutation DeleteAddress($addressId: Int!) {
     deleteAddress(addressId: $addressId)
+  }
+`;
+
+export const UPDATE_USER_TYPE = `
+  mutation UpdateUserType($requesterId: String!, $targetUserId: String!, $newType: String!) {
+    updateUserType(requesterId: $requesterId, targetUserId: $targetUserId, newType: $newType) {
+      user {
+        id
+        email
+        type
+      }
+      error {
+        message
+      }
+    }
+  }
+`;
+
+export const GET_STORE_INFO = `
+  query GetStoreInfo($managerId: Int!) {
+    storesByManager(managerUserId: $managerId) {
+      id
+      name
+      address
+      radius
+    }
+  }
+`;
+
+export const GET_STORE_INVENTORY = `
+  query GetStoreInventory($storeId: Int!) {
+    getStoreInventory(storeId: $storeId) {
+      id
+      quantity
+      price
+      size
+      measurement_unit
+      updatedAt
+      product {
+        id
+        name
+        description
+        category {
+          id
+          name
+        }
+        image
+      }
+    }
+  }
+`;
+
+export const UPDATE_INVENTORY_ITEM = `
+  mutation UpdateInventoryItem($inventoryId: Int!, $price: Float!, $quantity: Int!) {
+    updateInventoryItem(inventoryId: $inventoryId, price: $price, quantity: $quantity) {
+      id
+      price
+      quantity
+      updatedAt
+    }
+  }
+`;
+
+export const ADD_PRODUCT_TO_INVENTORY = `
+  mutation AddProductToInventory($storeId: Int!, $productId: Int!, $price: Float!, $quantity: Int!, $size: Float, $measurement_unit: Int) {
+    addProductToInventory(storeId: $storeId, productId: $productId, price: $price, quantity: $quantity, size: $size, measurement_unit: $measurement_unit) {
+      id
+      price
+      quantity
+    }
+  }
+`;
+
+export const GET_STORE_WITH_INVENTORY = `
+  query GetStoreWithInventory($managerId: Int!) {
+    storesByManager(managerUserId: $managerId) {
+      id
+      name
+      address
+      radius
+      inventory {
+        edges {
+          node {
+            id
+            quantity
+            price
+            measurement
+            updatedAt
+            product {
+              id
+              name
+              description
+              category {
+                id
+                name
+              }
+              image
+            }
+          }
+        }
+      }
+    }
+    products {
+      id
+      name
+      description
+      category {
+        id
+        name
+      }
+    }
   }
 `;

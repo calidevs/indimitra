@@ -20,16 +20,23 @@ class OrderModel(Base):
     __tablename__ = 'orders'
     
     id = Column(Integer, primary_key=True, index=True)
-    createdByUserId = Column(String, ForeignKey("users.id"), nullable=False)
-    address = Column(String, nullable=False)
+    createdByUserId = Column(Integer, ForeignKey("users.id"), nullable=False)
+    addressId = Column(Integer, ForeignKey("address.id"), nullable=False)
     status = Column(Enum(OrderStatus), nullable=False)
     paymentId = Column(Integer, ForeignKey("payment.id"), nullable=True)
     totalAmount = Column(Float, nullable=False)
     deliveryDate = Column(DateTime, nullable=True)
     deliveryInstructions = Column(String, nullable=True)
     
+    # Cancellation tracking fields
+    cancelMessage = Column(String, nullable=True)
+    cancelledByUserId = Column(Integer, ForeignKey("users.id"), nullable=True)
+    cancelledAt = Column(DateTime, nullable=True)
+    
     # Relationships
-    creator = relationship("UserModel", back_populates="orders")
+    creator = relationship("UserModel", foreign_keys=[createdByUserId], back_populates="orders")
     payment = relationship("PaymentModel", back_populates="orders")
     order_items = relationship("OrderItemModel", back_populates="order")
     delivery = relationship("DeliveryModel", uselist=False, back_populates="order")
+    address = relationship("AddressModel", foreign_keys=[addressId])
+    cancelled_by = relationship("UserModel", foreign_keys=[cancelledByUserId], back_populates="cancelled_orders")

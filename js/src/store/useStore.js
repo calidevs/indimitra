@@ -39,12 +39,36 @@ const useStore = create((set, get) => ({
   clearCart: () => set({ cart: {} }),
 }));
 
-export const useAuthStore = create((set) => ({
+export const useAuthStore = create((set, get) => ({
   user: null,
-  ability: defineUserAbility(null),
-  setUser: (user) => set({ user }),
+  userProfile: null,
+  ability: null,
+
+  setUser: (user) => {
+    set({ user });
+  },
+
+  setUserProfile: (userProfile) => {
+    if (!userProfile) {
+      console.warn('Attempted to set null userProfile!');
+      return;
+    }
+
+    const profileCopy = JSON.parse(JSON.stringify(userProfile));
+
+    set((state) => ({
+      ...state,
+      userProfile: profileCopy,
+    }));
+  },
+
+  getUserProfile: () => get().userProfile,
+
   setAbility: (ability) => set({ ability }),
-  logout: () => set({ user: null, ability: defineUserAbility(null) }),
+
+  logout: () => {
+    set({ user: null, userProfile: null, ability: defineUserAbility(null) });
+  },
 }));
 
 export default useStore;

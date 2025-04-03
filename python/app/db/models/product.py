@@ -9,10 +9,6 @@ class ProductModel(Base):
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
     categoryId = Column(Integer, ForeignKey("categories.id"), nullable=False)
-    stock = Column(Integer, default=0)
-    size = Column(Float, nullable=True)
-    measurement_unit = Column(Integer, nullable=True)
-    price = Column(Float, nullable=False)
     image = Column(String, nullable=True)  # URL stored as string
     
     # Relationships

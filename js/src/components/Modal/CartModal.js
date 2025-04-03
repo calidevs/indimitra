@@ -14,22 +14,22 @@ import {
   LoadingSpinner,
 } from '@components';
 import { Close, Remove, Add } from '@mui/icons-material';
-import useStore from '@/store/useStore';
-import { useMutation } from '@tanstack/react-query';
-import { GET_ADDRESSES_BY_USER } from '../../queries/operations';
-import { useQuery } from '@tanstack/react-query';
+import useStore, { useAuthStore } from '@/store/useStore';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import fetchGraphQL from '../../config/graphql/graphqlService';
 import { fetchAuthSession } from 'aws-amplify/auth';
-import { CREATE_ORDER_MUTATION } from '../../queries/operations';
+import { CREATE_ORDER_MUTATION, GET_ADDRESSES_BY_USER } from '../../queries/operations';
 import { DELIVERY_FEE, TAX_RATE } from '../../config/constants/constants';
 
 const CartModal = ({ open, onClose }) => {
   const { cart, removeFromCart, addToCart, cartTotal, clearCart } = useStore();
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
-  const [selectedAddress, setSelectedAddress] = useState('Home');
+  // Store the address id instead of a string value
+  const [selectedAddress, setSelectedAddress] = useState(null);
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
   const [userId, setUserId] = useState(null);
   const [addresses, setAddresses] = useState([]);
+  const { userProfile } = useAuthStore();
 
   const subtotal = cartTotal() || 0;
   const tax = subtotal * TAX_RATE;
@@ -68,21 +68,22 @@ const CartModal = ({ open, onClose }) => {
   });
 
   const { data: addressData } = useQuery({
-    queryKey: ['getAddressesByUser', userId],
-    queryFn: () => fetchGraphQL(GET_ADDRESSES_BY_USER, { userId }),
-    enabled: !!userId,
+    queryKey: ['getAddressesByUser', userProfile?.id],
+    queryFn: () => fetchGraphQL(GET_ADDRESSES_BY_USER, { userId: userProfile.id }),
+    enabled: !!userProfile?.id,
     onSuccess: (res) => {
+      console.log('Address data fetched:', res);
       setAddresses(res?.getAddressesByUser || []);
       if (res?.getAddressesByUser?.length > 0) {
-        setSelectedAddress(res.getAddressesByUser[0].address); // default
+        // Set the default selected address as the first address's ID
+        setSelectedAddress(res.getAddressesByUser[0].id);
       }
     },
   });
 
   const handleOrderPlacement = async () => {
     try {
-      const session = await fetchAuthSession();
-      const userId = session?.userSub;
+      const userId = userProfile.id;
 
       if (!userId) {
         console.error('User ID not found. Ensure user is authenticated.');
@@ -94,13 +95,15 @@ const CartModal = ({ open, onClose }) => {
         quantity: item.quantity,
       }));
 
+      // Update variable to use addressId instead of address string
       const variables = {
         userId,
-        address: selectedAddress,
+        addressId: selectedAddress,
         productItems,
+        deliveryInstructions,
       };
 
-      mutate(variables); // ✅ This should trigger the mutation
+      mutate(variables); // Trigger the mutation
     } catch (error) {
       console.error('Error fetching user ID:', error);
     }
@@ -189,7 +192,7 @@ const CartModal = ({ open, onClose }) => {
               <InputLabel>Select Address</InputLabel>
               <Select value={selectedAddress} onChange={(e) => setSelectedAddress(e.target.value)}>
                 {addressData?.getAddressesByUser?.map((addr) => (
-                  <MenuItem key={addr.id} value={addr.address}>
+                  <MenuItem key={addr.id} value={addr.id}>
                     {addr.address} {addr.isPrimary ? '(Primary)' : ''}
                   </MenuItem>
                 ))}
@@ -208,7 +211,7 @@ const CartModal = ({ open, onClose }) => {
                 gap: 1,
               }}
               onClick={handleOrderPlacement}
-              disabled={Object.values(cart).length === 0 || isPending} // ✅ Using `isLoading` directly
+              disabled={Object.values(cart).length === 0 || isPending}
             >
               {isPending ? (
                 <>

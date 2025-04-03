@@ -10,6 +10,7 @@ import ForgotPassword from './pages/ForgotPassword';
 import SignUpPage from './pages/SignUp/SignUp';
 import AdminDashboard from './pages/AdminDashboard';
 import DriverDashboard from './pages/DriverDashboard';
+import StoreManagerDashboard from './pages/StoreManagerDashboard';
 import UpdateUserRole from './pages/Admin/UpdateUserRole';
 import Orders from './pages/Orders';
 import Profile from './pages/Profile';
@@ -60,6 +61,14 @@ const App = () => {
           element={
             <ProtectedRoute role="driver">
               <DriverDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.STORE_MANAGER}
+          element={
+            <ProtectedRoute role="store_manager">
+              <StoreManagerDashboard />
             </ProtectedRoute>
           }
         />

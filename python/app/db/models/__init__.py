@@ -4,9 +4,10 @@ from .user import UserModel, UserType
 from .category import CategoryModel
 from .product import ProductModel
 from .order import OrderModel, OrderStatus
-from .delivery import DeliveryModel, DeliveryStatus
+from .delivery import DeliveryModel
 from .order_item import OrderItemModel
 from .payment import PaymentModel, PaymentType
 from .address import AddressModel
 from .store import StoreModel
 from .inventory import InventoryModel
+from .store_driver import StoreDriverModel

@@ -14,7 +14,7 @@ from app.graphql.types import Delivery
 @strawberry.type
 class DeliveryQuery:
     @strawberry.field
-    def getDeliveriesByDriver(self, driverId: str) -> List[Delivery]:
+    def getDeliveriesByDriver(self, driverId: int) -> List[Delivery]:
         """
         Fetch all deliveries assigned to a specific driver
         
@@ -39,9 +39,10 @@ class AssignDeliveryInput:
 @strawberry.type
 class DeliveryMutation:
     @strawberry.mutation
-    def assignDelivery(orderId: int, driverId: str, scheduleTime: datetime) -> Delivery:
+    def assignDelivery(orderId: int, driverId: int, scheduleTime: datetime) -> Delivery:
         """
         GraphQL mutation to assign a driver to an order.
+        This will also update the order status to SCHEDULED.
         """
         try:
             return assign_delivery(orderId, driverId, scheduleTime)
@@ -60,8 +61,8 @@ class DeliveryMutation:
         
         Args:
             orderId: ID of the order
-            pickedUpTime: Optional timestamp when order was picked up
-            deliveredTime: Optional timestamp when order was delivered
+            pickedUpTime: Optional timestamp when order was picked up (sets order status to PICKED_UP)
+            deliveredTime: Optional timestamp when order was delivered (sets order status to DELIVERED)
         
         Returns:
             Updated Delivery object or None

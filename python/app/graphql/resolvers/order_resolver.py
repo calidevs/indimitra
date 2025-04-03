@@ -32,7 +32,7 @@ class OrderQuery:
         return get_order_by_id(order_id=orderId)
     
     @strawberry.field
-    def getOrdersByUser(self, userId: str) -> List[Order]:
+    def getOrdersByUser(self, userId: int) -> List[Order]:
         """Fetch all orders placed by a specific user"""
         return get_orders_by_user(user_id=userId)
 
@@ -51,7 +51,7 @@ class UpdateOrderStatusInput:
     """Defines input format for updating order status"""
     orderId: int
     status: str
-    driverId: Optional[str] = None  # Required if status = READY_FOR_DELIVERY
+    driverId: Optional[int] = None  # Required if status = READY_FOR_DELIVERY
     scheduleTime: Optional[datetime] = None  # Required if status = READY_FOR_DELIVERY
 
 
@@ -61,16 +61,16 @@ class OrderMutation:
     @strawberry.mutation
     def createOrder(
         self,
-        userId: str,
-        address: str,
+        userId: int,
+        addressId: int,
         productItems: List[OrderItemInput]
     ) -> Order:
         """
         Create a new order with multiple order items.
         
         Args:
-            userId (str): The ID of the user placing the order.
-            address (str): Delivery address.
+            userId (int): The ID of the user placing the order.
+            addressId (int): The ID of the delivery address.
             productItems (List[OrderItemInput]): List of items with product IDs and quantities.
         
         Returns:
@@ -78,20 +78,26 @@ class OrderMutation:
         """
         # Convert OrderItemInput to dictionary
         items = [{"product_id": item.productId, "quantity": item.quantity} for item in productItems]
-        return create_order(user_id=userId, address=address, product_items=items)
+        return create_order(user_id=userId, address_id=addressId, product_items=items)
     
     @strawberry.mutation
-    def cancelOrderById(self, orderId: int) -> Optional[Order]:
+    def cancelOrderById(self, orderId: int, cancelMessage: str, cancelledByUserId: int) -> Optional[Order]:
         """
-        Cancel an order.
+        Cancel an order and record cancellation details.
         
         Args:
             orderId (int): Order ID to cancel.
+            cancelMessage (str): Reason for cancellation.
+            cancelledByUserId (int): ID of the user who cancelled the order (customer, manager, delivery).
         
         Returns:
             Optional[Order]: The canceled order or None if not found.
         """
-        return cancel_order(order_id=orderId)
+        return cancel_order(
+            order_id=orderId,
+            cancel_message=cancelMessage,
+            cancelled_by_user_id=cancelledByUserId
+        )
     
     @strawberry.mutation
     def updateOrderStatus(self, input: UpdateOrderStatusInput) -> Optional[Order]:
@@ -100,6 +106,7 @@ class OrderMutation:
 
         Args:
             input: Contains orderId, status, driverId (optional), and scheduleTime (optional).
+            scheduleTime is used to set the deliveryDate for the order.
 
         Returns:
             Updated Order object.
@@ -116,10 +123,14 @@ class OrderMutation:
             if input.status not in OrderStatus.__members__:
                 raise ValueError(f"Invalid order status: {input.status}. Allowed: {list(OrderStatus.__members__.keys())}")
 
-            # ✅ If order status changes from READY_FOR_DELIVERY → another status, delete the assigned delivery record
+            # Define statuses that should maintain the delivery agent
+            delivery_progression_statuses = ["READY_FOR_DELIVERY", "SCHEDULED", "PICKED_UP", "DELIVERED"]
+
+            # ✅ If order status changes to a status outside the delivery progression, remove the driver
             delivery = db.query(DeliveryModel).filter(DeliveryModel.orderId == input.orderId).first()
-            if delivery and input.status != "READY_FOR_DELIVERY":
-                db.delete(delivery)
+            if delivery and input.status not in delivery_progression_statuses:
+                # Instead of deleting, set the driver to null and update status to FAILED
+                delivery.driverId = None
                 db.commit() 
 
             # ✅ Assign Delivery only if status is READY_FOR_DELIVERY
@@ -134,7 +145,11 @@ class OrderMutation:
                 if not driver:
                     raise ValueError(f"Driver with ID {input.driverId} not found or not a delivery driver.")
 
-                # ✅ Assign delivery
+                # ✅ Set order's deliveryDate first
+                order.deliveryDate = input.scheduleTime
+                db.commit()
+                
+                # ✅ Then assign delivery
                 assign_delivery(order_id=input.orderId, driver_id=input.driverId, schedule_time=input.scheduleTime)
 
             # ✅ Update order status only if changed
