@@ -147,3 +147,39 @@ export const CANCEL_ORDER = `
     }
   }
 `;
+
+export const GET_ADDRESSES_BY_USER = `
+  query GetAddressesByUser($userId: String!) {
+    getAddressesByUser(userId: $userId) {
+      id
+      address
+      isPrimary
+    }
+  }
+`;
+
+export const CREATE_ADDRESS = `
+  mutation CreateAddress($address: String!, $userId: String!, $isPrimary: Boolean) {
+    createAddress(address: $address, userId: $userId, isPrimary: $isPrimary) {
+      id
+      address
+      isPrimary
+    }
+  }
+`;
+
+export const UPDATE_ADDRESS = `
+  mutation UpdateAddress($addressId: Int!, $address: String, $isPrimary: Boolean) {
+    updateAddress(addressId: $addressId, address: $address, isPrimary: $isPrimary) {
+      id
+      address
+      isPrimary
+    }
+  }
+`;
+
+export const DELETE_ADDRESS = `
+  mutation DeleteAddress($addressId: Int!) {
+    deleteAddress(addressId: $addressId)
+  }
+`;

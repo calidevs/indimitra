@@ -29,3 +29,7 @@ class OrderItem:
 @mapper.type(models.DeliveryModel) 
 class Delivery:
     pass
+
+@mapper.type(models.AddressModel)
+class Address:
+    pass

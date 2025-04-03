@@ -9,4 +9,5 @@ export const ROUTES = {
   ORDERS: '/orders',
   PROFILE: '/profile',
   SIGNUP: '/signup',
+  UPDATE_USER_ROLE: '/update-user-role',
 };

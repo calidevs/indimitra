@@ -1,11 +1,21 @@
 import React, { useState } from 'react';
 import { signUp, resendSignUpCode } from 'aws-amplify/auth';
-import { Box, TextField, Button, Typography, Alert, InputAdornment } from '@mui/material';
+import {
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Alert,
+  InputAdornment,
+  IconButton,
+} from '@mui/material';
 import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import LockIcon from '@mui/icons-material/Lock';
 import PersonIcon from '@mui/icons-material/Person';
 import PhoneIcon from '@mui/icons-material/Phone';
 import { Link } from 'react-router-dom';
+import Visibility from '@mui/icons-material/Visibility';
+import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
 const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
   const [email, setEmail] = useState('');
@@ -17,6 +27,7 @@ const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -124,7 +135,7 @@ const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
       <TextField
         label="Password"
         variant="outlined"
-        type="password"
+        type={showPassword ? 'text' : 'password'}
         fullWidth
         value={password}
         onChange={(e) => setPassword(e.target.value)}
@@ -134,6 +145,13 @@ const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
           startAdornment: (
             <InputAdornment position="start">
               <LockIcon sx={{ color: '#FF6B6B' }} />
+            </InputAdornment>
+          ),
+          endAdornment: (
+            <InputAdornment position="end">
+              <IconButton onClick={() => setShowPassword((prev) => !prev)} edge="end">
+                {showPassword ? <VisibilityOff /> : <Visibility />}
+              </IconButton>
             </InputAdornment>
           ),
         }}

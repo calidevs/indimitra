@@ -21,6 +21,8 @@ class DeliveryModel(Base):
     pickedUpTime = Column(DateTime, nullable=True)
     deliveredTime = Column(DateTime, nullable=True)
     status = Column(Enum(DeliveryStatus), nullable=False)
+    photo = Column(String, nullable=True)
+    comments = Column(String, nullable=True)
     
     # Relationships
     order = relationship("OrderModel", back_populates="delivery")
