@@ -58,6 +58,8 @@ import { fetchAuthSession } from 'aws-amplify/auth';
 const Profile = () => {
   // Get zustand state and functions
   const { userProfile, setUserProfile } = useAuthStore();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState(0);
 
   // Function to get latest profile directly from store
   const getLatestProfile = () => useAuthStore.getState().userProfile || null;
