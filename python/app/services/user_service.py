@@ -51,10 +51,6 @@ def create_user(cognitoId: str, firstName: str, lastName: str, email: str, activ
 def update_user_type(requester_id: str, target_user_id: str, new_user_type: str):
     """
     Update a user's type/role - only ADMIN users can perform this action
-<<<<<<< HEAD
-    Updates both the database and the Cognito user attribute
-=======
->>>>>>> 4a9a062 (refactor(db): standardize user IDs from String to Integer)
     
     Args:
         requester_id: Cognito ID of the user making the request
@@ -65,11 +61,7 @@ def update_user_type(requester_id: str, target_user_id: str, new_user_type: str)
         The updated user model
         
     Raises:
-<<<<<<< HEAD
-        ValueError: If the requester is not an admin, the new user type is invalid, or Cognito update fails
-=======
         ValueError: If the requester is not an admin or the new user type is invalid
->>>>>>> 4a9a062 (refactor(db): standardize user IDs from String to Integer)
         LookupError: If the requester or target user cannot be found
     """
     db = SessionLocal()
@@ -88,7 +80,6 @@ def update_user_type(requester_id: str, target_user_id: str, new_user_type: str)
         if not target_user:
             raise LookupError(f"Target user with ID {target_user_id} not found")
             
-<<<<<<< HEAD
         # Validate the new user type first
         try:
             new_type_enum = UserType(new_user_type)
@@ -151,18 +142,6 @@ def update_user_mobile(user_id: str, new_mobile: str) -> Optional[UserModel]:
         db.refresh(user)
         
         return user
-=======
-        # Validate and set the new user type
-        try:
-            new_type_enum = UserType(new_user_type)
-            target_user.type = new_type_enum
-            db.commit()
-            db.refresh(target_user)
-            return target_user
-        except ValueError:
-            valid_types = [t.value for t in UserType]
-            raise ValueError(f"Invalid user type: {new_user_type}. Valid types are: {', '.join(valid_types)}")
->>>>>>> 4a9a062 (refactor(db): standardize user IDs from String to Integer)
     finally:
         db.close()
 
