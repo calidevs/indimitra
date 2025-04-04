@@ -15,7 +15,7 @@ def get_database_url():
         database=os.getenv("POSTGRES_DB"),
     )
 
-DATABASE_URL = get_database_url()
+DATABASE_URL = get_database_url().render_as_string(hide_password=False)
 
 # AWS Cognito Configuration
 AWS_REGION = os.getenv("AWS_REGION")

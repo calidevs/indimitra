@@ -21,3 +21,5 @@ data
 # IDE and OS
 .vscode/
 .DS_Store
+
+.mise.toml

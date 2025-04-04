@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   web:
     build:
@@ -26,15 +24,12 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - DEBUG=1
-      - PYTHONPATH=/app 
+      - PYTHONPATH=/app
     depends_on:
       - db
-      # Override the command: run bootstrap first, then start the server
-      # this will make sure db has records everytime we spin it up
     command: >
       sh -c "
         cd /app &&
-        python -m dev_bootstrap.bootstrap &&
         uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
       "
 
@@ -42,12 +37,9 @@ services:
     image: postgres:13
     environment:
       - POSTGRES_DB=indimitra
-      - POSTGRES_USER=indimitra
-      - POSTGRES_PASSWORD=indimitra123
+      - POSTGRES_USER=indimitrauser
+      - POSTGRES_PASSWORD=indimitrapass
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
-
-volumes:
-  postgres_data:
+      - "5433:5432"

@@ -30,8 +30,3 @@ async def get_context(db: Session = Depends(get_db)):
 # Set up the GraphQL endpoint
 graphql_app = GraphQLRouter(schema, context_getter=get_context)
 app.include_router(graphql_app, prefix="/graphql")
-
-# Create tables on startup if they don’t exist yet
-@app.on_event("startup")
-def startup_event():
-    Base.metadata.create_all(bind=engine)
