@@ -3,7 +3,6 @@ import CssBaseline from '@mui/material/CssBaseline';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import theme from './theme';
 
-import Home from './pages/Home';
 import Products from './pages/Products';
 import ProtectedRoute from './config/ProtectedRoute';
 import ForgotPassword from './pages/ForgotPassword';
@@ -18,6 +17,7 @@ import Profile from './pages/Profile';
 import { useAuthStore } from './store/useStore';
 import { ROUTES } from './config/constants/routes';
 import LoginPage from './pages/LoginPage';
+import { CustomerDashboard } from './pages/Customer';
 
 const App = () => {
   const { user } = useAuthStore();
@@ -52,7 +52,7 @@ const App = () => {
           path={ROUTES.USER}
           element={
             <ProtectedRoute role="user">
-              <Home />
+              <CustomerDashboard />
             </ProtectedRoute>
           }
         />
