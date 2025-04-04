@@ -18,3 +18,4 @@ class InventoryModel(Base):
     # Relationships
     store = relationship("StoreModel", back_populates="inventory")
     product = relationship("ProductModel", back_populates="inventory_items")
+    order_items = relationship("OrderItemModel", back_populates="inventory")

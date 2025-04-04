@@ -73,13 +73,10 @@ const Profile = () => {
   } = useQuery({
     queryKey: ['getUserProfile', cognitoId],
     queryFn: async () => {
-      console.log('QUERY EXECUTING with cognitoId:', cognitoId);
       const response = await fetchGraphQL(GET_USER_PROFILE, { userId: cognitoId });
-      console.log('Raw API response:', response);
 
       // Important: Set profile data immediately when we get it
       if (response?.getUserProfile) {
-        console.log('Setting profile immediately:', response.getUserProfile);
         setLocalUserProfile(response.getUserProfile);
         setUserProfile(response.getUserProfile);
       }
@@ -88,17 +85,12 @@ const Profile = () => {
     },
     enabled: !!cognitoId,
     onSuccess: (data) => {
-      console.log('onSuccess handler with data:', data);
-
       if (data?.getUserProfile) {
-        console.log('Profile in onSuccess:', data.getUserProfile);
-
         // Set in Zustand again to be sure
         setUserProfile(data.getUserProfile);
 
         // Force re-render after a small delay
         setTimeout(() => {
-          console.log('Checking store after timeout:', useAuthStore.getState().userProfile);
           forceUpdate();
         }, 200);
       } else {
@@ -113,7 +105,6 @@ const Profile = () => {
   // useEffect to grab profile data directly from the query result
   useEffect(() => {
     if (profileData?.getUserProfile && !userProfile) {
-      console.log('Setting profile from useEffect:', profileData.getUserProfile);
       setUserProfile(profileData.getUserProfile);
       setLocalUserProfile(profileData.getUserProfile);
     }

@@ -1,39 +1,120 @@
-import React, { useState } from 'react';
+// In js/src/pages/Products.jsx
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Container,
   Typography,
-  ProductGrid,
-  LoadingSpinner,
   TextField,
   InputAdornment,
-} from '@components';
+  CircularProgress,
+  Box,
+  Button,
+} from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import fetchGraphQL from '../config/graphql/graphqlService';
-import { PRODUCTS_QUERY } from '@/queries/operations';
+import StoreIcon from '@mui/icons-material/Storefront';
+import fetchGraphQL from '@/config/graphql/graphqlService';
+import { GET_STORE_PRODUCTS } from '@/queries/operations';
+import useStore from '@/store/useStore';
+import { ProductGrid } from '@components';
+
+function useDebounce(value, delay) {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 const Products = () => {
   const [search, setSearch] = useState('');
+  const [storeModalOpen, setStoreModalOpen] = useState(false);
+  const { selectedStore, availableStores } = useStore();
 
+  const debouncedSearch = useDebounce(search, 300);
+
+  // Fetch store products when a store is selected
   const {
-    data: { products = [] } = {},
-    isLoading,
-    error,
+    data: inventoryData,
+    isLoading: inventoryLoading,
+    error: inventoryError,
   } = useQuery({
-    queryKey: ['products'],
-    queryFn: () => fetchGraphQL(PRODUCTS_QUERY),
+    queryKey: ['storeInventory', selectedStore?.id],
+    queryFn: async () => {
+      const response = await fetchGraphQL(GET_STORE_PRODUCTS, {
+        storeId: selectedStore.id,
+      });
+      return response;
+    },
+    enabled: !!selectedStore?.id,
   });
 
-  if (error) return <Typography>Error fetching products!</Typography>;
+  // Process inventory data to create a products array for the ProductGrid
+  const products = useMemo(() => {
+    return (
+      inventoryData?.store?.inventory?.edges?.map(({ node }) => ({
+        id: node.product.id,
+        name: node.product.name,
+        price: node.price,
+        description: node.product.description,
+        categoryId: node.product.categoryId,
+        inventoryId: node.id,
+        quantity: node.quantity,
+        measurement: node.measurement,
+        unit: node.unit,
+      })) || []
+    );
+  }, [inventoryData]);
 
-  // Filter logic based on search input (min 3 characters)
-  const filteredProducts =
-    search.length >= 3
-      ? products.filter((product) => product.name.toLowerCase().includes(search.toLowerCase()))
-      : products;
+  // Memoize the filtered products with debounced search (no min character check)
+  const filteredProducts = useMemo(() => {
+    return products.filter((product) =>
+      product.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+    );
+  }, [products, debouncedSearch]);
+
+  if (inventoryError)
+    return <Typography>Error fetching products: {inventoryError.message}</Typography>;
 
   return (
     <Container>
+      {/* Store Selection */}
+      {selectedStore && (
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            mb: 3,
+            mt: 2,
+            p: 2,
+            backgroundColor: 'rgba(0, 0, 0, 0.03)',
+            borderRadius: 2,
+          }}
+        >
+          <Box>
+            <Typography variant="h6">{selectedStore.name}</Typography>
+            <Typography variant="body2" color="text.secondary">
+              {selectedStore.address}
+            </Typography>
+          </Box>
+          <Button
+            variant="outlined"
+            startIcon={<StoreIcon />}
+            onClick={() => setStoreModalOpen(true)}
+          >
+            Change Store
+          </Button>
+        </Box>
+      )}
+
       {/* Search Field */}
       <TextField
         label="Search Products"
@@ -42,18 +123,29 @@ const Products = () => {
         sx={{ mb: 3 }}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search by product name(minimum 3 characters)..."
+        placeholder="Search by product name or category (minimum 3 characters)..."
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <SearchIcon sx={{ color: 'primary.main' }} />
+              <SearchIcon />
             </InputAdornment>
           ),
         }}
       />
 
       {/* Product Grid */}
-      {isLoading ? <LoadingSpinner /> : <ProductGrid products={filteredProducts} />}
+      {inventoryLoading ? (
+        <Box display="flex" justifyContent="center" my={4}>
+          <CircularProgress />
+        </Box>
+      ) : products.length === 0 ? (
+        <Typography variant="h6" align="center" sx={{ mt: 4 }}>
+          No products available in this store.
+        </Typography>
+      ) : (
+        <ProductGrid products={filteredProducts} />
+        // <div></div>
+      )}
     </Container>
   );
 };

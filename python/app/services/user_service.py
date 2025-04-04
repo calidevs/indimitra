@@ -145,3 +145,42 @@ def update_user_mobile(user_id: str, new_mobile: str) -> Optional[UserModel]:
         return user
     finally:
         db.close()
+
+def update_user_mobile(user_id: str, new_mobile: str) -> Optional[UserModel]:
+    """
+    Update a user's mobile number
+    
+    Args:
+        user_id: Cognito ID of the user to update
+        new_mobile: New mobile number for the user
+        
+    Returns:
+        The updated user model, or None if the user doesn't exist
+        
+    Raises:
+        ValueError: If the mobile number is invalid or already in use
+    """
+    db = SessionLocal()
+    try:
+        # Find the user to update
+        user = db.query(UserModel).filter(UserModel.cognitoId == user_id).first()
+        if not user:
+            return None
+            
+        # Check if mobile number is already in use by another user
+        existing_user = db.query(UserModel).filter(
+            UserModel.mobile == new_mobile, 
+            UserModel.id != user.id
+        ).first()
+        
+        if existing_user:
+            raise ValueError(f"Mobile number {new_mobile} is already in use by another user")
+            
+        # Update the mobile number
+        user.mobile = new_mobile
+        db.commit()
+        db.refresh(user)
+        
+        return user
+    finally:
+        db.close()

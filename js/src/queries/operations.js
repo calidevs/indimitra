@@ -17,9 +17,15 @@ export const CREATE_ORDER_MUTATION = `
   mutation CreateOrder(
     $userId: Int!,
     $addressId: Int!,
+    $storeId: Int!,
     $productItems: [OrderItemInput!]!
   ) {
-    createOrder(userId: $userId, addressId: $addressId, productItems: $productItems) {
+    createOrder(
+      userId: $userId, 
+      addressId: $addressId, 
+      storeId: $storeId, 
+      productItems: $productItems
+    ) {
       id
       createdByUserId
       address { 
@@ -34,6 +40,7 @@ export const CREATE_ORDER_MUTATION = `
             id
             productId
             quantity
+            orderAmount
           }
         }
       }
@@ -59,8 +66,26 @@ export const GET_USER_ORDERS = `
             orderAmount
             quantity
             product {
+              id
               name
-              price
+              description
+              category {
+                id
+                name
+              }
+              inventoryItems {
+                edges {
+                  node {
+                    id
+                    price
+                    quantity
+                    measurement
+                    unit
+                    storeId
+                    productId
+                  }
+                }
+              }
             }
           }
         }
@@ -73,11 +98,11 @@ export const GET_ALL_ORDERS = `
 query GetAllOrders {
   getAllOrders {
     id
-      address { 
-        id
-        address
-        isPrimary
-      }
+    address { 
+      id
+      address
+      isPrimary
+    }
     status
     totalAmount
     deliveryDate
@@ -86,7 +111,14 @@ query GetAllOrders {
         node {
           product {
             name
-            price
+            id
+            inventoryItems {
+              edges {
+                node {
+                  price
+                }
+              }
+            }
           }
           quantity
           orderAmount
@@ -148,8 +180,12 @@ export const GET_USER_PROFILE = `
 `;
 
 export const CANCEL_ORDER = `
-  mutation CancelOrder($orderId: Int!) {
-    cancelOrderById(orderId: $orderId) {
+  mutation CancelOrder($orderId: Int!, $cancelMessage: String!, $cancelledByUserId: Int!) {
+    cancelOrderById(
+      orderId: $orderId, 
+      cancelMessage: $cancelMessage, 
+      cancelledByUserId: $cancelledByUserId
+    ) {
       id
       status
     }
@@ -298,6 +334,45 @@ export const GET_STORE_WITH_INVENTORY = `
       category {
         id
         name
+      }
+    }
+  }
+`;
+
+export const GET_ALL_STORES = `
+  query GetAllStores {
+    stores {
+      id
+      name
+      address
+      radius
+    }
+  }
+`;
+
+// Add this to your js/src/queries/operations.js file
+
+export const GET_STORE_PRODUCTS = `
+  query GetStoreProducts($storeId: Int!) {
+    store(storeId: $storeId) {
+      inventory {
+        edges {
+          node {
+            id
+            measurement
+            price
+            productId
+            quantity
+            unit
+            updatedAt
+            product {
+              id
+              name
+              description
+              categoryId
+            }
+          }
+        }
       }
     }
   }
