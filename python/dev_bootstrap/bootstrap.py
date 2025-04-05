@@ -121,12 +121,12 @@ def create_data():
         db.refresh(store)
 
     # Check if there is already at least one product.
-    if db.query(ProductModel).first():
-        print("Data already exists, skipping bootstrap.")
-        db.close()
-        return
-    else:
-        print("No product data exists in DB, starting bootstrap.")
+    # if db.query(ProductModel).first():
+    #     print("Data already exists, skipping bootstrap.")
+    #     db.close()
+    #     return
+    # else:
+    #     print("No product data exists in DB, starting bootstrap.")
 
     # Load product data from JSON file.
     with open("dev_bootstrap/product_data.json", "r") as file:
@@ -155,6 +155,7 @@ def create_data():
         product = ProductModel(
             name=item.get("name"),
             description=item.get("description"),
+            image=item.get("image"),
             # Assign the category relationship directly (SQLAlchemy will set categoryId).
             category=category_obj
         )

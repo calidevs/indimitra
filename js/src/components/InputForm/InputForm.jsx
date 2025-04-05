@@ -1,6 +1,20 @@
 import { Alert, Button, TextField, LoadingSpinner } from '../index';
+import AccountCircleIcon from '@mui/icons-material/AccountCircle';
+import LockIcon from '@mui/icons-material/Lock';
+import { InputAdornment } from '@mui/material';
 
 const InputForm = ({ fields, onSubmit, buttonLabel, loading, error, success }) => {
+  const getIconForField = (type) => {
+    switch (type) {
+      case 'email':
+        return <AccountCircleIcon sx={{ color: '#FF6B6B' }} />;
+      case 'password':
+        return <LockIcon sx={{ color: '#FF6B6B' }} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <form onSubmit={onSubmit}>
       {fields.map((field, index) => (
@@ -13,6 +27,13 @@ const InputForm = ({ fields, onSubmit, buttonLabel, loading, error, success }) =
           value={field.value}
           onChange={(e) => field.onChange(e.target.value)}
           required
+          InputProps={{
+            startAdornment: field.type && (
+              <InputAdornment position="start">
+                {getIconForField(field.type)}
+              </InputAdornment>
+            ),
+          }}
         />
       ))}
       {error && (

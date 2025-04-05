@@ -368,6 +368,7 @@ export const GET_STORE_PRODUCTS = `
             product {
               id
               name
+              image
               description
               category {
                 id
