@@ -12,6 +12,7 @@ import {
   InputLabel,
   FormControl,
   LoadingSpinner,
+  Alert,
 } from '@components';
 import { Close, Remove, Add } from '@mui/icons-material';
 import useStore, { useAuthStore } from '@/store/useStore';
@@ -29,6 +30,7 @@ const CartModal = ({ open, onClose }) => {
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
   const [userId, setUserId] = useState(null);
   const [addresses, setAddresses] = useState([]);
+  const [error, setError] = useState('');
   const { userProfile } = useAuthStore();
 
   const subtotal = cartTotal() || 0;
@@ -59,6 +61,7 @@ const CartModal = ({ open, onClose }) => {
     onSuccess: (response) => {
       if (response.errors) {
         console.error('Order Placement Error:', response.errors);
+        setError('Failed to place order. Please try again.');
         return;
       }
       clearCart();
@@ -70,6 +73,7 @@ const CartModal = ({ open, onClose }) => {
     },
     onError: (error) => {
       console.error('GraphQL Order Placement Failed:', error);
+      setError('Failed to place order. Please try again.');
     },
   });
 
@@ -88,32 +92,8 @@ const CartModal = ({ open, onClose }) => {
   });
 
   const handleOrderPlacement = async () => {
-    try {
-      const userId = userProfile.id;
+    setError(''); // Clear any previous errors
 
-      if (!userId) {
-        console.error('User ID not found. Ensure user is authenticated.');
-        return;
-      }
-
-      const productItems = Object.values(cart).map((item) => ({
-        productId: item.id,
-        quantity: item.quantity,
-      }));
-
-      // Update variable to use addressId instead of address string
-      const variables = {
-        userId,
-        addressId: selectedAddress,
-        productItems,
-        deliveryInstructions,
-      };
-
-      mutate(variables); // Trigger the mutation
-    } catch (error) {
-      console.error('Error fetching user ID:', error);
-    }
-    
     if (!selectedAddress) {
       setError('Please select a delivery address');
       return;
@@ -162,6 +142,12 @@ const CartModal = ({ open, onClose }) => {
           </Typography>
         ) : (
           <>
+            {error && (
+              <Alert severity="error" sx={{ mb: 2 }}>
+                {error}
+              </Alert>
+            )}
+
             {Object.values(cart).length > 0 ? (
               Object.values(cart).map((item) => (
                 <Box

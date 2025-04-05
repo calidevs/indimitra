@@ -179,7 +179,7 @@ const Orders = () => {
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>ID</TableCell>
+                <TableCell>Order ID</TableCell>
                 <TableCell>Address</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Total Amount</TableCell>
@@ -316,9 +316,6 @@ const Orders = () => {
             value={cancelMessage}
             onChange={(e) => setCancelMessage(e.target.value)}
             error={openModal && !cancelMessage.trim()}
-            helperText={
-              openModal && !cancelMessage.trim() ? 'Please provide a reason for cancellation' : ''
-            }
             sx={{ mt: 2 }}
           />
         </DialogContent>

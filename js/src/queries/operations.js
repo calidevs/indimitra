@@ -369,7 +369,10 @@ export const GET_STORE_PRODUCTS = `
               id
               name
               description
-              categoryId
+              category {
+                id
+                name
+              }
             }
           }
         }

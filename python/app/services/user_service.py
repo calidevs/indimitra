@@ -51,7 +51,6 @@ def create_user(cognitoId: str, firstName: str, lastName: str, email: str, activ
 def update_user_type(requester_id: str, target_user_id: str, new_user_type: str):
     """
     Update a user's type/role - only ADMIN users can perform this action
-    Updates both the database and the Cognito user attribute
     
     Args:
         requester_id: Cognito ID of the user making the request
@@ -62,7 +61,7 @@ def update_user_type(requester_id: str, target_user_id: str, new_user_type: str)
         The updated user model
         
     Raises:
-        ValueError: If the requester is not an admin, the new user type is invalid, or Cognito update fails
+        ValueError: If the requester is not an admin or the new user type is invalid
         LookupError: If the requester or target user cannot be found
     """
     db = SessionLocal()

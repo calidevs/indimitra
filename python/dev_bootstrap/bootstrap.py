@@ -9,11 +9,7 @@ from app.db.models.store import StoreModel
 from app.db.models.inventory import InventoryModel
 
 def create_data():
-    # Create tables if they don't exist yet.
-    Base.metadata.create_all(bind=engine)
     db = SessionLocal()
-
-    # Create the specified users if they don't exist
     
     # User 1 - Regular USER
     user1 = db.query(UserModel).filter_by(cognitoId="5458d4f8-d0b1-70cb-b8b1-ecf9784e8956").first()

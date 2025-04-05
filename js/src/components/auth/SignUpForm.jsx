@@ -174,9 +174,9 @@ const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
         }}
       />
 
-      {/* Referred By (Editable if no URL param) */}
+      {/* Referral Code (Editable if no URL param) */}
       <TextField
-        label="Referred By"
+        label="Referral Code"
         variant="outlined"
         fullWidth
         value={referralCode}
