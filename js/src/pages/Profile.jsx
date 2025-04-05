@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useReducer } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Typography,
@@ -27,6 +26,7 @@ import {
   Grid,
   Card,
   CardContent,
+  Alert,
 } from '@mui/material';
 import {
   ContentCopy,
@@ -52,12 +52,13 @@ import {
   DELETE_ADDRESS,
   GET_USER_PROFILE,
 } from '../queries/operations';
-import { useAuthStore } from '@/store/useStore';
+import { useAuthStore, useAddressStore } from '@/store/useStore';
 import { fetchAuthSession } from 'aws-amplify/auth';
 
 const Profile = () => {
   // Get zustand state and functions
-  const { userProfile, setUserProfile } = useAuthStore();
+  const { userProfile, setUserProfile, fetchUserProfile, isProfileLoading, profileError } =
+    useAuthStore();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(0);
 
@@ -70,11 +71,23 @@ const Profile = () => {
   const [copySuccess, setCopySuccess] = useState(false);
   const baseUrl = window.location.origin;
 
-  const [addresses, setAddresses] = useState([]);
+  // Use the address store instead of local state
+  const {
+    addresses,
+    selectedAddressId,
+    setSelectedAddressId,
+    fetchAddresses,
+    isLoading: isLoadingAddresses,
+    createAddress: createAddressMutation,
+    updateAddress: updateAddressMutation,
+    deleteAddress: deleteAddressMutation,
+  } = useAddressStore();
+
   const [addressDialogOpen, setAddressDialogOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState(null);
   const [newAddress, setNewAddress] = useState('');
   const [isPrimary, setIsPrimary] = useState(false);
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
 
   // Get Cognito ID from session
   useEffect(() => {
@@ -92,75 +105,22 @@ const Profile = () => {
     getCognitoId();
   }, []);
 
-  // Fetch user profile with Cognito ID and store in both Zustand and local state
-  const {
-    data: profileData,
-    isLoading: profileLoading,
-    error: profileError,
-  } = useQuery({
-    queryKey: ['getUserProfile', cognitoId],
-    queryFn: async () => {
-      const response = await fetchGraphQL(GET_USER_PROFILE, { userId: cognitoId });
-
-      // Important: Set profile data immediately when we get it
-      if (response?.getUserProfile) {
-        setLocalUserProfile(response.getUserProfile);
-        setUserProfile(response.getUserProfile);
-      }
-
-      return response;
-    },
-    enabled: !!cognitoId,
-    onSuccess: (data) => {
-      if (data?.getUserProfile) {
-        // Set in Zustand again to be sure
-        setUserProfile(data.getUserProfile);
-
-        // Force re-render after a small delay
-        setTimeout(() => {
-          forceUpdate();
-        }, 200);
-      } else {
-        console.warn('No profile data found in API response');
-      }
-    },
-    onError: (error) => {
-      console.error('Error in profile query:', error);
-    },
-  });
-
-  // useEffect to grab profile data directly from the query result
+  // Fetch user profile when component mounts
   useEffect(() => {
-    if (profileData?.getUserProfile && !userProfile) {
-      setUserProfile(profileData.getUserProfile);
-      setLocalUserProfile(profileData.getUserProfile);
+    if (!userProfile) {
+      fetchUserProfile();
     }
-  }, [profileData, userProfile, setUserProfile]);
+  }, [userProfile, fetchUserProfile]);
 
-  // Create an effective profile using any available source,
-  // with preference for direct store access, then hook, then local state, then API
-  const directStoreProfile = getLatestProfile();
-  const effectiveProfile = directStoreProfile;
+  // Create an effective profile using any available source
+  const effectiveProfile = userProfile || localUserProfile;
 
   // Fetch addresses after profile data is available
   useEffect(() => {
-    const fetchAddresses = async () => {
-      if (effectiveProfile?.id) {
-        try {
-          const numericId = parseInt(effectiveProfile.id);
-          console.log('Fetching addresses with user ID:', numericId);
-          const res = await fetchGraphQL(GET_ADDRESSES_BY_USER, {
-            userId: numericId, // Always use numeric ID
-          });
-          setAddresses(res?.getAddressesByUser || []);
-        } catch (error) {
-          console.error('Error fetching addresses:', error);
-        }
-      }
-    };
-
-    fetchAddresses();
-  }, [effectiveProfile?.id]);
+    if (effectiveProfile?.id) {
+      fetchAddresses(effectiveProfile.id);
+    }
+  }, [effectiveProfile?.id, fetchAddresses]);
 
   const handleEditAddress = (addr) => {
     setEditingAddress(addr);
@@ -171,13 +131,11 @@ const Profile = () => {
 
   const handleDeleteAddress = async (id) => {
     if (window.confirm('Are you sure you want to delete this address?')) {
-      await fetchGraphQL(DELETE_ADDRESS, { addressId: id });
-
-      // Refetch addresses after deletion
-      if (effectiveProfile?.id) {
-        const numericId = parseInt(effectiveProfile.id);
-        const res = await fetchGraphQL(GET_ADDRESSES_BY_USER, { userId: numericId });
-        setAddresses(res?.getAddressesByUser || []);
+      try {
+        await deleteAddressMutation(id);
+      } catch (error) {
+        console.error('Error deleting address:', error);
+        alert('Failed to delete address. Please try again.');
       }
     }
   };
@@ -188,34 +146,23 @@ const Profile = () => {
       return;
     }
 
+    setIsSavingAddress(true);
     try {
-      const numericId = parseInt(effectiveProfile.id);
-
       if (editingAddress) {
-        await fetchGraphQL(UPDATE_ADDRESS, {
-          addressId: parseInt(editingAddress.id),
-          address: newAddress,
-          isPrimary,
-        });
+        await updateAddressMutation(editingAddress.id, newAddress, isPrimary);
       } else {
-        await fetchGraphQL(CREATE_ADDRESS, {
-          address: newAddress,
-          userId: numericId,
-          isPrimary,
-        });
+        await createAddressMutation(newAddress, effectiveProfile.id, isPrimary);
       }
 
       setAddressDialogOpen(false);
       setEditingAddress(null);
       setNewAddress('');
       setIsPrimary(false);
-
-      // Refetch addresses after creating/updating
-      const res = await fetchGraphQL(GET_ADDRESSES_BY_USER, { userId: numericId });
-      setAddresses(res?.getAddressesByUser || []);
     } catch (error) {
       console.error('Error saving address:', error);
       alert('Failed to save address. Please try again.');
+    } finally {
+      setIsSavingAddress(false);
     }
   };
 
@@ -240,16 +187,43 @@ const Profile = () => {
     }
   };
 
-  if (profileLoading) {
+  if (isProfileLoading) {
     return (
       <Container>
-        <CircularProgress />
+        <Box
+          sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}
+        >
+          <CircularProgress />
+          <Typography sx={{ ml: 2 }}>Loading profile...</Typography>
+        </Box>
       </Container>
     );
   }
 
   if (profileError) {
-    return <Typography color="error">Error fetching profile data</Typography>;
+    return (
+      <Container>
+        <Alert severity="error" sx={{ mt: 4 }}>
+          Error loading profile: {profileError}
+        </Alert>
+        <Button variant="contained" onClick={() => fetchUserProfile()} sx={{ mt: 2 }}>
+          Retry
+        </Button>
+      </Container>
+    );
+  }
+
+  if (!userProfile) {
+    return (
+      <Container>
+        <Alert severity="warning" sx={{ mt: 4 }}>
+          No profile data available. Please try again.
+        </Alert>
+        <Button variant="contained" onClick={() => fetchUserProfile()} sx={{ mt: 2 }}>
+          Load Profile
+        </Button>
+      </Container>
+    );
   }
 
   const renderProfileInfo = () => (
@@ -325,36 +299,46 @@ const Profile = () => {
             Add Address
           </Button>
         </Box>
-        <Grid container spacing={2}>
-          {addresses.map((addr) => (
-            <Grid item xs={12} sm={6} key={addr.id}>
-              <Paper
-                elevation={2}
-                sx={{
-                  p: 2,
-                  position: 'relative',
-                  border: addr.isPrimary ? '2px solid' : '1px solid',
-                  borderColor: addr.isPrimary ? 'primary.main' : 'divider',
-                }}
-              >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography variant="subtitle2" color="primary">
-                    {addr.isPrimary ? 'Primary Address' : 'Secondary Address'}
-                  </Typography>
-                  <Box>
-                    <IconButton size="small" onClick={() => handleEditAddress(addr)}>
-                      <Edit fontSize="small" />
-                    </IconButton>
-                    <IconButton size="small" onClick={() => handleDeleteAddress(addr.id)}>
-                      <Delete fontSize="small" />
-                    </IconButton>
+        {isLoadingAddresses ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : addresses.length > 0 ? (
+          <Grid container spacing={2}>
+            {addresses.map((addr) => (
+              <Grid item xs={12} sm={6} key={addr.id}>
+                <Paper
+                  elevation={2}
+                  sx={{
+                    p: 2,
+                    position: 'relative',
+                    border: addr.isPrimary ? '2px solid' : '1px solid',
+                    borderColor: addr.isPrimary ? 'primary.main' : 'divider',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography variant="subtitle2" color="primary">
+                      {addr.isPrimary ? 'Primary Address' : 'Secondary Address'}
+                    </Typography>
+                    <Box>
+                      <IconButton size="small" onClick={() => handleEditAddress(addr)}>
+                        <Edit fontSize="small" />
+                      </IconButton>
+                      <IconButton size="small" onClick={() => handleDeleteAddress(addr.id)}>
+                        <Delete fontSize="small" />
+                      </IconButton>
+                    </Box>
                   </Box>
-                </Box>
-                <Typography variant="body2">{addr.address}</Typography>
-              </Paper>
-            </Grid>
-          ))}
-        </Grid>
+                  <Typography variant="body2">{addr.address}</Typography>
+                </Paper>
+              </Grid>
+            ))}
+          </Grid>
+        ) : (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            You don't have any addresses yet. Add one to get started!
+          </Alert>
+        )}
       </CardContent>
     </Card>
   );
@@ -499,8 +483,18 @@ const Profile = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddressDialogOpen(false)}>Cancel</Button>
-          <Button onClick={handleSaveAddress} variant="contained" disabled={!newAddress}>
-            Save
+          <Button
+            onClick={handleSaveAddress}
+            variant="contained"
+            disabled={!newAddress || isSavingAddress}
+          >
+            {isSavingAddress ? (
+              <>
+                <CircularProgress size={20} sx={{ mr: 1 }} /> Saving...
+              </>
+            ) : (
+              'Save'
+            )}
           </Button>
         </DialogActions>
       </Dialog>

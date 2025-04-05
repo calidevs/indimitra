@@ -14,38 +14,66 @@ import {
   LoadingSpinner,
   Alert,
 } from '@components';
-import { Close, Remove, Add } from '@mui/icons-material';
-import useStore, { useAuthStore } from '@/store/useStore';
+import { FormControlLabel, Checkbox, Collapse, Stack } from '@mui/material';
+import { Close, Remove, Add, LocationOn, ExpandMore, ExpandLess } from '@mui/icons-material';
+import useStore, { useAuthStore, useAddressStore } from '@/store/useStore';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import fetchGraphQL from '../../config/graphql/graphqlService';
 import { fetchAuthSession } from 'aws-amplify/auth';
-import { CREATE_ORDER_MUTATION, GET_ADDRESSES_BY_USER } from '../../queries/operations';
+import {
+  CREATE_ORDER_MUTATION,
+  GET_ADDRESSES_BY_USER,
+  CREATE_ADDRESS,
+} from '../../queries/operations';
 import { DELIVERY_FEE, TAX_RATE } from '../../config/constants/constants';
 
 const CartModal = ({ open, onClose }) => {
   const { cart, removeFromCart, addToCart, cartTotal, clearCart } = useStore();
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
-  // Store the address id instead of a string value
-  const [selectedAddress, setSelectedAddress] = useState(null);
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
-  const [userId, setUserId] = useState(null);
-  const [addresses, setAddresses] = useState([]);
   const [error, setError] = useState('');
-  const { userProfile } = useAuthStore();
+  const { userProfile, fetchUserProfile, isProfileLoading } = useAuthStore();
+
+  // Use the address store instead of local state
+  const {
+    addresses,
+    selectedAddressId,
+    setSelectedAddressId,
+    fetchAddresses,
+    isLoading: isLoadingAddresses,
+    createAddress: createAddressMutation,
+  } = useAddressStore();
+
+  // New state for inline address form
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [newAddress, setNewAddress] = useState('');
+  const [isPrimary, setIsPrimary] = useState(false);
+  const [isAddingAddress, setIsAddingAddress] = useState(false);
 
   const subtotal = cartTotal() || 0;
   const tax = subtotal * TAX_RATE;
   const deliveryFee = subtotal > 0 ? DELIVERY_FEE : 0;
   const orderTotal = subtotal + tax + deliveryFee;
 
+  // Fetch user profile when modal opens
   useEffect(() => {
-    const getUserId = async () => {
-      const session = await fetchAuthSession();
-      const id = session?.userSub;
-      setUserId(id);
-    };
-    getUserId();
-  }, []);
+    if (open && !userProfile) {
+      fetchUserProfile();
+    }
+  }, [open, userProfile, fetchUserProfile]);
+
+  // Fetch addresses when modal opens and user profile is available
+  useEffect(() => {
+    if (open && userProfile?.id) {
+      fetchAddresses(userProfile.id);
+    }
+  }, [open, userProfile?.id, fetchAddresses]);
+
+  // Debug effect to log state changes
+  useEffect(() => {
+    console.log('Addresses from store:', addresses);
+    console.log('Selected address ID:', selectedAddressId);
+  }, [addresses, selectedAddressId]);
 
   const { mutate, isPending } = useMutation({
     mutationKey: ['createOrder'],
@@ -64,6 +92,7 @@ const CartModal = ({ open, onClose }) => {
         setError('Failed to place order. Please try again.');
         return;
       }
+      console.log('Order placed successfully:', response);
       clearCart();
       setIsOrderPlaced(true);
       setTimeout(() => {
@@ -77,24 +106,10 @@ const CartModal = ({ open, onClose }) => {
     },
   });
 
-  const { data: addressData } = useQuery({
-    queryKey: ['getAddressesByUser', userProfile?.id],
-    queryFn: () => fetchGraphQL(GET_ADDRESSES_BY_USER, { userId: userProfile.id }),
-    enabled: !!userProfile?.id,
-    onSuccess: (res) => {
-      console.log('Address data fetched:', res);
-      setAddresses(res?.getAddressesByUser || []);
-      if (res?.getAddressesByUser?.length > 0) {
-        // Set the default selected address as the first address's ID
-        setSelectedAddress(res.getAddressesByUser[0].id);
-      }
-    },
-  });
-
   const handleOrderPlacement = async () => {
     setError(''); // Clear any previous errors
 
-    if (!selectedAddress) {
+    if (!selectedAddressId) {
       setError('Please select a delivery address');
       return;
     }
@@ -106,9 +121,29 @@ const CartModal = ({ open, onClose }) => {
 
     mutate({
       userId: userProfile.id,
-      addressId: selectedAddress,
+      addressId: selectedAddressId,
       productItems: orderItems,
     });
+  };
+
+  const handleAddAddress = async () => {
+    if (!newAddress.trim()) {
+      setError('Please enter a valid address');
+      return;
+    }
+
+    setIsAddingAddress(true);
+    try {
+      await createAddressMutation(newAddress, userProfile.id, isPrimary);
+      setShowAddressForm(false);
+      setNewAddress('');
+      setIsPrimary(false);
+    } catch (error) {
+      console.error('Error adding address:', error);
+      setError('Failed to add address. Please try again.');
+    } finally {
+      setIsAddingAddress(false);
+    }
   };
 
   return (
@@ -196,16 +231,93 @@ const CartModal = ({ open, onClose }) => {
               sx={{ mb: 2 }}
             />
 
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Select Address</InputLabel>
-              <Select value={selectedAddress} onChange={(e) => setSelectedAddress(e.target.value)}>
-                {addressData?.getAddressesByUser?.map((addr) => (
-                  <MenuItem key={addr.id} value={addr.id}>
-                    {addr.address} {addr.isPrimary ? '(Primary)' : ''}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            {isProfileLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                <LoadingSpinner size={24} />
+                <Typography sx={{ ml: 2 }}>Loading user profile...</Typography>
+              </Box>
+            ) : (
+              <Box sx={{ mb: 2 }}>
+                <FormControl fullWidth sx={{ mb: 1 }}>
+                  <InputLabel>Select Address</InputLabel>
+                  {isLoadingAddresses ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                      <LoadingSpinner size={24} />
+                    </Box>
+                  ) : (
+                    <Select
+                      value={selectedAddressId || ''}
+                      onChange={(e) => setSelectedAddressId(e.target.value)}
+                    >
+                      {addresses && addresses.length > 0 ? (
+                        addresses.map((addr) => (
+                          <MenuItem key={addr.id} value={addr.id}>
+                            {addr.address} {addr.isPrimary ? '(Primary)' : ''}
+                          </MenuItem>
+                        ))
+                      ) : (
+                        <MenuItem disabled>No addresses available</MenuItem>
+                      )}
+                    </Select>
+                  )}
+                </FormControl>
+
+                {/* Toggle button for address form */}
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={showAddressForm ? <ExpandLess /> : <ExpandMore />}
+                  onClick={() => setShowAddressForm(!showAddressForm)}
+                  sx={{ mt: 1 }}
+                >
+                  {showAddressForm ? 'Cancel Adding Address' : 'Add New Address'}
+                </Button>
+
+                {/* Inline address form */}
+                <Collapse in={showAddressForm}>
+                  <Box
+                    sx={{
+                      mt: 2,
+                      p: 2,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 1,
+                    }}
+                  >
+                    <Typography variant="subtitle2" gutterBottom>
+                      Add New Delivery Address
+                    </Typography>
+                    <Stack spacing={2}>
+                      <TextField
+                        label="Address"
+                        fullWidth
+                        multiline
+                        rows={3}
+                        value={newAddress}
+                        onChange={(e) => setNewAddress(e.target.value)}
+                      />
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={isPrimary}
+                            onChange={(e) => setIsPrimary(e.target.checked)}
+                          />
+                        }
+                        label="Set as Primary Address"
+                      />
+                      <Button
+                        variant="contained"
+                        onClick={handleAddAddress}
+                        disabled={!newAddress.trim() || isAddingAddress}
+                        startIcon={isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />}
+                      >
+                        {isAddingAddress ? 'Adding...' : 'Add Address'}
+                      </Button>
+                    </Stack>
+                  </Box>
+                </Collapse>
+              </Box>
+            )}
 
             <Button
               fullWidth
@@ -219,7 +331,12 @@ const CartModal = ({ open, onClose }) => {
                 gap: 1,
               }}
               onClick={handleOrderPlacement}
-              disabled={Object.values(cart).length === 0 || isPending}
+              disabled={
+                Object.values(cart).length === 0 ||
+                isPending ||
+                !selectedAddressId ||
+                isProfileLoading
+              }
             >
               {isPending ? (
                 <>
