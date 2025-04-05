@@ -159,7 +159,7 @@ const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
 
       {/* Phone Number (Optional) */}
       <TextField
-        label="Phone Number (Optional)"
+        label="Phone Number"
         variant="outlined"
         fullWidth
         value={phone}

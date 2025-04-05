@@ -8,21 +8,20 @@ import {
   Rating,
   Box,
   IconButton,
-  Chip,
   Tooltip,
 } from '@mui/material';
 import { Add, Remove, ShoppingCart } from '@mui/icons-material';
 import { PLACEHOLDER_IMAGE, getRandomGroceryImage } from '@/assets/images';
 import { useTheme } from '@mui/material/styles';
 import useStore from '@/store/useStore';
+import ProductCategoryChip from '../Chip/ProductCategoryChip';
 
 const ProductCard = ({ product }) => {
   const theme = useTheme();
   const { cart, addToCart, removeFromCart } = useStore();
-  const { id, name, price, description, image, rating = 4, categoryName } = product;
+  const { id, name, price, description, image, categoryName } = product;
   const quantity = cart[id]?.quantity || 0;
 
-  // Use product image if available, otherwise use category-based Indian grocery image
   const productImage =
     image || (categoryName ? getRandomGroceryImage(categoryName) : PLACEHOLDER_IMAGE);
 
@@ -40,24 +39,7 @@ const ProductCard = ({ product }) => {
         borderColor: 'divider',
       }}
     >
-      {/* Category Chip */}
-      {categoryName && (
-        <Chip
-          label={categoryName}
-          size="small"
-          sx={{
-            position: 'absolute',
-            top: 12,
-            right: 12,
-            zIndex: 1,
-            backgroundColor: 'rgba(255, 255, 255, 0.9)',
-            fontWeight: 600,
-            fontSize: '0.7rem',
-            borderRadius: '12px',
-            boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-          }}
-        />
-      )}
+      <ProductCategoryChip categoryName={categoryName} />
 
       <CardMedia
         component="img"
@@ -65,7 +47,8 @@ const ProductCard = ({ product }) => {
         image={productImage}
         alt={name}
         sx={{
-          objectFit: 'cover',
+          padding: '10px 0 0 0',
+          objectFit: 'contain',
           transition: 'transform 0.5s',
           '&:hover': {
             transform: 'scale(1.05)',
@@ -73,7 +56,13 @@ const ProductCard = ({ product }) => {
         }}
       />
 
-      <CardContent sx={{ flexGrow: 1, p: 2.5 }}>
+      <CardContent sx={{ 
+        flexGrow: 1, 
+        p: 2.5,
+        pb: 0,
+        display: 'flex',
+        flexDirection: 'column',
+      }}>
         <Typography
           gutterBottom
           variant="h6"
@@ -111,6 +100,7 @@ const ProductCard = ({ product }) => {
             alignItems: 'center',
             justifyContent: 'space-between',
             mt: 'auto',
+            mb: 2,
           }}
         >
           <Typography
@@ -141,10 +131,15 @@ const ProductCard = ({ product }) => {
               justifyContent: 'center',
               width: '100%',
               height: '48px',
-              borderRadius: '24px',
-              background: 'linear-gradient(45deg, #FF6B6B, #FFA07A)',
-              p: 1,
-              boxShadow: '0 4px 10px rgba(255, 107, 107, 0.3)',
+              borderRadius: '8px',
+              background: 'rgba(255, 107, 107, 0.15)',
+              border: '2px solid #FF6B6B',
+              boxShadow: '0 2px 8px rgba(255, 107, 107, 0.15)',
+              transition: 'all 0.2s ease',
+              '&:hover': {
+                background: 'rgba(255, 107, 107, 0.15)',
+                boxShadow: '0 4px 12px rgba(255, 107, 107, 0.2)',
+              },
             }}
           >
             {/* Minus Button */}
@@ -152,9 +147,13 @@ const ProductCard = ({ product }) => {
               <IconButton
                 onClick={() => removeFromCart(id)}
                 sx={{
-                  color: 'white',
-                  p: 0.5,
-                  '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
+                  color: '#FF6B6B',
+                  p: 1,
+                  '&:hover': { 
+                    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                    transform: 'scale(1.1)',
+                  },
+                  transition: 'all 0.2s ease',
                 }}
               >
                 <Remove fontSize="small" />
@@ -163,13 +162,14 @@ const ProductCard = ({ product }) => {
 
             {/* Quantity */}
             <Typography
-              variant="h6"
+              variant="body1"
               sx={{
-                color: 'white',
-                fontWeight: 600,
+                color: '#FF6B6B',
+                fontWeight: 700,
                 mx: 2,
-                minWidth: '30px',
+                minWidth: '24px',
                 textAlign: 'center',
+                fontSize: '1.1rem',
               }}
             >
               {quantity}
@@ -180,9 +180,13 @@ const ProductCard = ({ product }) => {
               <IconButton
                 onClick={() => addToCart(product)}
                 sx={{
-                  color: 'white',
-                  p: 0.5,
-                  '&:hover': { backgroundColor: 'rgba(255, 255, 255, 0.2)' },
+                  color: '#FF6B6B',
+                  p: 1,
+                  '&:hover': { 
+                    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                    transform: 'scale(1.1)',
+                  },
+                  transition: 'all 0.2s ease',
                 }}
               >
                 <Add fontSize="small" />
@@ -195,19 +199,28 @@ const ProductCard = ({ product }) => {
             sx={{
               width: '100%',
               height: '48px',
-              background: 'linear-gradient(45deg, #FF6B6B, #FFA07A)',
-              color: 'white',
-              borderRadius: '24px',
+              background: 'transparent',
+              color: '#FF6B6B',
+              borderRadius: '8px',
               fontWeight: 600,
               fontSize: '0.95rem',
               textTransform: 'none',
-              boxShadow: '0 4px 10px rgba(255, 107, 107, 0.3)',
+              position: 'relative',
+              overflow: 'hidden',
+              transition: 'all 0.2s ease',
+              border: '2px solid #FF6B6B',
               '&:hover': {
-                background: 'linear-gradient(45deg, #FF5252, #FF8C69)',
-                boxShadow: '0 6px 15px rgba(255, 107, 107, 0.4)',
+                background: 'transparent',
+                '& .MuiButton-startIcon': {
+                  transform: 'translateX(2px)',
+                },
+              },
+              '& .MuiButton-startIcon': {
+                transition: 'transform 0.2s ease',
+                marginRight: '8px',
               },
             }}
-            startIcon={<ShoppingCart />}
+            startIcon={<ShoppingCart sx={{ fontSize: '1.1rem' }} />}
             onClick={() => addToCart(product)}
           >
             Add to Cart

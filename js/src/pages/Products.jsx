@@ -62,6 +62,7 @@ const Products = () => {
       inventoryData?.store?.inventory?.edges?.map(({ node }) => ({
         id: node.product.id,
         name: node.product.name,
+        image: node.product.image,
         price: node.price,
         description: node.product.description,
         categoryId: node.product.category.id,

@@ -1,312 +1,135 @@
 [
-    {
-      "name": "Basmati Rice 5kg",
-      "price": 15.99,
-      "description": "Aromatic long-grain basmati rice for biryanis and pulaos",
-      "category": "Grains & Rice"
-    },
-    {
-      "name": "Sona Masoori Rice 5kg",
-      "price": 13.49,
-      "description": "Light and aromatic Sona Masoori, ideal for daily cooking",
-      "category": "Grains & Rice"
-    },
-    {
-      "name": "Brown Rice 2kg",
-      "price": 6.99,
-      "description": "Healthy whole-grain brown rice rich in fiber",
-      "category": "Grains & Rice"
-    },
-    {
-      "name": "Idli Rice 2kg",
-      "price": 5.49,
-      "description": "Perfect rice variety for making soft idlis",
-      "category": "Grains & Rice"
-    },
-    {
-      "name": "Broken Wheat (Dalia) 1kg",
-      "price": 2.99,
-      "description": "Coarse wheat kernels for upma and porridge",
-      "category": "Grains & Rice"
-    },
-  
-    {
-      "name": "Toor Dal 1kg",
-      "price": 3.99,
-      "description": "Basic staple lentil for Indian dal",
-      "category": "Pulses & Lentils"
-    },
-    {
-      "name": "Moong Dal 1kg",
-      "price": 4.49,
-      "description": "Yellow split lentils, easily digestible",
-      "category": "Pulses & Lentils"
-    },
-    {
-      "name": "Chana Dal 1kg",
-      "price": 3.49,
-      "description": "Nutty-flavored split chickpeas",
-      "category": "Pulses & Lentils"
-    },
-    {
-      "name": "Urad Dal (Split) 1kg",
-      "price": 4.99,
-      "description": "Split black gram used in various South Indian dishes",
-      "category": "Pulses & Lentils"
-    },
-    {
-      "name": "Masoor Dal (Red Lentils) 1kg",
-      "price": 3.89,
-      "description": "Fast-cooking red lentils perfect for soups and dals",
-      "category": "Pulses & Lentils"
-    },
-  
-    {
-      "name": "Turmeric Powder 200g",
-      "price": 2.49,
-      "description": "Bright and flavorful haldi powder",
-      "category": "Spices & Masalas"
-    },
-    {
-      "name": "Red Chilli Powder 200g",
-      "price": 2.99,
-      "description": "Adds heat and color to curries",
-      "category": "Spices & Masalas"
-    },
-    {
-      "name": "Coriander Powder 200g",
-      "price": 2.29,
-      "description": "Ground coriander seeds with a fresh aroma",
-      "category": "Spices & Masalas"
-    },
-    {
-      "name": "Cumin Seeds 100g",
-      "price": 1.99,
-      "description": "Earthy spice seeds for tempering",
-      "category": "Spices & Masalas"
-    },
-    {
-      "name": "Garam Masala 100g",
-      "price": 3.49,
-      "description": "Blend of whole spices for rich Indian flavor",
-      "category": "Spices & Masalas"
-    },
-  
-    {
-      "name": "Whole Wheat Atta 5kg",
-      "price": 7.99,
-      "description": "Stone-ground whole wheat flour for rotis and chapatis",
-      "category": "Flours"
-    },
-    {
-      "name": "Besan (Gram Flour) 1kg",
-      "price": 3.59,
-      "description": "Versatile flour from split chickpeas",
-      "category": "Flours"
-    },
-    {
-      "name": "Maida (Refined Flour) 1kg",
-      "price": 2.49,
-      "description": "All-purpose refined flour for baking",
-      "category": "Flours"
-    },
-    {
-      "name": "Ragi Flour 1kg",
-      "price": 3.19,
-      "description": "Finger millet flour packed with nutrients",
-      "category": "Flours"
-    },
-    {
-      "name": "Rice Flour 1kg",
-      "price": 2.99,
-      "description": "Gluten-free flour for snacks and batters",
-      "category": "Flours"
-    },
-  
-    {
-      "name": "Sunflower Oil 1L",
-      "price": 4.99,
-      "description": "Light cooking oil, high smoke point",
-      "category": "Oils & Ghee"
-    },
-    {
-      "name": "Mustard Oil 1L",
-      "price": 5.49,
-      "description": "Strongly flavored oil for pickling and cooking",
-      "category": "Oils & Ghee"
-    },
-    {
-      "name": "Groundnut Oil 1L",
-      "price": 6.29,
-      "description": "Peanut oil with a rich nutty taste",
-      "category": "Oils & Ghee"
-    },
-    {
-      "name": "Coconut Oil 500ml",
-      "price": 4.59,
-      "description": "Cold-pressed oil for cooking and hair care",
-      "category": "Oils & Ghee"
-    },
-    {
-      "name": "Desi Ghee 500g",
-      "price": 9.99,
-      "description": "Clarified butter used in Indian sweets and curries",
-      "category": "Oils & Ghee"
-    },
-  
-    {
-      "name": "Haldiram's Bhujia 200g",
-      "price": 2.99,
-      "description": "Crispy gram flour noodles with mild spices",
-      "category": "Snacks & Namkeen"
-    },
-    {
-      "name": "Lay's Indian Magic Masala 52g",
-      "price": 1.49,
-      "description": "Popular Indian masala-flavored potato chips",
-      "category": "Snacks & Namkeen"
-    },
-    {
-      "name": "Kurkure Masala Munch 100g",
-      "price": 1.99,
-      "description": "Crunchy corn puffs with spicy masala",
-      "category": "Snacks & Namkeen"
-    },
-    {
-      "name": "Banana Chips 150g",
-      "price": 2.49,
-      "description": "Thinly sliced and fried banana chips",
-      "category": "Snacks & Namkeen"
-    },
-    {
-      "name": "Pav Bhaji Flavored Instant Mix 180g",
-      "price": 3.29,
-      "description": "Instant snack mix with the taste of Pav Bhaji",
-      "category": "Snacks & Namkeen"
-    },
-  
-    {
-      "name": "Tata Tea Premium 500g",
-      "price": 4.99,
-      "description": "Strong Indian tea blend for a refreshing chai",
-      "category": "Beverages"
-    },
-    {
-      "name": "Bru Instant Coffee 100g",
-      "price": 3.49,
-      "description": "Instant coffee with a rich aroma",
-      "category": "Beverages"
-    },
-    {
-      "name": "Filter Coffee Powder 200g",
-      "price": 4.59,
-      "description": "Authentic South Indian filter coffee powder",
-      "category": "Beverages"
-    },
-    {
-      "name": "Mango Lassi (Tetrapack) 200ml",
-      "price": 1.29,
-      "description": "Sweet and tangy yogurt-based mango drink",
-      "category": "Beverages"
-    },
-    {
-      "name": "Badam Drink Mix 200g",
-      "price": 3.99,
-      "description": "Almond-flavored drink mix with cardamom",
-      "category": "Beverages"
-    },
-  
-    {
-      "name": "Amul Butter 500g",
-      "price": 5.99,
-      "description": "Creamy salted butter from a popular Indian brand",
-      "category": "Dairy & Paneer"
-    },
-    {
-      "name": "Paneer 200g",
-      "price": 3.49,
-      "description": "Fresh Indian cottage cheese for curries and snacks",
-      "category": "Dairy & Paneer"
-    },
-    {
-      "name": "Yogurt (Dahi) 500g",
-      "price": 2.99,
-      "description": "Thick and creamy curd, essential for Indian meals",
-      "category": "Dairy & Paneer"
-    },
-    {
-      "name": "Curd (Set Dahi) 500g",
-      "price": 2.79,
-      "description": "Set-style yogurt with a firm texture",
-      "category": "Dairy & Paneer"
-    },
-    {
-      "name": "Amul Cheese Slices 10pcs",
-      "price": 3.99,
-      "description": "Processed cheese slices for sandwiches and burgers",
-      "category": "Dairy & Paneer"
-    },
-  
-    {
-      "name": "Mango Pickle 500g",
-      "price": 4.49,
-      "description": "Tangy and spicy mango pickle in mustard oil",
-      "category": "Pickles & Chutneys"
-    },
-    {
-      "name": "Lime Pickle 500g",
-      "price": 4.19,
-      "description": "Zesty lime chunks pickled with chili and salt",
-      "category": "Pickles & Chutneys"
-    },
-    {
-      "name": "Tomato Chutney 200g",
-      "price": 2.99,
-      "description": "Sweet and tangy tomato relish",
-      "category": "Pickles & Chutneys"
-    },
-    {
-      "name": "Coconut Chutney Powder 150g",
-      "price": 3.49,
-      "description": "Dry chutney mix of coconut and spices",
-      "category": "Pickles & Chutneys"
-    },
-    {
-      "name": "Gongura Pickle 300g",
-      "price": 3.79,
-      "description": "Sour and spicy pickle made from hibiscus leaves",
-      "category": "Pickles & Chutneys"
-    },
-  
-    {
-      "name": "Gulab Jamun Mix 200g",
-      "price": 2.49,
-      "description": "Powder mix for making soft gulab jamun at home",
-      "category": "Sweets & Desserts"
-    },
-    {
-      "name": "Rasgulla (Tin) 1kg",
-      "price": 5.99,
-      "description": "Spongy cottage cheese balls in sugar syrup",
-      "category": "Sweets & Desserts"
-    },
-    {
-      "name": "Soan Papdi 250g",
-      "price": 3.49,
-      "description": "Flaky sweet made of gram flour and sugar",
-      "category": "Sweets & Desserts"
-    },
-    {
-      "name": "Kaju Katli 250g",
-      "price": 7.99,
-      "description": "Cashew fudge slices for festive occasions",
-      "category": "Sweets & Desserts"
-    },
-    {
-      "name": "Jalebi Instant Mix 200g",
-      "price": 2.79,
-      "description": "Instant mix for crisp and syrupy jalebis",
-      "category": "Sweets & Desserts"
-    }
-  ]
-  
+  {
+    "name": "Royal Basmati Rice 20 LB",
+    "price": 23.99,
+    "description": "Aromatic long-grain basmati rice for biryanis and pulaos",
+    "category": "Grains & Rice",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/rice-basmati-royal.jpg"
+  },
+  {
+    "name": "Royal Sona Masoori Rice 20 LB",
+    "price": 23.99,
+    "description": "Light and aromatic rice for daily meals",
+    "category": "Grains & Rice",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/organic-rice-sona-masoori-royal.jpg"
+  },
+  {
+    "name": "Swad Toor Dal 2 LB",
+    "price": 3.49,
+    "description": "High-quality toor dal for everyday cooking",
+    "category": "Pulses & Lentils",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/051179107403.jpg"
+  },
+  {
+    "name": "Swad Chana Dal 2 LB",
+    "price": 3.49,
+    "description": "Nutritious chana dal for a variety of dishes",
+    "category": "Pulses & Lentils",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/desi-split-dal-chana-swad-2.jpg"
+  },
+  {
+    "name": "Urad Dal",
+    "price": 3.49,
+    "description": "Premium urad dal for flavorful recipes",
+    "category": "Pulses & Lentils",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/051179104457.jpg"
+  },
+  {
+    "name": "Swad Rajma 2 LB",
+    "price": 3.99,
+    "description": "Kidney beans for hearty curries",
+    "category": "Pulses & Lentils",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/051179101326.jpg"
+  },
+  {
+    "name": "Swad Peanuts 4 LB",
+    "price": 6.99,
+    "description": "Roasted peanuts for snacking or cooking",
+    "category": "Pulses & Lentils",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/051179192706.jpg"
+  },
+  {
+    "name": "Swad Wheat Flour 2 LB",
+    "price": 2.99,
+    "description": "Quality wheat flour for daily baking and cooking",
+    "category": "Flours",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/051179172524.jpg"
+  },
+  {
+    "name": "Swad Besan 2 LB",
+    "price": 2.49,
+    "description": "Gram flour (besan) for traditional recipes",
+    "category": "Flours",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/051179170834.jpg"
+  },
+  {
+    "name": "Black Chana Besan 2 LB",
+    "price": 4.49,
+    "description": "Black chickpea flour for authentic flavors",
+    "category": "Flours",
+    "image": "hhttps://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/indian-flour-besan-kalachana-deep.jpg"
+  },
+  {
+    "name": "Swad Poha 2 LB",
+    "price": 2.99,
+    "description": "Flattened rice perfect for a quick breakfast",
+    "category": "Grains & Rice",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/051179240506.jpg"
+  },
+  {
+    "name": "Swad Makhana 200gm",
+    "price": 6.99,
+    "description": "Fox nuts for a healthy, crunchy snack",
+    "category": "Snacks & Namkeen",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/051179241367.jpg"
+  },
+  {
+    "name": "Alegro Sun Flower Oil 2 L",
+    "price": 13.99,
+    "description": "Refined sunflower oil for healthy cooking",
+    "category": "Oils & Ghee",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/cookingoil-sunflower-allegro-2.jpg"
+  },
+  {
+    "name": " Swad Peanut Oil",
+    "price": 13.99,
+    "description": "Nutritious peanut oil for everyday cooking",
+    "category": "Oils & Ghee",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/051179200715.jpg"
+  },
+  {
+    "name": "Swad Sesame Oil 15 Fl Oz",
+    "price": 10.99,
+    "description": "Fragrant sesame oil for enhanced flavor",
+    "category": "Oils & Ghee",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/051179202009.jpg"
+  },
+  {
+    "name": "Swad Cumin",
+    "price": 2.99,
+    "description": "Aromatic cumin seeds for enhanced flavor",
+    "category": "Spices & Masalas",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/051179318458.jpg"
+  },
+  {
+    "name": "Swad Mustard",
+    "price": 1.99,
+    "description": "Mustard seeds for tangy seasoning",
+    "category": "Spices & Masalas",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/051179326606.jpg"
+  },
+  {
+    "name": "Swad Garam Masala",
+    "price": 2.99,
+    "description": "Mixed garam masala blend for authentic flavor",
+    "category": "Spices & Masalas",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/051179345904.jpg"
+  },
+  {
+    "name": "Swad Dhania Seeds",
+    "price": 1.99,
+    "description": "Coriander seeds for fresh aroma",
+    "category": "Spices & Masalas",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/051179317901.jpg"
+  }
+]
