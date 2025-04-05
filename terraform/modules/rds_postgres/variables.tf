@@ -61,3 +61,15 @@ variable "tags" {
     ManagedBy   = "Terraform"
   }
 }
+
+variable "vpc_security_group_ids" {
+  description = "List of security groups for the RDS instance"
+  type        = list(string)
+  default = []
+}
+
+variable "env" {
+  description = "Environment (dev or prod)"
+  type        = string
+  
+}

@@ -60,3 +60,9 @@ output "tags" {
   value       = aws_db_instance.rds_postgres.tags
 }
 
+output "vpc_security_group_ids" {
+  description = "The security group IDs assigned to the RDS instance"
+  value       = aws_db_instance.rds_postgres.vpc_security_group_ids
+  
+}
+

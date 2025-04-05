@@ -17,7 +17,7 @@ data
 
 # Environment
 .env
-
+.txt
 # IDE and OS
 .vscode/
 .DS_Store
