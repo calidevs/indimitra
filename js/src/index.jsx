@@ -1,4 +1,4 @@
-import { createRoot } from 'react-dom/client';
+import React, { useState } from 'react';
 import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App.jsx';
@@ -20,11 +20,20 @@ const queryClient = new QueryClient({
   },
 });
 
+const Counter = () => {
+  const [count, setCount] = useState(0);
+  return (
+    <div>
+      <p>Count: {count}</p>
+      <button onClick={() => setCount(count + 1)}>Increment</button>
+    </div>
+  );
+};
+
+import { createRoot } from 'react-dom/client';
 const root = createRoot(document.getElementById('root'));
 root.render(
-  <QueryClientProvider client={queryClient}>
     <BrowserRouter>
-      <App />
+      <Counter />
     </BrowserRouter>
-  </QueryClientProvider>
 );
