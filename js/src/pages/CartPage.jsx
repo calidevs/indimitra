@@ -22,12 +22,6 @@ import {
 } from '../queries/operations';
 import { DELIVERY_FEE, TAX_RATE } from '../config/constants/constants';
 import { useNavigate } from 'react-router-dom';
-import styled from '@emotion/styled';
-const CartContainer = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(3),
-  maxWidth: 800,
-  margin: 'auto',
-}));
 
 const CartPage = () => {
   const { cart, removeFromCart, addToCart, cartTotal, clearCart } = useStore();
@@ -153,7 +147,7 @@ const CartPage = () => {
   };
 
   return (
-    <CartContainer>
+    <Box sx={{ padding: 3, maxWidth: 800, margin: 'auto' }}>
       <Typography variant="h4" component="h1" gutterBottom>
         Your Cart
       </Typography>
@@ -318,7 +312,7 @@ const CartPage = () => {
           </Button>
         </>
       )}
-    </CartContainer>
+    </Box>
   );
 };
 
