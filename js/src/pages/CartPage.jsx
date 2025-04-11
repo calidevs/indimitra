@@ -2,30 +2,32 @@ import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
-  IconButton,
   Button,
   TextField,
   Select,
   MenuItem,
-  Divider,
   InputLabel,
   FormControl,
   LoadingSpinner,
   Alert,
+  Divider
 } from '@components';
 import { FormControlLabel, Checkbox, Collapse, Stack } from '@mui/material';
-import { Close, Remove, Add, LocationOn, ExpandMore, ExpandLess } from '@mui/icons-material';
-import useStore, { useAuthStore, useAddressStore } from '@/store/useStore';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import fetchGraphQL from '../config/graphql/graphqlClient';
-import { fetchAuthSession } from 'aws-amplify/auth';
+import { Remove, Add, LocationOn, ExpandMore, ExpandLess } from '@mui/icons-material';
+import useStore, { useAuthStore, useAddressStore } from './../store/useStore';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import fetchGraphQL from '../config/graphql/graphqlService';
 import {
   CREATE_ORDER_MUTATION,
-  GET_ADDRESSES_BY_USER,
-  CREATE_ADDRESS,
 } from '../queries/operations';
 import { DELIVERY_FEE, TAX_RATE } from '../config/constants/constants';
 import { useNavigate } from 'react-router-dom';
+import styled from '@emotion/styled';
+const CartContainer = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(3),
+  maxWidth: 800,
+  margin: 'auto',
+}));
 
 const CartPage = () => {
   const { cart, removeFromCart, addToCart, cartTotal, clearCart } = useStore();
@@ -34,6 +36,7 @@ const CartPage = () => {
   const [error, setError] = useState('');
   const { userProfile, fetchUserProfile, isProfileLoading } = useAuthStore();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Use the address store instead of local state
   const {
@@ -100,6 +103,7 @@ const CartPage = () => {
         setIsOrderPlaced(false);
         navigate('/');
       }, 2000);
+      queryClient.invalidateQueries(['userAddresses', userProfile.id]);
     },
     onError: (error) => {
       console.error('GraphQL Order Placement Failed:', error);
@@ -139,6 +143,7 @@ const CartPage = () => {
       setShowAddressForm(false);
       setNewAddress('');
       setIsPrimary(false);
+      queryClient.invalidateQueries(['userAddresses', userProfile.id]);
     } catch (error) {
       console.error('Error adding address:', error);
       setError('Failed to add address. Please try again.');
@@ -148,28 +153,15 @@ const CartPage = () => {
   };
 
   return (
-    <Box
-      sx={{
-        width: '90%',
-        maxWidth: '500px',
-        bgcolor: 'background.paper',
-        boxShadow: 24,
-        p: 4,
-        borderRadius: '10px',
-        margin: '20px auto'
-      }}
-    >
-      <Box display="flex" justifyContent="space-between" alignItems="center">
-        <Typography variant="h6">Your Cart</Typography>
-        
-      </Box>
-
-      <Divider sx={{ my: 2 }} />
+    <CartContainer>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Your Cart
+      </Typography>
 
       {isOrderPlaced ? (
-        <Typography color="green" textAlign="center">
-          🎉 Order placed successfully!
-        </Typography>
+        <Alert severity="success">
+          Order placed successfully!
+        </Alert>
       ) : (
         <>
           {error && (
@@ -185,18 +177,18 @@ const CartPage = () => {
                 display="flex"
                 alignItems="center"
                 justifyContent="space-between"
-                sx={{ mb: 2 }}
+                sx={{ mb: 2, py: 1, borderBottom: '1px solid #ccc' }}
               >
                 <Typography>{item.name}</Typography>
                 <Typography>${item.price.toFixed(2)}</Typography>
                 <Box display="flex" alignItems="center">
-                  <IconButton onClick={() => removeFromCart(item.id)}>
+                  <Button onClick={() => removeFromCart(item.id)}>
                     <Remove />
-                  </IconButton>
+                  </Button>
                   <Typography sx={{ mx: 1 }}>{item.quantity}</Typography>
-                  <IconButton onClick={() => addToCart(item)}>
+                  <Button onClick={() => addToCart(item)}>
                     <Add />
-                  </IconButton>
+                  </Button>
                 </Box>
                 <Typography sx={{ fontWeight: 'bold' }}>
                   ${(item.price * item.quantity).toFixed(2)}
@@ -209,10 +201,22 @@ const CartPage = () => {
 
           <Divider sx={{ my: 2 }} />
 
-          <Typography>Subtotal: ${subtotal.toFixed(2)}</Typography>
-          <Typography>Tax (8%): ${tax.toFixed(2)}</Typography>
-          <Typography>Delivery Fee: ${deliveryFee.toFixed(2)}</Typography>
-          <Typography fontWeight="bold">Order Total: ${orderTotal.toFixed(2)}</Typography>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+            <Typography>Subtotal:</Typography>
+            <Typography>${subtotal.toFixed(2)}</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+            <Typography>Tax (8%):</Typography>
+            <Typography>${tax.toFixed(2)}</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+            <Typography>Delivery Fee:</Typography>
+            <Typography>${deliveryFee.toFixed(2)}</Typography>
+          </Box>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', mt: 1 }}>
+            <Typography>Order Total:</Typography>
+            <Typography>${orderTotal.toFixed(2)}</Typography>
+          </Box>
 
           <Divider sx={{ my: 2 }} />
 
@@ -258,15 +262,15 @@ const CartPage = () => {
               </FormControl>
 
               {/* Toggle button for address form */}
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={showAddressForm ? <ExpandLess /> : <ExpandMore />}
-                onClick={() => setShowAddressForm(!showAddressForm)}
-                sx={{ mt: 1 }}
-              >
-                {showAddressForm ? 'Cancel Adding Address' : 'Add New Address'}
-              </Button>
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={showAddressForm ? <ExpandLess /> : <ExpandMore />}
+              onClick={() => setShowAddressForm(!showAddressForm)}
+              sx={{ mt: 1 }}
+            >
+              {showAddressForm ? 'Cancel Adding Address' : 'Add New Address'}
+            </Button>
 
               {/* Inline address form */}
               <Collapse in={showAddressForm}>
@@ -300,12 +304,7 @@ const CartPage = () => {
                       }
                       label="Set as Primary Address"
                     />
-                    <Button
-                      variant="contained"
-                      onClick={handleAddAddress}
-                      disabled={!newAddress.trim() || isAddingAddress}
-                      startIcon={isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />}
-                    >
+                    <Button variant="contained" onClick={handleAddAddress} disabled={!newAddress.trim() || isAddingAddress} startIcon={isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />}>
                       {isAddingAddress ? 'Adding...' : 'Add Address'}
                     </Button>
                   </Stack>
@@ -314,36 +313,12 @@ const CartPage = () => {
             </Box>
           )}
 
-          <Button
-            fullWidth
-            variant="contained"
-            color="primary"
-            sx={{
-              mt: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 1,
-            }}
-            onClick={handleOrderPlacement}
-            disabled={
-              Object.values(cart).length === 0 ||
-              isPending ||
-              !selectedAddressId ||
-              isProfileLoading
-            }
-          >
-            {isPending ? (
-              <>
-                <LoadingSpinner size={20} sx={{ color: 'white' }} /> Placing Order...
-              </>
-            ) : (
-              'Place Order'
-            )}
+          <Button fullWidth variant="contained" color="primary" sx={{ mt: 2 }} onClick={handleOrderPlacement} disabled={Object.values(cart).length === 0 || isPending || !selectedAddressId || isProfileLoading}>
+            {isPending ? <><LoadingSpinner size={20} sx={{ color: 'white' }} /> Placing Order...</> : 'Place Order'}
           </Button>
         </>
       )}
-    </Box>
+    </CartContainer>
   );
 };
 
