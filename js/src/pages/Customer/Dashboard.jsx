@@ -48,7 +48,7 @@ const Dashbaord = () => {
   return (
     <>
       <StoreSelector open={storeModalOpen} onClose={() => setStoreModalOpen(false)} />
-      {selectedStore && <Products />}
+      {selectedStore && <Products setStoreModalOpen={() => setStoreModalOpen(true)}/>}
     </>
   );
 };
