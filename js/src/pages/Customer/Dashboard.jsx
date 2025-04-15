@@ -10,7 +10,7 @@ import StoreSelector from './StoreSelector';
 
 const Dashbaord = () => {
   const [storeModalOpen, setStoreModalOpen] = useState(false);
-  const { selectedStore, setAvailableStores } = useStore();
+  const { selectedStore, setAvailableStores, setSelectedStore } = useStore();
 
   // Fetch all stores
   const {
@@ -28,12 +28,20 @@ const Dashbaord = () => {
   useEffect(() => {
     if (storesData?.stores && storesData.stores.length > 0) {
       setAvailableStores(storesData.stores);
-
-      if (!selectedStore) {
+      const storedStore = localStorage.getItem('selectedStore');
+      
+      if (storedStore) {
+        const parsedStore = JSON.parse(storedStore);
+        if(!selectedStore || selectedStore.id !== parsedStore.id){
+            setSelectedStore(parsedStore);
+        }
+      }
+      if (!selectedStore && !storedStore) {
         setStoreModalOpen(true);
       }
     }
   }, [storesData, selectedStore, setAvailableStores]);
+  
 
   if (storesLoading) {
     return (
