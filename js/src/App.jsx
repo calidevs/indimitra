@@ -20,6 +20,8 @@ import LoginPage from './pages/LoginPage';
 import { CustomerDashboard } from './pages/Customer';
 
 import CartPage from './pages/CartPage'; // Import the new CartPage
+import Layout from './components/layout/Layout';
+import Navbar from './components/layout/Navbar';
 const App = () => {
   const { user } = useAuthStore();
 
@@ -31,6 +33,14 @@ const App = () => {
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />
         <Route path={ROUTES.SIGNUP} element={<SignUpPage />} />
         <Route path={ROUTES.FORGOT_PASSWORD} element={<ForgotPassword />} />
+        <Route
+          path="/"
+          element={
+            <>
+              <Navbar/><CustomerDashboard />
+              </>
+          }
+        />
 
         {/* Protected Routes */}
         <Route

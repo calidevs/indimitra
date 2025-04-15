@@ -31,7 +31,7 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await signOut();
-      navigate(ROUTES.LOGIN);
+      navigate("/");
     } catch (error) {
       console.error('Error signing out:', error);
     }
