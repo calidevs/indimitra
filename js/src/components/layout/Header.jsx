@@ -23,7 +23,6 @@ const Header = () => {
   const isMobile = useMediaQuery('(max-width: 600px)');
 
   const { user, ability } = useAuthStore();
-  const [cartOpen, setCartOpen] = useState(false);
   const [menuAnchor, setMenuAnchor] = useState(null);
 
   const handleMenuOpen = (event) => setMenuAnchor(event.currentTarget);
@@ -38,20 +37,20 @@ const Header = () => {
   };
 
   // Determine dashboard route based on user role using ROUTES object
-  const getDashboardRoute = () => {
-    switch (user?.role?.toUpperCase().trim()) {
-      case 'USER':
-        return ROUTES.USER;
-      case 'DELIVERY':
-        return ROUTES.DRIVER;
-      case 'STORE_MANAGER':
-        return ROUTES.STORE_MANAGER;
-      case 'ADMIN':
-        return ROUTES.ADMIN;
-      default:
-        return ROUTES.USER;
-    }
-  };
+  // const getDashboardRoute = () => {
+  //   switch (user?.role?.toUpperCase().trim()) {
+  //     case 'USER':
+  //       return ROUTES.USER;
+  //     case 'DELIVERY':
+  //       return ROUTES.DRIVER;
+  //     case 'STORE_MANAGER':
+  //       return ROUTES.STORE_MANAGER;
+  //     case 'ADMIN':
+  //       return ROUTES.ADMIN;
+  //     default:
+  //       return ROUTES.USER;
+  //   }
+  // };
 
   return (
     <>
@@ -114,7 +113,7 @@ const Header = () => {
             )}
 
             {/* Cart */}
-            <Tooltip title="Cart">
+            {!isMobile && ability.can('view', 'cart') && <Tooltip title="Cart">
               <IconButton
                 onClick={() => navigate(ROUTES.CART)}
                 sx={{
@@ -130,6 +129,7 @@ const Header = () => {
                 </Badge>
               </IconButton>
             </Tooltip>
+}
 
             {/* Profile */}
             <Tooltip title="Profile">
