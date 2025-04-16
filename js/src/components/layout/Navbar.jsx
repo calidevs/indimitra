@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Toolbar,
@@ -16,9 +16,25 @@ import LoginModal from '@/pages/Login/LoginModal';
 const Navbar = () => {
   const navigate = useNavigate();
   const cartCount = useStore((state) => state.cartCount());
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [currentForm, setCurrentForm] = useState('login');
 
-    return (
+  const handleSignInClick = () => {
+    setModalOpen(true);
+    setCurrentForm('login');
+  };
+
+  const handleSignUpClick = () => {
+    setModalOpen(true);
+    setCurrentForm('signup');
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+  };
+
+  return (
+
     <>
       <Box
         sx={{
@@ -58,45 +74,18 @@ const Navbar = () => {
           <Box sx={{ flexGrow: 1 }} />
 
           {/* Actions */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
-            {/* Login Button 
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>          
             <Button
-              onClick={() => navigate(ROUTES.LOGIN)}
-              sx={{
-                color: '#2A2F4F',
-                textTransform: 'none',
-                fontSize: '1rem',
-                fontWeight: 500,
-                px: 2,
-                '&:hover': {
-                  backgroundColor: 'rgba(42, 47, 79, 0.08)',
-                },
-              }}
-            >
-              Login
-            </Button> */}
-             <Button
-              onClick={() => setIsLoginModalOpen(true)}
-              sx={{
-                color: '#2A2F4F',
-                textTransform: 'none',
-                fontSize: '1rem',
-                fontWeight: 500,
-                px: 2,
-                '&:hover': {
-                  backgroundColor: 'rgba(42, 47, 79, 0.08)',
-                },
-              }}
+              onClick={handleSignInClick}
+              sx={{ color: '#2A2F4F', textTransform: 'none', fontSize: '1rem', fontWeight: 500, px: 2, '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' } }}
             >
               Sign In
             </Button>
-
-            <LoginModal
-              open={isLoginModalOpen}
-              onClose={() => setIsLoginModalOpen(false)}
-            />
-
+            
+            <LoginModal open={modalOpen} onClose={handleCloseModal} currentForm={currentForm} setCurrentForm={setCurrentForm} />
+            
             {/* Cart */}
+
             <IconButton
               onClick={() => navigate(ROUTES.CART)}
               sx={{
