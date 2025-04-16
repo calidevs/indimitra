@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Box,
   Toolbar,
@@ -11,12 +11,14 @@ import { ShoppingCart } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import useStore from '@/store/useStore';
 import { ROUTES } from '@/config/constants/routes';
+import LoginModal from '@/pages/Login/LoginModal';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const cartCount = useStore((state) => state.cartCount());
+  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
 
-  return (
+    return (
     <>
       <Box
         sx={{
@@ -57,7 +59,7 @@ const Navbar = () => {
 
           {/* Actions */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
-            {/* Login Button */}
+            {/* Login Button 
             <Button
               onClick={() => navigate(ROUTES.LOGIN)}
               sx={{
@@ -72,7 +74,27 @@ const Navbar = () => {
               }}
             >
               Login
+            </Button> */}
+             <Button
+              onClick={() => setIsLoginModalOpen(true)}
+              sx={{
+                color: '#2A2F4F',
+                textTransform: 'none',
+                fontSize: '1rem',
+                fontWeight: 500,
+                px: 2,
+                '&:hover': {
+                  backgroundColor: 'rgba(42, 47, 79, 0.08)',
+                },
+              }}
+            >
+              Sign In
             </Button>
+
+            <LoginModal
+              open={isLoginModalOpen}
+              onClose={() => setIsLoginModalOpen(false)}
+            />
 
             {/* Cart */}
             <IconButton
