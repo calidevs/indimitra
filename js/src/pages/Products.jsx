@@ -33,9 +33,8 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-const Products = () => {
+const Products = ({setStoreModalOpen}) => {
   const [search, setSearch] = useState('');
-  const [storeModalOpen, setStoreModalOpen] = useState(false);
   const { selectedStore, availableStores } = useStore();
 
   const debouncedSearch = useDebounce(search, 300);
@@ -109,7 +108,7 @@ const Products = () => {
           </Box>
           <Button
             variant="outlined"
-            startIcon={<StoreIcon />}
+            startIcon={<StoreIcon  />}
             onClick={() => setStoreModalOpen(true)}
           >
             Change Store

@@ -12,4 +12,5 @@ export const ROUTES = {
   PROFILE: '/profile',
   SIGNUP: '/signup',
   UPDATE_USER_ROLE: '/admin/update-user-role',
+  CART: '/cart'
 };

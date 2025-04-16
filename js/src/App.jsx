@@ -19,6 +19,7 @@ import { ROUTES } from './config/constants/routes';
 import LoginPage from './pages/LoginPage';
 import { CustomerDashboard } from './pages/Customer';
 
+import CartPage from './pages/CartPage'; // Import the new CartPage
 const App = () => {
   const { user } = useAuthStore();
 
@@ -99,6 +100,14 @@ const App = () => {
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.CART} // Add the new Cart route
+          element={
+            <ProtectedRoute role="user">
+              <CartPage />
             </ProtectedRoute>
           }
         />

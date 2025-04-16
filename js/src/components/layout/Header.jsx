@@ -17,8 +17,6 @@ import { useMediaQuery } from '@mui/material';
 import useStore from '@/store/useStore';
 import { useAuthStore } from '@/store/useStore';
 import { ROUTES } from '@/config/constants/routes';
-import CartModal from '../Modal/CartModal';
-
 const Header = () => {
   const navigate = useNavigate();
   const cartCount = useStore((state) => state.cartCount());
@@ -118,7 +116,7 @@ const Header = () => {
             {/* Cart */}
             <Tooltip title="Cart">
               <IconButton
-                onClick={() => setCartOpen(true)}
+                onClick={() => navigate(ROUTES.CART)}
                 sx={{
                   background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
                   color: 'white',
@@ -220,8 +218,6 @@ const Header = () => {
 
       {/* Spacer for fixed header */}
       <Box sx={{ height: { xs: '64px', sm: '70px' } }} />
-
-      <CartModal open={cartOpen} onClose={() => setCartOpen(false)} />
     </>
   );
 };
