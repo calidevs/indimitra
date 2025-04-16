@@ -5,6 +5,11 @@ data "aws_iam_policy" "ecsInstanceRolePolicy" {
   arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2ContainerServiceforEC2Role"
 }
 
+data "aws_iam_policy" "ec2_instance_connect" {
+  arn = "arn:aws:iam::aws:policy/EC2InstanceConnect"
+}
+
+
 data "aws_iam_policy_document" "ecsInstanceRolePolicy" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -25,6 +30,11 @@ resource "aws_iam_role" "ecsInstanceRole" {
 resource "aws_iam_role_policy_attachment" "ecsInstancePolicy" {
   role       = aws_iam_role.ecsInstanceRole.name
   policy_arn = data.aws_iam_policy.ecsInstanceRolePolicy.arn
+}
+
+resource "aws_iam_role_policy_attachment" "ec2_instance_connect" {
+  role       = aws_iam_role.ecsInstanceRole.name
+  policy_arn = data.aws_iam_policy.ec2_instance_connect.arn
 }
 
 resource "aws_iam_instance_profile" "ecsInstanceRoleProfile" {
@@ -81,7 +91,7 @@ resource "aws_launch_template" "ecs_launch_template" {
   name_prefix   = "${var.name_prefix}-ecs-launch-template"
   image_id      = data.aws_ami.ecs_optimized.id
   instance_type = var.instance_type
-
+  key_name      = aws_key_pair.key_pair.key_name
   iam_instance_profile {
     name = aws_iam_instance_profile.ecsInstanceRoleProfile.name
   }
@@ -95,7 +105,7 @@ resource "aws_launch_template" "ecs_launch_template" {
   network_interfaces {
     associate_public_ip_address = true
     security_groups             = var.security_groups
-    subnet_id                   = var.subnet_ids[0]
+    subnet_id                   = "subnet-091c76363153c0ffb"
   }
 }
 
@@ -119,6 +129,14 @@ data "aws_ami" "ecs_optimized" {
   }
 }
 
+### ##################################
+## aws key_pair
+### ##################################
+resource "aws_key_pair" "key_pair" {
+  key_name   = "ec2-key-pair"
+  public_key = file("~/petprojects/indimitra/my-key.pub")
+}
+
 # ##################################
 # # ECS Auto Scaling Group
 # ##################################
@@ -126,8 +144,10 @@ resource "aws_autoscaling_group" "ecs_asg" {
   desired_capacity     = 1
   max_size             = 1
   min_size             = 1
-  vpc_zone_identifier  = var.subnet_ids
-
+  # vpc_zone_identifier  = var.subnet_ids
+  availability_zones = [
+    "us-east-1a",  # Example AZ 1
+  ]
   launch_template {
     id      = aws_launch_template.ecs_launch_template.id
     version = "$Latest"
@@ -150,8 +170,12 @@ resource "aws_ecs_task_definition" "nginx" {
 
   task_role_arn      = aws_iam_role.ecsTaskExecutionRole.arn
   execution_role_arn = aws_iam_role.ecsTaskExecutionRole.arn
-
   container_definitions = var.container_definitions
+    volume {
+    name      = "ssl-certificates"
+    host_path = "/etc/letsencrypt"
+  }
+
 }
 
 # ###############################
@@ -166,8 +190,8 @@ resource "aws_ecs_service" "ecs_service" {
 
 
   # network_configuration {
-  #   subnets          = var.subnet_ids
-  #   security_groups  = var.security_groups
+  #   subnets          = ["subnet-091c76363153c0ffb"]
+  #   # security_groups  = var.security_groups
   #   assign_public_ip = true
   # }
 }

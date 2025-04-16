@@ -171,8 +171,28 @@ locals {
       {
         containerPort = 80
         hostPort      = 80
+      },
+      {
+        containerPort = 443
+        hostPort      = 443
       }
     ]
+    "volumes": [
+      {
+        "name": "ssl-certificates",
+        "host_path": {
+          "source_path" = "/etc/letsencrypt"
+          "destination_path" = "/etc/nginx/certificates"
+        }
+      }
+     ],
+    "mountPoints": [
+        {
+          "sourceVolume": "ssl-certificates",
+          "containerPath": "/etc/nginx/certificates",
+          "readOnly": false
+        }
+      ]
     logConfiguration = {
       logDriver = "awslogs"
       options = {

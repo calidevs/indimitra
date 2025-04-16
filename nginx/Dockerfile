@@ -13,8 +13,11 @@ COPY ../js/build/ .
 # Copy the Nginx configuration file from the nginx folder
 COPY nginx/nginx.conf /etc/nginx/nginx.conf
 
+RUN mkdir -p /etc/nginx/certificates
+
 # Expose port 80
 EXPOSE 80
+EXPOSE 443
 
 # Start Nginx
 CMD ["nginx", "-g", "daemon off;"]
