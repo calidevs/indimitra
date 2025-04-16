@@ -37,8 +37,17 @@ const App = () => {
           path="/"
           element={
             <>
-              <Navbar/><CustomerDashboard />
-              </>
+              <Navbar/>
+              <CustomerDashboard />
+            </>
+          }
+        />
+        <Route
+          path={ROUTES.CART} // Add the new Cart route
+          element={
+            <Layout>
+              <CartPage />
+              </Layout>
           }
         />
 
@@ -47,6 +56,7 @@ const App = () => {
           path={ROUTES.ADMIN}
           element={
             <ProtectedRoute role="admin">
+              
               <AdminDashboard />
             </ProtectedRoute>
           }
@@ -100,7 +110,7 @@ const App = () => {
         <Route
           path={ROUTES.ORDERS}
           element={
-            <ProtectedRoute role="user">
+            <ProtectedRoute role={["user","store_manager" ]}>
               <Orders />
             </ProtectedRoute>
           }
@@ -113,14 +123,14 @@ const App = () => {
             </ProtectedRoute>
           }
         />
-        <Route
+        {/* <Route
           path={ROUTES.CART} // Add the new Cart route
           element={
             <ProtectedRoute role="user">
               <CartPage />
             </ProtectedRoute>
           }
-        />
+        /> */}
       </Routes>
     </ThemeProvider>
   );

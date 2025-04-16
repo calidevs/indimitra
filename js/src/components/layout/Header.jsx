@@ -17,6 +17,29 @@ import { useMediaQuery } from '@mui/material';
 import useStore from '@/store/useStore';
 import { useAuthStore } from '@/store/useStore';
 import { ROUTES } from '@/config/constants/routes';
+
+
+const Logo = () => {
+  return (
+    <Typography
+      variant="h5"
+      onClick={() => navigate('/')}
+      sx={{
+        cursor: 'pointer',
+        fontWeight: 800,
+        fontSize: { xs: '1.5rem', sm: '1.75rem' },
+        background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        letterSpacing: '0.5px',
+      }}
+    >
+      Indimitra
+    </Typography>
+  )
+}
+
+
 const Header = () => {
   const navigate = useNavigate();
   const cartCount = useStore((state) => state.cartCount());
@@ -72,21 +95,7 @@ const Header = () => {
           }}
         >
           {/* Logo */}
-          <Typography
-            variant="h5"
-            onClick={() => navigate('/')}
-            sx={{
-              cursor: 'pointer',
-              fontWeight: 800,
-              fontSize: { xs: '1.5rem', sm: '1.75rem' },
-              background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              letterSpacing: '0.5px',
-            }}
-          >
-            Indimitra
-          </Typography>
+          <Logo />
 
           {/* Spacer */}
           <Box sx={{ flexGrow: 1 }} />
@@ -129,7 +138,7 @@ const Header = () => {
                 </Badge>
               </IconButton>
             </Tooltip>
-}
+            }
 
             {/* Profile */}
             <Tooltip title="Profile">
