@@ -63,6 +63,10 @@ export const useAuthStore = create((set, get) => ({
   isProfileLoading: false,
   profileError: null,
 
+  setAbility: (ability) => {
+    set({ ability });
+  },
+
   setUser: (user) => {
     set({ user });
   },
@@ -110,6 +114,7 @@ export const useAuthStore = create((set, get) => ({
         set({
           userProfile: response.getUserProfile,
           isProfileLoading: false,
+          ability: defineUserAbility(response.getUserProfile.role)
         });
         return response.getUserProfile;
       } else {

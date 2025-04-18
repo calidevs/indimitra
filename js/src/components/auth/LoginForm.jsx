@@ -17,10 +17,11 @@ import { useAuthStore } from '../../store/useStore';
 import OtpVerificationForm from './OtpVerificationForm';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
+import { defineUserAbility } from '../../ability/defineAbility';
 
 const LoginForm = ({ onSuccess, onError }) => {
   const navigate = useNavigate();
-  const { setUser } = useAuthStore();
+  const { setUser, setAbility } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -50,6 +51,10 @@ const LoginForm = ({ onSuccess, onError }) => {
       const userRole = attributes['custom:role'].toLowerCase();
 
       setUser({ email: attributes.email, role: userRole });
+
+      const newAbility = defineUserAbility(userRole);
+      setAbility(newAbility);
+
       if (onSuccess) onSuccess();
       navigate(`/${userRole}`);
     } catch (err) {

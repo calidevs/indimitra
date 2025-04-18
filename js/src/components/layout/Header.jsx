@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Box,
   Toolbar,
@@ -17,15 +18,16 @@ import { useMediaQuery } from '@mui/material';
 import useStore from '@/store/useStore';
 import { useAuthStore } from '@/store/useStore';
 import { ROUTES } from '@/config/constants/routes';
+import LoginModal from '@/pages/Login/LoginModal';
+import { fetchAuthSession } from 'aws-amplify/auth';
 
-
-const Logo = () => {
+const Logo = ({ navigate }) => {
   return (
     <Typography
       variant="h5"
       onClick={() => navigate('/')}
       sx={{
-        cursor: 'pointer',
+        cursor: 'pointer',  
         fontWeight: 800,
         fontSize: { xs: '1.5rem', sm: '1.75rem' },
         background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
@@ -47,6 +49,39 @@ const Header = () => {
 
   const { user, ability } = useAuthStore();
   const [menuAnchor, setMenuAnchor] = useState(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [currentForm, setCurrentForm] = useState('login');
+  const [cognitoId, setCognitoId] = useState(null);
+
+  // Fetch user ID from Cognito
+    const getUserId = async () => {
+      try {
+        const session = await fetchAuthSession();
+        if (session?.tokens?.idToken) {
+          const id = session.tokens.idToken.payload.sub;
+          console.log('Fetched Cognito ID:', id);
+          setCognitoId(id);
+        } else {
+          console.warn('No valid session tokens found.');
+          setCognitoId(null);
+        }
+      } catch (error) {
+        console.error('Error fetching user ID:', error);
+      }
+    };
+
+    getUserId();
+
+  console.log("CognitoId",cognitoId)
+
+  const handleSignInClick = () => {
+    setModalOpen(true);
+    setCurrentForm('login');
+  };
+
+  const handleCloseModal = () => {
+    setModalOpen(false);
+  };
 
   const handleMenuOpen = (event) => setMenuAnchor(event.currentTarget);
   const handleMenuClose = () => setMenuAnchor(null);
@@ -59,21 +94,7 @@ const Header = () => {
     }
   };
 
-  // Determine dashboard route based on user role using ROUTES object
-  // const getDashboardRoute = () => {
-  //   switch (user?.role?.toUpperCase().trim()) {
-  //     case 'USER':
-  //       return ROUTES.USER;
-  //     case 'DELIVERY':
-  //       return ROUTES.DRIVER;
-  //     case 'STORE_MANAGER':
-  //       return ROUTES.STORE_MANAGER;
-  //     case 'ADMIN':
-  //       return ROUTES.ADMIN;
-  //     default:
-  //       return ROUTES.USER;
-  //   }
-  // };
+
 
   return (
     <>
@@ -95,16 +116,24 @@ const Header = () => {
           }}
         >
           {/* Logo */}
-          <Logo />
+          <Logo navigate={navigate} />
 
           {/* Spacer */}
           <Box sx={{ flexGrow: 1 }} />
 
           {/* Actions */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+          {!cognitoId && <Button
+              onClick={handleSignInClick}
+              sx={{ color: '#2A2F4F', textTransform: 'none', fontSize: '1rem', fontWeight: 500, px: 2, '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' } }}
+            >
+              Sign In
+            </Button>}
+
+            <LoginModal open={modalOpen} onClose={handleCloseModal} currentForm={currentForm} setCurrentForm={setCurrentForm} />
             {/* Orders (Desktop) */}
-            {!isMobile && ability.can('view', 'orders') && (
-              <Button
+            {!isMobile && ability?.can('view', 'orders') && (
+             <Button
                 onClick={() => navigate(ROUTES.ORDERS)}
                 sx={{
                   color: '#2A2F4F',
@@ -122,7 +151,7 @@ const Header = () => {
             )}
 
             {/* Cart */}
-            {!isMobile && ability.can('view', 'cart') && <Tooltip title="Cart">
+            <Tooltip title="Cart">
               <IconButton
                 onClick={() => navigate(ROUTES.CART)}
                 sx={{
@@ -138,10 +167,9 @@ const Header = () => {
                 </Badge>
               </IconButton>
             </Tooltip>
-            }
 
             {/* Profile */}
-            <Tooltip title="Profile">
+            {cognitoId && <Tooltip title="Profile">
               <IconButton
                 onClick={handleMenuOpen}
                 sx={{
@@ -154,7 +182,7 @@ const Header = () => {
               >
                 <Person />
               </IconButton>
-            </Tooltip>
+            </Tooltip>}
           </Box>
         </Toolbar>
       </Box>
@@ -175,7 +203,7 @@ const Header = () => {
         }}
       >
         {/* Orders (Mobile) */}
-        {isMobile && ability.can('view', 'orders') && (
+        {isMobile && ability?.can('view', 'orders') && (
           <MenuItem
             onClick={() => {
               navigate(ROUTES.ORDERS);

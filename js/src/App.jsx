@@ -21,7 +21,6 @@ import { CustomerDashboard } from './pages/Customer';
 
 import CartPage from './pages/CartPage'; // Import the new CartPage
 import Layout from './components/layout/Layout';
-import Navbar from './components/layout/Navbar';
 const App = () => {
   const { user } = useAuthStore();
 
@@ -37,8 +36,9 @@ const App = () => {
           path="/"
           element={
             <>
-              <Navbar/>
+              <Layout>
               <CustomerDashboard />
+              </Layout>
             </>
           }
         />
