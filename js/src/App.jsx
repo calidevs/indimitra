@@ -90,6 +90,22 @@ const App = () => {
           }
         />
         <Route
+          path={ROUTES.ORDERS}
+          element={
+            <ProtectedRoute role="user">
+              <Orders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path={ROUTES.PROFILE}
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path={ROUTES.STORE_MANAGER}
           element={
             <ProtectedRoute role="store_manager">

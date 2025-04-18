@@ -164,22 +164,43 @@ const Header = () => {
             )}
 
             {/* Cart */}
-            <Tooltip title="Cart">
-              <IconButton
-                onClick={() => navigate(ROUTES.CART)}
-                sx={{
-                  background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
-                  color: 'white',
-                  '&:hover': {
-                    background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
-                  },
-                }}
-              >
-                <Badge badgeContent={cartCount}>
-                  <ShoppingCart />
-                </Badge>
-              </IconButton>
-            </Tooltip>
+            {user ? (
+              ability?.can('view', 'cart') && (
+                <Tooltip title="Cart">
+                  <IconButton
+                    onClick={() => navigate(ROUTES.CART)}
+                    sx={{
+                      background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+                      color: 'white',
+                      '&:hover': {
+                        background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
+                      },
+                    }}
+                  >
+                    <Badge badgeContent={cartCount}>
+                      <ShoppingCart />
+                    </Badge>
+                  </IconButton>
+                </Tooltip>
+              )
+            ) : (
+              <Tooltip title="Cart">
+                <IconButton
+                  onClick={() => navigate(ROUTES.CART)}
+                  sx={{
+                    background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+                    color: 'white',
+                    '&:hover': {
+                      background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
+                    },
+                  }}
+                >
+                  <Badge badgeContent={cartCount}>
+                    <ShoppingCart />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
+            )}
 
             {/* Profile */}
             {cognitoId && (
