@@ -13,6 +13,8 @@ import StoreManagerDashboard from './pages/StoreManagerDashboard';
 import UpdateUserRole from './pages/Admin/UpdateUserRole';
 import Orders from './pages/Orders';
 import Profile from './pages/Profile';
+import NotFound from './components/NotFound';
+import StoreManagerNotFound from './components/StoreManager/NotFound';
 
 import { useAuthStore } from './store/useStore';
 import { ROUTES } from './config/constants/routes';
@@ -21,6 +23,13 @@ import { CustomerDashboard } from './pages/Customer';
 
 import CartPage from './pages/CartPage'; // Import the new CartPage
 import Layout from './components/layout/Layout';
+<<<<<<< HEAD
+=======
+import Navbar from './components/layout/Navbar';
+import StoreManagerOrders from './pages/StoreManager/Orders';
+import DeliveryPartners from './pages/StoreManager/DeliveryPartners';
+
+>>>>>>> ef028bc (STOREMANAGER | added the orders, delivery partners page)
 const App = () => {
   const { user } = useAuthStore();
 
@@ -47,7 +56,7 @@ const App = () => {
           element={
             <Layout>
               <CartPage />
-              </Layout>
+            </Layout>
           }
         />
 
@@ -56,7 +65,6 @@ const App = () => {
           path={ROUTES.ADMIN}
           element={
             <ProtectedRoute role="admin">
-              
               <AdminDashboard />
             </ProtectedRoute>
           }
@@ -94,43 +102,34 @@ const App = () => {
           }
         />
         <Route
-          path={ROUTES.PRODUCTS}
+          path={`${ROUTES.STORE_MANAGER}/orders`}
           element={
-            <ProtectedRoute role="user">
-              <Products />
+            <ProtectedRoute role="store_manager">
+              <StoreManagerOrders />
             </ProtectedRoute>
           }
         />
         <Route
-          path={ROUTES.HOME}
+          path="/store_manager/delivery-partners"
           element={
-            user ? <Navigate to={`/${user.role}`} replace /> : <Navigate to="/login" replace />
+            <ProtectedRoute role="store_manager">
+              <DeliveryPartners />
+            </ProtectedRoute>
           }
         />
+
+        {/* Store Manager 404 Not Found */}
         <Route
-          path={ROUTES.ORDERS}
+          path={`${ROUTES.STORE_MANAGER}/*`}
           element={
-            <ProtectedRoute role={["user","store_manager" ]}>
-              <Orders />
+            <ProtectedRoute role="store_manager">
+              <StoreManagerNotFound />
             </ProtectedRoute>
           }
         />
-        <Route
-          path={ROUTES.PROFILE}
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        {/* <Route
-          path={ROUTES.CART} // Add the new Cart route
-          element={
-            <ProtectedRoute role="user">
-              <CartPage />
-            </ProtectedRoute>
-          }
-        /> */}
+
+        {/* Catch-all route for 404 Not Found */}
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </ThemeProvider>
   );

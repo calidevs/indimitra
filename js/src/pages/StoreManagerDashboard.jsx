@@ -29,7 +29,6 @@ import {
 } from '@mui/material';
 import { Edit, KeyboardArrowDown, KeyboardArrowUp, Add } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
-import Header from '@/components/layout/Header';
 import { useAuthStore } from '@/store/useStore';
 import { fetchUserAttributes } from 'aws-amplify/auth';
 import {
@@ -38,6 +37,7 @@ import {
   UPDATE_INVENTORY_ITEM,
   ADD_PRODUCT_TO_INVENTORY,
 } from '@/queries/operations';
+import Layout from '@/components/StoreManager/Layout';
 
 const StoreManagerDashboard = () => {
   const [cognitoId, setCognitoId] = useState('');
@@ -250,39 +250,39 @@ const StoreManagerDashboard = () => {
 
   if (profileLoading || storeLoading) {
     return (
-      <>
+      <Layout>
         <Container sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
           <CircularProgress />
         </Container>
-      </>
+      </Layout>
     );
   }
 
   if (storeError) {
     return (
-      <>
+      <Layout>
         <Container sx={{ mt: 4 }}>
           <Alert severity="error">Error loading store data: {storeError.message}</Alert>
         </Container>
-      </>
+      </Layout>
     );
   }
 
   if (!store) {
     return (
-      <>
+      <Layout>
         <Container sx={{ mt: 4 }}>
           <Alert severity="warning">
             No store found. You are not assigned as a manager to any store.
           </Alert>
         </Container>
-      </>
+      </Layout>
     );
   }
 
   return (
-    <>
-      <Container sx={{ mt: 4, mb: 4 }}>
+    <Layout>
+      <Container sx={{ mb: 4 }}>
         <Typography variant="h4" gutterBottom>
           Store Manager Dashboard
         </Typography>
@@ -644,7 +644,7 @@ const StoreManagerDashboard = () => {
           </DialogActions>
         </Dialog>
       </Container>
-    </>
+    </Layout>
   );
 };
 
