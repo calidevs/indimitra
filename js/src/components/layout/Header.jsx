@@ -47,7 +47,7 @@ const Header = () => {
   const cartCount = useStore((state) => state.cartCount());
   const isMobile = useMediaQuery('(max-width: 600px)');
 
-  const { user, ability } = useAuthStore();
+  const { user, ability, logout } = useAuthStore();
   const [menuAnchor, setMenuAnchor] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [currentForm, setCurrentForm] = useState('login');
@@ -88,6 +88,7 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await signOut();
+      logout();
       navigate("/");
     } catch (error) {
       console.error('Error signing out:', error);
@@ -132,7 +133,7 @@ const Header = () => {
 
             <LoginModal open={modalOpen} onClose={handleCloseModal} currentForm={currentForm} setCurrentForm={setCurrentForm} />
             {/* Orders (Desktop) */}
-            {!isMobile && ability?.can('view', 'orders') && (
+            {!isMobile && cognitoId && ability?.can('view', 'orders') && (
              <Button
                 onClick={() => navigate(ROUTES.ORDERS)}
                 sx={{

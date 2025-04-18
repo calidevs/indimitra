@@ -214,7 +214,7 @@ const CartPage = () => {
 
           <Divider sx={{ my: 2 }} />
 
-          <TextField
+          {userProfile && <TextField
             label="Delivery Instructions"
             fullWidth
             multiline
@@ -222,9 +222,9 @@ const CartPage = () => {
             value={deliveryInstructions}
             onChange={(e) => setDeliveryInstructions(e.target.value)}
             sx={{ mb: 2 }}
-          />
+          />}
 
-          {isProfileLoading ? (
+          {userProfile && (isProfileLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
               <LoadingSpinner size={24} />
               <Typography sx={{ ml: 2 }}>Loading user profile...</Typography>
@@ -267,7 +267,7 @@ const CartPage = () => {
             </Button>
 
               {/* Inline address form */}
-              <Collapse in={showAddressForm}>
+              {userProfile && <Collapse in={showAddressForm}>
                 <Box
                   sx={{
                     mt: 2,
@@ -303,9 +303,9 @@ const CartPage = () => {
                     </Button>
                   </Stack>
                 </Box>
-              </Collapse>
+              </Collapse>}
             </Box>
-          )}
+          ))}
 
           <Button fullWidth variant="contained" color="primary" sx={{ mt: 2 }} onClick={handleOrderPlacement} disabled={Object.values(cart).length === 0 || isPending || !selectedAddressId || isProfileLoading}>
             {isPending ? <><LoadingSpinner size={20} sx={{ color: 'white' }} /> Placing Order...</> : 'Place Order'}
