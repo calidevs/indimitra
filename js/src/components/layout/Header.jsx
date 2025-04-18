@@ -19,13 +19,19 @@ import useStore from '@/store/useStore';
 import { useAuthStore } from '@/store/useStore';
 import { ROUTES } from '@/config/constants/routes';
 import LoginModal from '@/pages/Login/LoginModal';
-import { fetchAuthSession } from 'aws-amplify/auth';
+import { fetchAuthSession,fetchUserAttributes } from 'aws-amplify/auth';
 
-const Logo = ({ navigate }) => {
+const Logo = ({ navigate,userRole }) => {
+  const handleLogoClick = () => {
+    if (userRole) {
+      navigate(`/${userRole}`);
+    } else {
+      navigate(`/`);
+    }
+  };
   return (
     <Typography
-      variant="h5"
-      onClick={() => navigate('/')}
+      onClick={handleLogoClick}
       sx={{
         cursor: 'pointer',  
         fontWeight: 800,
@@ -39,51 +45,43 @@ const Logo = ({ navigate }) => {
       Indimitra
     </Typography>
   )
-}
+};
 
 
 const Header = () => {
   const navigate = useNavigate();
-  const cartCount = useStore((state) => state.cartCount());
+  const [userRole, setUserRole] = useState(null);
   const isMobile = useMediaQuery('(max-width: 600px)');
-
+  const cartCount = useStore((state) => state.cartCount());
   const { user, ability, logout } = useAuthStore();
   const [menuAnchor, setMenuAnchor] = React.useState(null);
   const { modalOpen, setModalOpen, currentForm, setCurrentForm } = useAuthStore();
   const [cognitoId, setCognitoId] = useState(null);
 
-    // Fetch user ID from Cognito
-    const getUserId = async () => {
+  useEffect(() => {
+    const getUserInfo = async () => {
       try {
         const session = await fetchAuthSession();
+        const attributes = await fetchUserAttributes();
         if (session?.tokens?.idToken) {
           const id = session.tokens.idToken.payload.sub;
-          console.log('Fetched Cognito ID:', id);
           setCognitoId(id);
-        } else {
-          console.warn('No valid session tokens found.');
-          setCognitoId(null);
         }
+        const role = attributes['custom:role']?.toLowerCase();
+        setUserRole(role);
       } catch (error) {
-        console.error('Error fetching user ID:', error);
+        console.error('Error fetching user info:', error);
       }
     };
 
-    getUserId();
-
-  console.log("CognitoId",cognitoId)
+    getUserInfo();
+  }, []);
 
   const handleSignInClick = () => {
     setModalOpen(true);
     setCurrentForm('login');
   };
 
-  const handleCloseModal = () => {
-    setModalOpen(false);
-  };
-
-  const handleMenuOpen = (event) => setMenuAnchor(event.currentTarget);
-  const handleMenuClose = () => setMenuAnchor(null);
   const handleLogout = async () => {
     try {
       await signOut()
@@ -92,9 +90,12 @@ const Header = () => {
     } catch (error) {
       console.error('Error signing out:', error);
     }
-  };
+  }
 
-
+  const handleCloseModal = () => setModalOpen(false);
+  const handleMenuOpen = (event) => setMenuAnchor(event.currentTarget);
+  const handleMenuClose = () => setMenuAnchor(null);
+ 
 
   return (
     <>
@@ -116,7 +117,7 @@ const Header = () => {
           }}
         >
           {/* Logo */}
-          <Logo navigate={navigate} />
+          <Logo navigate={navigate} userRole={user.role} />
 
           {/* Spacer */}
           <Box sx={{ flexGrow: 1 }} />
