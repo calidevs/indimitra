@@ -21,7 +21,7 @@ import { defineUserAbility } from '../../ability/defineAbility';
 
 const LoginForm = ({ onSuccess, onError }) => {
   const navigate = useNavigate();
-  const { setUser, setAbility } = useAuthStore();
+  const { setUser, setAbility, setModalOpen } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -56,6 +56,7 @@ const LoginForm = ({ onSuccess, onError }) => {
       setAbility(newAbility);
 
       if (onSuccess) onSuccess();
+      setModalOpen(false);
       navigate(`/${userRole}`);
     } catch (err) {
       console.error('❌ Login error:', err);

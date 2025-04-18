@@ -21,14 +21,15 @@ import {
   CREATE_ORDER_MUTATION,
 } from '../queries/operations';
 import { DELIVERY_FEE, TAX_RATE } from '../config/constants/constants';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
+import LoginModal from './Login/LoginModal'; // Import the LoginModal
 
 const CartPage = () => {
   const { cart, removeFromCart, addToCart, cartTotal, clearCart } = useStore();
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
   const [error, setError] = useState('');
-  const { userProfile, fetchUserProfile, isProfileLoading } = useAuthStore();
+  const { userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm } = useAuthStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -307,9 +308,27 @@ const CartPage = () => {
             </Box>
           ))}
 
-          <Button fullWidth variant="contained" color="primary" sx={{ mt: 2 }} onClick={handleOrderPlacement} disabled={Object.values(cart).length === 0 || isPending || !selectedAddressId || isProfileLoading}>
-            {isPending ? <><LoadingSpinner size={20} sx={{ color: 'white' }} /> Placing Order...</> : 'Place Order'}
-          </Button>
+          {userProfile ? (
+            <Button
+              fullWidth
+              variant="contained"
+              color="primary"
+              sx={{ mt: 2 }}
+              onClick={handleOrderPlacement}
+              disabled={Object.values(cart).length === 0 || isPending || !selectedAddressId || isProfileLoading}
+            >
+              {isPending ? <><LoadingSpinner size={20} sx={{ color: 'white' }} /> Placing Order...</> : 'Place Order'}
+            </Button>
+          ) : (
+            <Button
+              fullWidth
+              variant="contained"
+              color="primary"
+              sx={{ mt: 2 }}
+              onClick={() => { setModalOpen(true); setCurrentForm('login'); }}            >
+              Login
+            </Button>
+          )}
         </>
       )}
     </Box>

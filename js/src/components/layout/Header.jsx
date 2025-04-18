@@ -48,12 +48,11 @@ const Header = () => {
   const isMobile = useMediaQuery('(max-width: 600px)');
 
   const { user, ability, logout } = useAuthStore();
-  const [menuAnchor, setMenuAnchor] = useState(null);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [currentForm, setCurrentForm] = useState('login');
+  const [menuAnchor, setMenuAnchor] = React.useState(null);
+  const { modalOpen, setModalOpen, currentForm, setCurrentForm } = useAuthStore();
   const [cognitoId, setCognitoId] = useState(null);
 
-  // Fetch user ID from Cognito
+    // Fetch user ID from Cognito
     const getUserId = async () => {
       try {
         const session = await fetchAuthSession();
@@ -87,7 +86,7 @@ const Header = () => {
   const handleMenuClose = () => setMenuAnchor(null);
   const handleLogout = async () => {
     try {
-      await signOut();
+      await signOut()
       logout();
       navigate("/");
     } catch (error) {
@@ -214,7 +213,7 @@ const Header = () => {
               py: 1.5,
               px: 3,
               '&:hover': {
-                backgroundColor: 'rgba(145, 127, 179, 0.1)',
+                backgroundColor: 'rgba(145, 127, 179, 0.1)'
               },
             }}
           >
