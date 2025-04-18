@@ -41,6 +41,7 @@ import {
   GET_DELIVERIES_BY_DRIVER,
   UPDATE_ORDER_STATUS,
   GET_USER_PROFILE,
+  CANCEL_ORDER,
 } from '@/queries/operations';
 import useStore, { useAuthStore } from '@/store/useStore';
 
@@ -135,7 +136,7 @@ const DriverDashboard = () => {
   });
 
   // Mutation to update order status
-  const mutation = useMutation({
+  const updateStatusMutation = useMutation({
     mutationFn: (variables) => fetchGraphQL(UPDATE_ORDER_STATUS, variables),
     onSuccess: () => {
       refetch(); // Refresh the deliveries after updating status
@@ -145,6 +146,25 @@ const DriverDashboard = () => {
     },
     onError: (error) => {
       console.error('Failed to update order status:', error);
+    },
+  });
+
+  // Mutation to cancel order
+  const cancelOrderMutation = useMutation({
+    mutationFn: (variables) =>
+      fetchGraphQL(CANCEL_ORDER, {
+        orderId: variables.orderId,
+        cancelMessage: variables.cancelMessage,
+        cancelledByUserId: effectiveProfile?.id,
+      }),
+    onSuccess: () => {
+      refetch(); // Refresh the deliveries after cancelling
+      setModalOpen(false);
+      setCancelReason('');
+      setShowCancelReason(false);
+    },
+    onError: (error) => {
+      console.error('Failed to cancel order:', error);
     },
   });
 
@@ -174,20 +194,21 @@ const DriverDashboard = () => {
     // Get scheduleTime from the order's deliveryDate
     const orderScheduleTime = selectedDelivery.schedule;
 
-    // Prepare mutation variables
-    const variables = {
-      orderId: selectedDelivery.orderId,
-      status: selectedStatus,
-      driverId: effectiveProfile?.id,
-      scheduleTime: orderScheduleTime,
-    };
-
-    // Add cancel reason if status is CANCELLED
-    if (selectedStatus === 'CANCELLED' && cancelReason) {
-      variables.comments = cancelReason;
+    if (selectedStatus === 'CANCELLED') {
+      // Use cancel order mutation for cancellations
+      cancelOrderMutation.mutate({
+        orderId: selectedDelivery.orderId,
+        cancelMessage: cancelReason,
+      });
+    } else {
+      // Use update status mutation for other status changes
+      updateStatusMutation.mutate({
+        orderId: selectedDelivery.orderId,
+        status: selectedStatus,
+        driverId: effectiveProfile?.id,
+        scheduleTime: orderScheduleTime,
+      });
     }
-
-    mutation.mutate(variables);
   };
 
   const handleTabChange = (event, newValue) => {
@@ -443,7 +464,7 @@ const DriverDashboard = () => {
                       variant="body2"
                       sx={{ flexGrow: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                     >
-                      {delivery.address || 'No address provided'}
+                      {delivery?.order?.address?.address || 'No address provided'}
                     </Typography>
                   </Box>
 
@@ -465,6 +486,21 @@ const DriverDashboard = () => {
                     >
                       Delivered: {new Date(delivery.deliveredTime).toLocaleString()}
                     </Typography>
+                  )}
+
+                  {delivery.comments && (
+                    <Box sx={{ mt: 1, display: 'flex', alignItems: 'flex-start' }}>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{
+                          fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                          fontStyle: 'italic',
+                        }}
+                      >
+                        "{delivery.comments}"
+                      </Typography>
+                    </Box>
                   )}
                 </CardContent>
               </Card>
@@ -550,7 +586,9 @@ const DriverDashboard = () => {
                 <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
                   <LocationIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary', mt: 0.5 }} />
                   <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    {selectedDelivery.address || 'No address provided'}
+                    {selectedDelivery.order?.address?.address ||
+                      selectedDelivery.address ||
+                      'No address provided'}
                   </Typography>
                 </Box>
               </Box>
@@ -600,9 +638,19 @@ const DriverDashboard = () => {
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     COMMENTS
                   </Typography>
-                  <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    {selectedDelivery.comments}
-                  </Typography>
+                  <Box
+                    sx={{
+                      p: 2,
+                      bgcolor: 'rgba(0, 0, 0, 0.03)',
+                      borderRadius: 1,
+                      borderLeft: '3px solid',
+                      borderColor: 'primary.main',
+                    }}
+                  >
+                    <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                      {selectedDelivery.comments}
+                    </Typography>
+                  </Box>
                 </Box>
               )}
 
@@ -655,13 +703,21 @@ const DriverDashboard = () => {
                   variant="contained"
                   color="primary"
                   disabled={
-                    mutation.isLoading ||
+                    (selectedStatus === 'CANCELLED'
+                      ? cancelOrderMutation.isLoading
+                      : updateStatusMutation.isLoading) ||
                     selectedStatus === selectedDelivery.orderStatus ||
                     (selectedStatus === 'CANCELLED' && !cancelReason)
                   }
                   sx={{ minWidth: 120 }}
                 >
-                  {mutation.isLoading ? 'Updating...' : 'Update'}
+                  {(
+                    selectedStatus === 'CANCELLED'
+                      ? cancelOrderMutation.isLoading
+                      : updateStatusMutation.isLoading
+                  )
+                    ? 'Updating...'
+                    : 'Update'}
                 </Button>
               </Box>
             </>

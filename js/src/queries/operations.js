@@ -162,6 +162,12 @@ export const GET_DELIVERIES_BY_DRIVER = `
       pickedUpTime
       deliveredTime
       status
+      comments
+      order {
+        address {
+          address
+        }
+      }
     }
   }
 `;
