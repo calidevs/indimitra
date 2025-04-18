@@ -14,7 +14,27 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  TextField,
+  Chip,
+  Divider,
+  Paper,
+  InputAdornment,
+  IconButton,
+  Tabs,
+  Tab,
+  Alert,
+  Badge,
 } from '@mui/material';
+import {
+  Search as SearchIcon,
+  LocationOn as LocationIcon,
+  AccessTime as TimeIcon,
+  LocalShipping as ShippingIcon,
+  Cancel as CancelIcon,
+  CheckCircle as CheckCircleIcon,
+  Pending as PendingIcon,
+  Close as CloseIcon,
+} from '@mui/icons-material';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import {
@@ -32,6 +52,11 @@ const DriverDashboard = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [cognitoId, setCognitoId] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [cancelReason, setCancelReason] = useState('');
+  const [showCancelReason, setShowCancelReason] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
 
   const { userProfile, setUserProfile } = useAuthStore();
   const getLatestProfile = () => useAuthStore.getState().userProfile;
@@ -92,7 +117,7 @@ const DriverDashboard = () => {
   const directStoreProfile = getLatestProfile();
   const effectiveProfile = directStoreProfile || userProfile || profileData?.getUserProfile;
 
-  console.log('Driver Dashboard State:', {
+  console.log('Delivery Partner Dashboard State:', {
     directStoreProfile,
     zustandHookProfile: userProfile,
     apiProfile: profileData?.getUserProfile,
@@ -115,6 +140,8 @@ const DriverDashboard = () => {
     onSuccess: () => {
       refetch(); // Refresh the deliveries after updating status
       setModalOpen(false);
+      setCancelReason('');
+      setShowCancelReason(false);
     },
     onError: (error) => {
       console.error('Failed to update order status:', error);
@@ -125,10 +152,20 @@ const DriverDashboard = () => {
     setSelectedDelivery(delivery);
     setSelectedStatus(delivery.orderStatus || delivery.status);
     setModalOpen(true);
+    setShowCancelReason(false);
+    setCancelReason('');
   };
 
   const handleStatusChange = (event) => {
-    setSelectedStatus(event.target.value);
+    const newStatus = event.target.value;
+    setSelectedStatus(newStatus);
+
+    // Show cancel reason field if status is changed to CANCELLED
+    if (newStatus === 'CANCELLED') {
+      setShowCancelReason(true);
+    } else {
+      setShowCancelReason(false);
+    }
   };
 
   const handleUpdateStatus = () => {
@@ -137,13 +174,56 @@ const DriverDashboard = () => {
     // Get scheduleTime from the order's deliveryDate
     const orderScheduleTime = selectedDelivery.schedule;
 
-    mutation.mutate({
+    // Prepare mutation variables
+    const variables = {
       orderId: selectedDelivery.orderId,
       status: selectedStatus,
       driverId: effectiveProfile?.id,
-      scheduleTime: orderScheduleTime, // This is now coming from the order's deliveryDate
-    });
+      scheduleTime: orderScheduleTime,
+    };
+
+    // Add cancel reason if status is CANCELLED
+    if (selectedStatus === 'CANCELLED' && cancelReason) {
+      variables.comments = cancelReason;
+    }
+
+    mutation.mutate(variables);
   };
+
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+    if (newValue === 0) {
+      setStatusFilter('ALL');
+    } else if (newValue === 1) {
+      setStatusFilter('READY_FOR_DELIVERY');
+    } else if (newValue === 2) {
+      setStatusFilter('PICKED_UP');
+    } else if (newValue === 3) {
+      setStatusFilter('DELIVERED');
+    }
+  };
+
+  // Filter deliveries based on search term and status filter
+  const filteredDeliveries = React.useMemo(() => {
+    if (!data?.getDeliveriesByDriver) return [];
+
+    return data.getDeliveriesByDriver.filter((delivery) => {
+      // Filter by status
+      if (statusFilter !== 'ALL' && delivery.status !== statusFilter) {
+        return false;
+      }
+
+      // Filter by search term (order ID or address)
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        const orderIdMatch = delivery.orderId.toString().includes(searchLower);
+        const addressMatch = delivery.address?.toLowerCase().includes(searchLower);
+        return orderIdMatch || addressMatch;
+      }
+
+      return true;
+    });
+  }, [data?.getDeliveriesByDriver, statusFilter, searchTerm]);
 
   // Show loading while fetching profile or deliveries
   if (profileLoading || (isLoading && effectiveProfile?.id))
@@ -156,69 +236,398 @@ const DriverDashboard = () => {
 
   const deliveries = data?.getDeliveriesByDriver || [];
 
-  return (
-    <Container sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom>
-        Driver - Assigned Deliveries
-      </Typography>
+  // Get status color
+  const getStatusColor = (status) => {
+    switch (status) {
+      case 'READY_FOR_DELIVERY':
+        return 'primary';
+      case 'PICKED_UP':
+        return 'info';
+      case 'DELIVERED':
+        return 'success';
+      case 'CANCELLED':
+        return 'error';
+      default:
+        return 'default';
+    }
+  };
 
-      <Grid container spacing={3}>
-        {deliveries.length > 0 ? (
-          deliveries.map((delivery) => (
+  // Get status icon
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case 'READY_FOR_DELIVERY':
+        return <PendingIcon />;
+      case 'PICKED_UP':
+        return <ShippingIcon />;
+      case 'DELIVERED':
+        return <CheckCircleIcon />;
+      case 'CANCELLED':
+        return <CancelIcon />;
+      default:
+        return null;
+    }
+  };
+
+  // Count deliveries by status
+  const getStatusCount = (status) => {
+    if (!data?.getDeliveriesByDriver) return 0;
+    return data.getDeliveriesByDriver.filter((d) => d.status === status).length;
+  };
+
+  return (
+    <Container maxWidth="lg" sx={{ mt: 4, mb: 6 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          mb: 4,
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: { xs: 2, sm: 0 },
+        }}
+      >
+        <Typography variant="h4" fontWeight="500" sx={{ fontSize: { xs: '1.5rem', sm: '2rem' } }}>
+          Delivery Partner Dashboard
+        </Typography>
+        <TextField
+          size="small"
+          placeholder="Search orders..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon fontSize="small" />
+              </InputAdornment>
+            ),
+          }}
+          sx={{
+            width: { xs: '100%', sm: 250 },
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 2,
+            },
+          }}
+        />
+      </Box>
+
+      <Box sx={{ mb: 4 }}>
+        <Tabs
+          value={activeTab}
+          onChange={(e, newValue) => {
+            setActiveTab(newValue);
+            if (newValue === 0) {
+              setStatusFilter('ALL');
+            } else if (newValue === 1) {
+              setStatusFilter('READY_FOR_DELIVERY');
+            } else if (newValue === 2) {
+              setStatusFilter('PICKED_UP');
+            } else if (newValue === 3) {
+              setStatusFilter('DELIVERED');
+            }
+          }}
+          variant="scrollable"
+          scrollButtons="auto"
+          sx={{
+            borderBottom: 1,
+            borderColor: 'divider',
+            '& .MuiTab-root': {
+              minWidth: 120,
+              textTransform: 'none',
+              fontSize: '0.875rem',
+            },
+          }}
+        >
+          <Tab
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                All Orders
+                <Badge badgeContent={deliveries.length} color="primary" sx={{ ml: 2 }} />
+              </Box>
+            }
+          />
+          <Tab
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                Ready
+                <Badge
+                  badgeContent={getStatusCount('READY_FOR_DELIVERY')}
+                  color="primary"
+                  sx={{ ml: 2 }}
+                />
+              </Box>
+            }
+          />
+          <Tab
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                In Transit
+                <Badge badgeContent={getStatusCount('PICKED_UP')} color="info" sx={{ ml: 2 }} />
+              </Box>
+            }
+          />
+          <Tab
+            label={
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                Delivered
+                <Badge badgeContent={getStatusCount('DELIVERED')} color="success" sx={{ ml: 2 }} />
+              </Box>
+            }
+          />
+        </Tabs>
+      </Box>
+
+      <Grid container spacing={{ xs: 2, sm: 3 }}>
+        {filteredDeliveries.length > 0 ? (
+          filteredDeliveries.map((delivery) => (
             <Grid item xs={12} sm={6} md={4} key={delivery.id}>
               <Card
-                sx={{ cursor: 'pointer' }}
-                onClick={() => handleOpenModal(delivery)} // ✅ Whole card clickable
+                sx={{
+                  cursor: 'pointer',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  borderRadius: 2,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                    transform: 'translateY(-2px)',
+                  },
+                }}
+                onClick={() => handleOpenModal(delivery)}
               >
-                <CardContent>
-                  <Typography variant="h6">Order #{delivery.orderId}</Typography>
-                  <Typography>Status: {delivery.status}</Typography>
-                  <Typography>Scheduled: {new Date(delivery.schedule).toLocaleString()}</Typography>
+                <CardContent sx={{ flexGrow: 1, p: { xs: 2, sm: 2.5 } }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      mb: 2,
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      sx={{ fontSize: { xs: '1rem', sm: '1.25rem' }, fontWeight: 500 }}
+                    >
+                      Order #{delivery.orderId}
+                    </Typography>
+                    <Chip
+                      icon={getStatusIcon(delivery.status)}
+                      label={delivery.status.replace(/_/g, ' ')}
+                      color={getStatusColor(delivery.status)}
+                      size="small"
+                      sx={{
+                        fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                        height: { xs: 24, sm: 28 },
+                        borderRadius: 1.5,
+                      }}
+                    />
+                  </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                    <TimeIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                    <Typography
+                      variant="body2"
+                      sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                    >
+                      {new Date(delivery.schedule).toLocaleString()}
+                    </Typography>
+                  </Box>
+
+                  <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                    <LocationIcon
+                      fontSize="small"
+                      sx={{ mr: 1, color: 'text.secondary', mt: 0.5 }}
+                    />
+                    <Typography
+                      variant="body2"
+                      sx={{ flexGrow: 1, fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
+                    >
+                      {delivery.address || 'No address provided'}
+                    </Typography>
+                  </Box>
+
+                  {delivery.pickedUpTime && (
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' }, mb: 1 }}
+                    >
+                      Picked up: {new Date(delivery.pickedUpTime).toLocaleString()}
+                    </Typography>
+                  )}
+
+                  {delivery.deliveredTime && (
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
+                    >
+                      Delivered: {new Date(delivery.deliveredTime).toLocaleString()}
+                    </Typography>
+                  )}
                 </CardContent>
               </Card>
             </Grid>
           ))
         ) : (
-          <Typography sx={{ mx: 'auto', mt: 2 }}>No deliveries assigned.</Typography>
+          <Grid item xs={12}>
+            <Paper sx={{ p: { xs: 3, sm: 4 }, borderRadius: 2, textAlign: 'center' }}>
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                No Deliveries Found
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {searchTerm || statusFilter !== 'ALL'
+                  ? 'No deliveries match your search criteria.'
+                  : 'You have no deliveries assigned at this time.'}
+              </Typography>
+            </Paper>
+          </Grid>
         )}
       </Grid>
 
       {/* Delivery Details Modal */}
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
-        <Box sx={{ width: 400, bgcolor: 'white', p: 4, mx: 'auto', mt: 5 }}>
+      <Modal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        aria-labelledby="delivery-details-modal"
+      >
+        <Box
+          sx={{
+            width: { xs: '95%', sm: '90%', md: 500 },
+            bgcolor: 'background.paper',
+            p: { xs: 2, sm: 3 },
+            mx: 'auto',
+            mt: { xs: 2, sm: 5 },
+            borderRadius: 2,
+            boxShadow: 3,
+            maxHeight: '90vh',
+            overflow: 'auto',
+          }}
+        >
           {selectedDelivery && (
             <>
-              <Typography variant="h6">Order #{selectedDelivery.orderId}</Typography>
-              <Typography>
-                Scheduled: {new Date(selectedDelivery.schedule).toLocaleString()}
-              </Typography>
-              <Typography>
-                Picked Up:{' '}
-                {selectedDelivery.pickedUpTime
-                  ? new Date(selectedDelivery.pickedUpTime).toLocaleString()
-                  : 'Not Picked Up'}
-              </Typography>
-              <Typography>
-                Delivered:{' '}
-                {selectedDelivery.deliveredTime
-                  ? new Date(selectedDelivery.deliveredTime).toLocaleString()
-                  : 'Not Delivered'}
-              </Typography>
-              {selectedDelivery.comments && (
-                <Typography>Comments: {selectedDelivery.comments}</Typography>
-              )}
-              {selectedDelivery.photo && (
-                <img
-                  src={selectedDelivery.photo}
-                  alt="Delivery Proof"
-                  style={{ width: '100%', marginTop: '10px' }}
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  mb: 2,
+                }}
+              >
+                <Typography
+                  variant="h5"
+                  fontWeight="500"
+                  sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}
+                >
+                  Order #{selectedDelivery.orderId}
+                </Typography>
+                <IconButton
+                  edge="end"
+                  aria-label="close"
+                  onClick={() => setModalOpen(false)}
+                  size="small"
+                >
+                  <CloseIcon />
+                </IconButton>
+              </Box>
+
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <Chip
+                  icon={getStatusIcon(selectedDelivery.status)}
+                  label={selectedDelivery.status.replace(/_/g, ' ')}
+                  color={getStatusColor(selectedDelivery.status)}
+                  sx={{ fontSize: { xs: '0.75rem', sm: '0.875rem' } }}
                 />
+              </Box>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  DELIVERY ADDRESS
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
+                  <LocationIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary', mt: 0.5 }} />
+                  <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                    {selectedDelivery.address || 'No address provided'}
+                  </Typography>
+                </Box>
+              </Box>
+
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  SCHEDULED DELIVERY
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <TimeIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                  <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                    {new Date(selectedDelivery.schedule).toLocaleString()}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {selectedDelivery.pickedUpTime && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    PICKED UP
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <ShippingIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                    <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                      {new Date(selectedDelivery.pickedUpTime).toLocaleString()}
+                    </Typography>
+                  </Box>
+                </Box>
               )}
 
+              {selectedDelivery.deliveredTime && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    DELIVERED
+                  </Typography>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <CheckCircleIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary' }} />
+                    <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                      {new Date(selectedDelivery.deliveredTime).toLocaleString()}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+
+              {selectedDelivery.comments && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    COMMENTS
+                  </Typography>
+                  <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                    {selectedDelivery.comments}
+                  </Typography>
+                </Box>
+              )}
+
+              {selectedDelivery.photo && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    DELIVERY PROOF
+                  </Typography>
+                  <img
+                    src={selectedDelivery.photo}
+                    alt="Delivery Proof"
+                    style={{ width: '100%', borderRadius: 4 }}
+                  />
+                </Box>
+              )}
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                UPDATE STATUS
+              </Typography>
+
               {/* Update Order Status Dropdown */}
-              <FormControl fullWidth sx={{ mt: 2 }}>
-                <InputLabel>Update Status</InputLabel>
-                <Select value={selectedStatus} onChange={handleStatusChange}>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <Select value={selectedStatus} onChange={handleStatusChange} size="small">
                   <MenuItem value="READY_FOR_DELIVERY">Ready for Delivery</MenuItem>
                   <MenuItem value="PICKED_UP">Picked Up</MenuItem>
                   <MenuItem value="DELIVERED">Delivered</MenuItem>
@@ -226,20 +635,37 @@ const DriverDashboard = () => {
                 </Select>
               </FormControl>
 
-              <Button
-                onClick={handleUpdateStatus}
-                sx={{ mt: 2 }}
-                variant="contained"
-                color="primary"
-                disabled={mutation.isLoading || selectedStatus === selectedDelivery.orderStatus} // ✅ Button enabled only if status is changed
-              >
-                {mutation.isLoading ? 'Updating...' : 'Update Status'}
-              </Button>
+              {showCancelReason && (
+                <TextField
+                  fullWidth
+                  label="Cancellation Reason"
+                  multiline
+                  rows={3}
+                  value={cancelReason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  sx={{ mb: 2 }}
+                  required
+                  size="small"
+                />
+              )}
+
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 3 }}>
+                <Button
+                  onClick={handleUpdateStatus}
+                  variant="contained"
+                  color="primary"
+                  disabled={
+                    mutation.isLoading ||
+                    selectedStatus === selectedDelivery.orderStatus ||
+                    (selectedStatus === 'CANCELLED' && !cancelReason)
+                  }
+                  sx={{ minWidth: 120 }}
+                >
+                  {mutation.isLoading ? 'Updating...' : 'Update'}
+                </Button>
+              </Box>
             </>
           )}
-          <Button onClick={() => setModalOpen(false)} sx={{ mt: 2 }}>
-            Close
-          </Button>
         </Box>
       </Modal>
     </Container>

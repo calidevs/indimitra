@@ -19,9 +19,9 @@ import useStore from '@/store/useStore';
 import { useAuthStore } from '@/store/useStore';
 import { ROUTES } from '@/config/constants/routes';
 import LoginModal from '@/pages/Login/LoginModal';
-import { fetchAuthSession,fetchUserAttributes } from 'aws-amplify/auth';
+import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth';
 
-const Logo = ({ navigate,userRole }) => {
+const Logo = ({ navigate, userRole }) => {
   const handleLogoClick = () => {
     if (userRole) {
       navigate(`/${userRole}`);
@@ -33,7 +33,7 @@ const Logo = ({ navigate,userRole }) => {
     <Typography
       onClick={handleLogoClick}
       sx={{
-        cursor: 'pointer',  
+        cursor: 'pointer',
         fontWeight: 800,
         fontSize: { xs: '1.5rem', sm: '1.75rem' },
         background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
@@ -44,9 +44,8 @@ const Logo = ({ navigate,userRole }) => {
     >
       Indimitra
     </Typography>
-  )
+  );
 };
-
 
 const Header = () => {
   const navigate = useNavigate();
@@ -84,18 +83,17 @@ const Header = () => {
 
   const handleLogout = async () => {
     try {
-      await signOut()
+      await signOut();
       logout();
-      navigate("/");
+      navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
     }
-  }
+  };
 
   const handleCloseModal = () => setModalOpen(false);
   const handleMenuOpen = (event) => setMenuAnchor(event.currentTarget);
   const handleMenuClose = () => setMenuAnchor(null);
- 
 
   return (
     <>
@@ -117,24 +115,38 @@ const Header = () => {
           }}
         >
           {/* Logo */}
-          <Logo navigate={navigate} userRole={user.role} />
+          <Logo navigate={navigate} userRole={user?.role} />
 
           {/* Spacer */}
           <Box sx={{ flexGrow: 1 }} />
 
           {/* Actions */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
-          {!cognitoId && <Button
-              onClick={handleSignInClick}
-              sx={{ color: '#2A2F4F', textTransform: 'none', fontSize: '1rem', fontWeight: 500, px: 2, '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' } }}
-            >
-              Sign In
-            </Button>}
+            {!cognitoId && (
+              <Button
+                onClick={handleSignInClick}
+                sx={{
+                  color: '#2A2F4F',
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  fontWeight: 500,
+                  px: 2,
+                  '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
+                }}
+              >
+                Sign In
+              </Button>
+            )}
 
-            <LoginModal open={modalOpen} onClose={handleCloseModal} currentForm={currentForm} setCurrentForm={setCurrentForm} />
+            <LoginModal
+              open={modalOpen}
+              onClose={handleCloseModal}
+              currentForm={currentForm}
+              setCurrentForm={setCurrentForm}
+            />
             {/* Orders (Desktop) */}
             {!isMobile && cognitoId && ability?.can('view', 'orders') && (
-             <Button
+              <Button
                 onClick={() => navigate(ROUTES.ORDERS)}
                 sx={{
                   color: '#2A2F4F',
@@ -170,20 +182,22 @@ const Header = () => {
             </Tooltip>
 
             {/* Profile */}
-            {cognitoId && <Tooltip title="Profile">
-              <IconButton
-                onClick={handleMenuOpen}
-                sx={{
-                  background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
-                  color: 'white',
-                  '&:hover': {
-                    background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
-                  },
-                }}
-              >
-                <Person />
-              </IconButton>
-            </Tooltip>}
+            {cognitoId && (
+              <Tooltip title="Profile">
+                <IconButton
+                  onClick={handleMenuOpen}
+                  sx={{
+                    background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+                    color: 'white',
+                    '&:hover': {
+                      background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
+                    },
+                  }}
+                >
+                  <Person />
+                </IconButton>
+              </Tooltip>
+            )}
           </Box>
         </Toolbar>
       </Box>
@@ -214,7 +228,7 @@ const Header = () => {
               py: 1.5,
               px: 3,
               '&:hover': {
-                backgroundColor: 'rgba(145, 127, 179, 0.1)'
+                backgroundColor: 'rgba(145, 127, 179, 0.1)',
               },
             }}
           >

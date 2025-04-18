@@ -23,13 +23,9 @@ import { CustomerDashboard } from './pages/Customer';
 
 import CartPage from './pages/CartPage'; // Import the new CartPage
 import Layout from './components/layout/Layout';
-<<<<<<< HEAD
-=======
-import Navbar from './components/layout/Navbar';
 import StoreManagerOrders from './pages/StoreManager/Orders';
 import DeliveryPartners from './pages/StoreManager/DeliveryPartners';
 
->>>>>>> ef028bc (STOREMANAGER | added the orders, delivery partners page)
 const App = () => {
   const { user } = useAuthStore();
 
@@ -46,7 +42,7 @@ const App = () => {
           element={
             <>
               <Layout>
-              <CustomerDashboard />
+                <CustomerDashboard />
               </Layout>
             </>
           }
