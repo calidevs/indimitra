@@ -23,22 +23,27 @@ jobs:
       contents: read
     steps:
       - name: Checkout branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # - name: Setup Node.js
-      #   uses: actions/setup-node@v3
-      #   with:
-      #     node-version: '18'
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
-      # - name: Install dependencies
-      #   run: |
-      #     cd js
-      #     npm install
+      - name: Install dependencies and build
+        run: |
+          cd js
+          npm install
+          npm run build
+ 
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: ./js/build
 
-      # - name: Build frontend
-      #   run: |
-      #     cd js
-      #     npm run build
+
+
   deploy:
     environment: dev
     runs-on: ubuntu-latest
@@ -48,6 +53,9 @@ jobs:
       contents: read
 
     steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -59,11 +67,17 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build
+          path: ./js/build
+
       - name: Build and Push Image to ECR
         id: build-image
         run: |
           ls -la
-          docker build -t dev-ngnix-indimitra-ecr -f $(pwd)/nginx/Dockerfile .
+          docker build -t dev-ngnix-indimitra-ecr -f ./nginx/Dockerfile .
           # docker tag dev-ngnix-indimitra-ecr:latest ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/dev-ngnix-indimitra-ecr:latest
           # docker push ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/dev-ngnix-indimitra-ecr:latest
 
