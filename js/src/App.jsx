@@ -24,6 +24,7 @@ import CartPage from './pages/CartPage';
 import Layout from './components/layout/Layout';
 import StoreManagerOrders from './pages/StoreManager/Orders';
 import DeliveryPartners from './pages/StoreManager/DeliveryPartners';
+import Inventory from './pages/StoreManager/Inventory';
 
 const App = () => {
   const { user } = useAuthStore();
@@ -117,6 +118,14 @@ const App = () => {
           element={
             <ProtectedRoute role="store_manager">
               <DeliveryPartners />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/store_manager/inventory"
+          element={
+            <ProtectedRoute role="store_manager">
+              <Inventory />
             </ProtectedRoute>
           }
         />
