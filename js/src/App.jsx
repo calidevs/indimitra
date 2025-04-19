@@ -7,7 +7,7 @@ import Products from './pages/Products';
 import ProtectedRoute from './config/ProtectedRoute';
 import ForgotPassword from './pages/ForgotPassword';
 import SignUpPage from './pages/SignUp/SignUp';
-import AdminDashboard from './pages/AdminDashboard';
+import AdminDashboard from './pages/Admin/AdminDashboard';
 import DriverDashboard from './pages/DriverDashboard';
 import StoreManagerDashboard from './pages/StoreManagerDashboard';
 import UpdateUserRole from './pages/Admin/UpdateUserRole';
@@ -21,7 +21,7 @@ import { ROUTES } from './config/constants/routes';
 import LoginPage from './pages/LoginPage';
 import { CustomerDashboard } from './pages/Customer';
 
-import CartPage from './pages/CartPage'; // Import the new CartPage
+import CartPage from './pages/CartPage';
 import Layout from './components/layout/Layout';
 import StoreManagerOrders from './pages/StoreManager/Orders';
 import DeliveryPartners from './pages/StoreManager/DeliveryPartners';
@@ -48,7 +48,7 @@ const App = () => {
           }
         />
         <Route
-          path={ROUTES.CART} // Add the new Cart route
+          path={ROUTES.CART}
           element={
             <Layout>
               <CartPage />
@@ -58,7 +58,7 @@ const App = () => {
 
         {/* Protected Routes */}
         <Route
-          path={ROUTES.ADMIN}
+          path={`${ROUTES.ADMIN}/*`}
           element={
             <ProtectedRoute role="admin">
               <AdminDashboard />
