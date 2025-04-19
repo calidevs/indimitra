@@ -31,121 +31,40 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Visibility as ViewIcon,
+  Refresh as RefreshIcon,
 } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
+import { GET_PRODUCTS, CREATE_PRODUCT, UPDATE_PRODUCT, DELETE_PRODUCT } from '@/queries/operations';
 
-// Define GraphQL queries and mutations
-const GET_PRODUCTS = `
-  query GetProducts($storeId: ID, $category: String, $status: String) {
-    products(storeId: $storeId, category: $category, status: $status) {
-      id
-      name
-      description
-      price
-      category
-      status
-      store {
-        id
-        name
-      }
-      images
-      stock
-      unit
-    }
-  }
-`;
-
-const CREATE_PRODUCT = `
-  mutation CreateProduct($input: CreateProductInput!) {
-    createProduct(input: $input) {
-      id
-      name
-      description
-      price
-      category
-      status
-      store {
-        id
-        name
-      }
-      images
-      stock
-      unit
-    }
-  }
-`;
-
-const UPDATE_PRODUCT = `
-  mutation UpdateProduct($id: ID!, $input: UpdateProductInput!) {
-    updateProduct(id: $id, input: $input) {
-      id
-      name
-      description
-      price
-      category
-      status
-      store {
-        id
-        name
-      }
-      images
-      stock
-      unit
-    }
-  }
-`;
-
-const DELETE_PRODUCT = `
-  mutation DeleteProduct($id: ID!) {
-    deleteProduct(id: $id)
-  }
-`;
-
-const GET_STORES = `
-  query GetStores {
-    stores {
-      id
-      name
-    }
-  }
-`;
+// Category mapping for display
+const CATEGORY_MAP = {
+  1: 'Rice',
+  2: 'Pulses',
+  3: 'Flour',
+  4: 'Snacks',
+  5: 'Oils',
+  6: 'Spices',
+};
 
 const ProductManagement = () => {
-  const [selectedStore, setSelectedStore] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('');
   const [openDialog, setOpenDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    price: '',
-    category: '',
-    storeId: '',
-    stock: '',
-    unit: '',
-    images: [],
+    categoryId: '',
+    image: '',
   });
+  const [dataLoaded, setDataLoaded] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Fetch stores
-  const { data: storesData } = useQuery({
-    queryKey: ['stores'],
-    queryFn: () => fetchGraphQL(GET_STORES),
-  });
-
-  // Fetch products with filters
-  const {
-    data: productsData,
-    isLoading,
-    refetch,
-  } = useQuery({
-    queryKey: ['products', selectedStore, selectedCategory, selectedStatus],
-    queryFn: () =>
-      fetchGraphQL(GET_PRODUCTS, {
-        storeId: selectedStore || null,
-        category: selectedCategory || null,
-        status: selectedStatus || null,
-      }),
+  // Fetch products
+  const { data: productsData, refetch } = useQuery({
+    queryKey: ['products', selectedCategory],
+    queryFn: () => fetchGraphQL(GET_PRODUCTS),
+    enabled: false, // Don't fetch automatically
   });
 
   // Create product mutation
@@ -180,24 +99,16 @@ const ProductManagement = () => {
       setFormData({
         name: product.name,
         description: product.description,
-        price: product.price,
-        category: product.category,
-        storeId: product.store.id,
-        stock: product.stock,
-        unit: product.unit,
-        images: product.images,
+        categoryId: product.categoryId,
+        image: product.image,
       });
     } else {
       setEditingProduct(null);
       setFormData({
         name: '',
         description: '',
-        price: '',
-        category: '',
-        storeId: '',
-        stock: '',
-        unit: '',
-        images: [],
+        categoryId: '',
+        image: '',
       });
     }
     setOpenDialog(true);
@@ -209,26 +120,16 @@ const ProductManagement = () => {
     setFormData({
       name: '',
       description: '',
-      price: '',
-      category: '',
-      storeId: '',
-      stock: '',
-      unit: '',
-      images: [],
+      categoryId: '',
+      image: '',
     });
   };
 
   const handleSubmit = () => {
-    const data = {
-      ...formData,
-      price: parseFloat(formData.price),
-      stock: parseInt(formData.stock, 10),
-    };
-
     if (editingProduct) {
-      updateProductMutation.mutate({ id: editingProduct.id, data });
+      updateProductMutation.mutate({ id: editingProduct.id, data: formData });
     } else {
-      createProductMutation.mutate(data);
+      createProductMutation.mutate(formData);
     }
   };
 
@@ -246,6 +147,35 @@ const ProductManagement = () => {
     }));
   };
 
+  const handleFetchProducts = () => {
+    setIsLoading(true);
+    setError(null);
+
+    // Simulate API call with setTimeout
+    setTimeout(() => {
+      try {
+        // In a real app, this would be an API call
+        refetch()
+          .then(() => {
+            setDataLoaded(true);
+            setIsLoading(false);
+          })
+          .catch((err) => {
+            setError('Failed to load products. Please try again.');
+            setIsLoading(false);
+          });
+      } catch (err) {
+        setError('Failed to load products. Please try again.');
+        setIsLoading(false);
+      }
+    }, 1000);
+  };
+
+  // Filter products based on selected category
+  const filteredProducts = productsData?.products?.filter(
+    (product) => !selectedCategory || product.categoryId === parseInt(selectedCategory)
+  );
+
   return (
     <Box>
       <Paper sx={{ p: 3, mb: 3 }}>
@@ -258,23 +188,6 @@ const ProductManagement = () => {
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} md={4}>
             <FormControl fullWidth>
-              <InputLabel>Store</InputLabel>
-              <Select
-                value={selectedStore}
-                onChange={(e) => setSelectedStore(e.target.value)}
-                label="Store"
-              >
-                <MenuItem value="">All Stores</MenuItem>
-                {storesData?.stores.map((store) => (
-                  <MenuItem key={store.id} value={store.id}>
-                    {store.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth>
               <InputLabel>Category</InputLabel>
               <Select
                 value={selectedCategory}
@@ -282,104 +195,104 @@ const ProductManagement = () => {
                 label="Category"
               >
                 <MenuItem value="">All Categories</MenuItem>
-                <MenuItem value="GROCERY">Grocery</MenuItem>
-                <MenuItem value="HOUSEHOLD">Household</MenuItem>
-                <MenuItem value="ELECTRONICS">Electronics</MenuItem>
-                <MenuItem value="CLOTHING">Clothing</MenuItem>
-                <MenuItem value="OTHER">Other</MenuItem>
+                {Object.entries(CATEGORY_MAP).map(([id, name]) => (
+                  <MenuItem key={id} value={id}>
+                    {name}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={4}>
-            <FormControl fullWidth>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={selectedStatus}
-                onChange={(e) => setSelectedStatus(e.target.value)}
-                label="Status"
-              >
-                <MenuItem value="">All Status</MenuItem>
-                <MenuItem value="ACTIVE">Active</MenuItem>
-                <MenuItem value="INACTIVE">Inactive</MenuItem>
-                <MenuItem value="OUT_OF_STOCK">Out of Stock</MenuItem>
-              </Select>
-            </FormControl>
+          <Grid item xs={12} md={8} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Button
+              variant="contained"
+              startIcon={<RefreshIcon />}
+              onClick={handleFetchProducts}
+              disabled={isLoading}
+              sx={{ minWidth: 150 }}
+            >
+              {isLoading ? <CircularProgress size={24} /> : 'Fetch Products'}
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={() => handleOpenDialog()}
+            >
+              Add Product
+            </Button>
           </Grid>
         </Grid>
 
-        {/* Add Product Button */}
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={() => handleOpenDialog()}
-          sx={{ mb: 3 }}
-        >
-          Add Product
-        </Button>
+        {error && (
+          <Alert severity="error" sx={{ mb: 3 }}>
+            {error}
+          </Alert>
+        )}
 
-        {/* Products Table */}
-        <TableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Name</TableCell>
-                <TableCell>Store</TableCell>
-                <TableCell>Category</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell>Stock</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {isLoading ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    <CircularProgress />
-                  </TableCell>
-                </TableRow>
-              ) : productsData?.products.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} align="center">
-                    No products found
-                  </TableCell>
-                </TableRow>
-              ) : (
-                productsData?.products.map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell>{product.name}</TableCell>
-                    <TableCell>{product.store.name}</TableCell>
-                    <TableCell>{product.category}</TableCell>
-                    <TableCell>${product.price.toFixed(2)}</TableCell>
-                    <TableCell>{`${product.stock} ${product.unit}`}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={product.status}
-                        color={
-                          product.status === 'ACTIVE'
-                            ? 'success'
-                            : product.status === 'OUT_OF_STOCK'
-                              ? 'error'
-                              : 'default'
-                        }
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <IconButton size="small" onClick={() => handleOpenDialog(product)}>
-                        <EditIcon />
-                      </IconButton>
-                      <IconButton size="small" onClick={() => handleDelete(product.id)}>
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
+        {!dataLoaded ? (
+          <Box sx={{ textAlign: 'center', py: 4 }}>
+            <Typography variant="h6" gutterBottom>
+              Click "Fetch Products" to load product information
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              This helps save resources by only loading data when needed
+            </Typography>
+          </Box>
+        ) : isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : (
+          <>
+            {/* Products Table */}
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Image</TableCell>
+                    <TableCell>Name</TableCell>
+                    <TableCell>Category</TableCell>
+                    <TableCell>Description</TableCell>
+                    <TableCell>Actions</TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+                </TableHead>
+                <TableBody>
+                  {filteredProducts?.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center">
+                        No products found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredProducts?.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+                          />
+                        </TableCell>
+                        <TableCell>{product.name}</TableCell>
+                        <TableCell>{CATEGORY_MAP[product.categoryId] || 'Unknown'}</TableCell>
+                        <TableCell>{product.description}</TableCell>
+                        <TableCell>
+                          <IconButton size="small" onClick={() => handleOpenDialog(product)}>
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton size="small" onClick={() => handleDelete(product.id)}>
+                            <DeleteIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </>
+        )}
       </Paper>
 
       {/* Add/Edit Product Dialog */}
@@ -387,7 +300,7 @@ const ProductManagement = () => {
         <DialogTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
         <DialogContent>
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <TextField
                 required
                 fullWidth
@@ -397,18 +310,18 @@ const ProductManagement = () => {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <FormControl fullWidth required>
-                <InputLabel>Store</InputLabel>
+                <InputLabel>Category</InputLabel>
                 <Select
-                  name="storeId"
-                  value={formData.storeId}
+                  name="categoryId"
+                  value={formData.categoryId}
                   onChange={handleChange}
-                  label="Store"
+                  label="Category"
                 >
-                  {storesData?.stores.map((store) => (
-                    <MenuItem key={store.id} value={store.id}>
-                      {store.name}
+                  {Object.entries(CATEGORY_MAP).map(([id, name]) => (
+                    <MenuItem key={id} value={id}>
+                      {name}
                     </MenuItem>
                   ))}
                 </Select>
@@ -426,57 +339,14 @@ const ProductManagement = () => {
                 onChange={handleChange}
               />
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <TextField
-                required
                 fullWidth
-                label="Price"
-                name="price"
-                type="number"
-                value={formData.price}
+                label="Image URL"
+                name="image"
+                value={formData.image}
                 onChange={handleChange}
-                InputProps={{
-                  startAdornment: '$',
-                }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
-                <InputLabel>Category</InputLabel>
-                <Select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  label="Category"
-                >
-                  <MenuItem value="GROCERY">Grocery</MenuItem>
-                  <MenuItem value="HOUSEHOLD">Household</MenuItem>
-                  <MenuItem value="ELECTRONICS">Electronics</MenuItem>
-                  <MenuItem value="CLOTHING">Clothing</MenuItem>
-                  <MenuItem value="OTHER">Other</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                required
-                fullWidth
-                label="Stock"
-                name="stock"
-                type="number"
-                value={formData.stock}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                required
-                fullWidth
-                label="Unit"
-                name="unit"
-                value={formData.unit}
-                onChange={handleChange}
-                placeholder="e.g., pcs, kg, etc."
+                placeholder="https://example.com/image.jpg"
               />
             </Grid>
           </Grid>

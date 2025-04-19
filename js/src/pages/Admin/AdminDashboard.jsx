@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, useLocation, Routes, Route } from 'react-router-dom';
+import { useNavigate, useLocation, Routes, Route, Navigate } from 'react-router-dom';
 import {
   Box,
   Drawer,
@@ -32,28 +32,23 @@ import {
 import Header from '@/components/layout/Header';
 
 // Import the page components
-import Users from './Users';
-import Stores from './Stores';
-import DeliveryPartners from './DeliveryPartners';
+import UserManagement from './UserManagement';
+import StoreManagement from './StoreManagement';
 import UpdateUserRole from './UpdateUserRole';
-import StoreOnboarding from './StoreOnboarding';
 import ProductManagement from './ProductManagement';
 import Orders from './Orders';
-import StoreManagers from './StoreManagers';
 import PaymentOnboarding from './PaymentOnboarding';
+import Dashboard from './Dashboard';
 
 const DRAWER_WIDTH = 240;
 const COLLAPSED_DRAWER_WIDTH = 65;
 
 const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/admin/dashboard' },
-  { text: 'Store Onboarding', icon: <StorefrontIcon />, path: '/admin/store-onboarding' },
+  { text: 'Stores', icon: <StoreIcon />, path: '/admin/stores' },
   { text: 'Product Management', icon: <InventoryIcon />, path: '/admin/products' },
   { text: 'Orders', icon: <OrdersIcon />, path: '/admin/orders' },
-  { text: 'Stores', icon: <StoreIcon />, path: '/admin/stores' },
-  { text: 'Store Managers', icon: <PersonIcon />, path: '/admin/store-managers' },
   { text: 'Users', icon: <PeopleIcon />, path: '/admin/users' },
-  { text: 'Delivery Partners', icon: <ShippingIcon />, path: '/admin/delivery-partners' },
   { text: 'Payment Onboarding', icon: <PaymentIcon />, path: '/admin/payment-onboarding' },
   { text: 'Settings', icon: <SettingsIcon />, path: '/admin/settings' },
 ];
@@ -116,9 +111,14 @@ const AdminDashboard = () => {
               justifyContent: open ? 'initial' : 'center',
               px: 2.5,
               '&.Mui-selected': {
-                backgroundColor: 'primary.light',
+                background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+                color: 'white',
                 '&:hover': {
-                  backgroundColor: 'primary.light',
+                  background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+                  opacity: 0.9,
+                },
+                '& .MuiListItemIcon-root': {
+                  color: 'white',
                 },
               },
             }}
@@ -128,7 +128,7 @@ const AdminDashboard = () => {
                 minWidth: 0,
                 mr: open ? 3 : 'auto',
                 justifyContent: 'center',
-                color: location.pathname === item.path ? 'primary.main' : 'inherit',
+                color: location.pathname === item.path ? 'white' : 'inherit',
               }}
             >
               {item.icon}
@@ -214,15 +214,14 @@ const AdminDashboard = () => {
         }}
       >
         <Routes>
-          <Route path="/users" element={<Users />} />
-          <Route path="/stores" element={<Stores />} />
-          <Route path="/delivery-partners" element={<DeliveryPartners />} />
-          <Route path="/update-user-role" element={<UpdateUserRole />} />
-          <Route path="/store-onboarding" element={<StoreOnboarding />} />
-          <Route path="/products" element={<ProductManagement />} />
-          <Route path="/orders" element={<Orders />} />
-          <Route path="/store-managers" element={<StoreManagers />} />
-          <Route path="/payment-onboarding" element={<PaymentOnboarding />} />
+          <Route path="/" element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<Dashboard />} />
+          <Route path="users/*" element={<UserManagement />} />
+          <Route path="stores/*" element={<StoreManagement />} />
+          <Route path="update-user-role" element={<UpdateUserRole />} />
+          <Route path="products" element={<ProductManagement />} />
+          <Route path="orders" element={<Orders />} />
+          <Route path="payment-onboarding" element={<PaymentOnboarding />} />
           {/* Add more routes as needed */}
         </Routes>
       </Box>
