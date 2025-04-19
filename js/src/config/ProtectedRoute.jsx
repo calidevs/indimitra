@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { useAuthStore } from '../store/useStore';
 import { defineUserAbility } from '../ability/defineAbility';
 import { LoadingSpinner } from '../components';
 import Layout from '@/components/layout/Layout';
 import { ROUTES } from '../config/constants/routes';
-import { useLocation } from 'react-router-dom';
+
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, setUser, ability, setAbility } = useAuthStore();
@@ -21,7 +21,7 @@ const ProtectedRoute = ({ children, role }) => {
 
         if (session?.tokens?.idToken) {
           const userRole = session.tokens.idToken.payload['custom:role'].toLowerCase();
-
+          
           if (!user) {
             setUser({ role: userRole });
           }
@@ -50,7 +50,10 @@ const ProtectedRoute = ({ children, role }) => {
 
   if (location.pathname === ROUTES.PROFILE) return <Layout>{children}</Layout>;
 
-  if (!ability || !ability.can('view', role)) return <Navigate to="/not-authorized" replace />;
+  const roles = Array.isArray(role) ? role : [role];
+
+  const isAuthorized = roles.some(requiredRole => ability?.can('view', requiredRole));
+  if (!ability || !isAuthorized) return <Navigate to="/not-authorized" replace />;
 
   return <Layout>{children}</Layout>;
 };

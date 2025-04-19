@@ -5,6 +5,7 @@ export const ROUTES = {
   USER: '/user',
   DRIVER: '/driver',
   STORE_MANAGER: '/store_manager',
+  STORE_ORDERS: '/store_manager/orders',
   PRODUCTS: '/products',
   HOME: '/',
   ORDERS: '/orders',
@@ -12,5 +13,5 @@ export const ROUTES = {
   PROFILE: '/profile',
   SIGNUP: '/signup',
   UPDATE_USER_ROLE: '/admin/update-user-role',
-  CART: '/cart'
+  CART: '/cart',
 };

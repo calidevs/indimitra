@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Container,
@@ -26,10 +26,14 @@ import {
   MenuItem,
   Grid,
   Alert,
+  Popper,
+  ClickAwayListener,
+  MenuList,
+  ListItemText,
+  ListItemIcon,
 } from '@mui/material';
 import { Edit, KeyboardArrowDown, KeyboardArrowUp, Add } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
-import Header from '@/components/layout/Header';
 import { useAuthStore } from '@/store/useStore';
 import { fetchUserAttributes } from 'aws-amplify/auth';
 import {
@@ -38,6 +42,7 @@ import {
   UPDATE_INVENTORY_ITEM,
   ADD_PRODUCT_TO_INVENTORY,
 } from '@/queries/operations';
+import Layout from '@/components/StoreManager/Layout';
 
 const StoreManagerDashboard = () => {
   const [cognitoId, setCognitoId] = useState('');
@@ -57,6 +62,10 @@ const StoreManagerDashboard = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [lowStockOnly, setLowStockOnly] = useState(false);
   const [lowStockThreshold, setLowStockThreshold] = useState(10);
+  const [searchInput, setSearchInput] = useState('');
+  const [filteredProducts, setFilteredProducts] = useState([]);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const anchorRef = useRef(null);
 
   // Fetch Cognito ID on component mount
   useEffect(() => {
@@ -102,6 +111,18 @@ const StoreManagerDashboard = () => {
   const store = storeData?.storesByManager && storeData.storesByManager[0];
   const inventory = store?.inventory?.edges?.map((edge) => edge.node) || [];
   const availableProducts = storeData?.products || [];
+
+  // Update filtered products when search input or available products change
+  useEffect(() => {
+    if (searchInput.trim() === '') {
+      setFilteredProducts(availableProducts);
+    } else {
+      const filtered = availableProducts.filter((product) =>
+        product.name.toLowerCase().includes(searchInput.toLowerCase())
+      );
+      setFilteredProducts(filtered);
+    }
+  }, [searchInput, availableProducts]);
 
   // Mutation for updating inventory
   const updateMutation = useMutation({
@@ -248,41 +269,56 @@ const StoreManagerDashboard = () => {
     }
   };
 
+  const handleSearchChange = (event) => {
+    setSearchInput(event.target.value);
+    setDropdownOpen(true);
+  };
+
+  const handleProductSelect = (product) => {
+    setSelectedProduct(product.id);
+    setSearchInput(product.name);
+    setDropdownOpen(false);
+  };
+
+  const handleClickAway = () => {
+    setDropdownOpen(false);
+  };
+
   if (profileLoading || storeLoading) {
     return (
-      <>
+      <Layout>
         <Container sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
           <CircularProgress />
         </Container>
-      </>
+      </Layout>
     );
   }
 
   if (storeError) {
     return (
-      <>
+      <Layout>
         <Container sx={{ mt: 4 }}>
           <Alert severity="error">Error loading store data: {storeError.message}</Alert>
         </Container>
-      </>
+      </Layout>
     );
   }
 
   if (!store) {
     return (
-      <>
+      <Layout>
         <Container sx={{ mt: 4 }}>
           <Alert severity="warning">
             No store found. You are not assigned as a manager to any store.
           </Alert>
         </Container>
-      </>
+      </Layout>
     );
   }
 
   return (
-    <>
-      <Container sx={{ mt: 4, mb: 4 }}>
+    <Layout>
+      <Container sx={{ mb: 4 }}>
         <Typography variant="h4" gutterBottom>
           Store Manager Dashboard
         </Typography>
@@ -562,22 +598,47 @@ const StoreManagerDashboard = () => {
           <DialogTitle>Add Product to Inventory</DialogTitle>
           <DialogContent>
             <FormControl fullWidth sx={{ mt: 2 }}>
-              <InputLabel>Select Product</InputLabel>
-              <Select
-                value={selectedProduct}
-                onChange={(e) => setSelectedProduct(e.target.value)}
-                label="Select Product"
+              <TextField
+                ref={anchorRef}
+                label="Search Product"
+                placeholder="Start typing to search..."
+                value={searchInput}
+                onChange={handleSearchChange}
+                onFocus={() => setDropdownOpen(true)}
+                fullWidth
+                InputProps={{
+                  endAdornment: storeLoading ? (
+                    <CircularProgress color="inherit" size={20} />
+                  ) : null,
+                }}
+              />
+              <Popper
+                open={dropdownOpen && filteredProducts.length > 0}
+                anchorEl={anchorRef.current}
+                placement="bottom-start"
+                style={{ width: anchorRef.current?.offsetWidth, zIndex: 1300 }}
               >
-                {storeLoading ? (
-                  <MenuItem disabled>Loading products...</MenuItem>
-                ) : (
-                  availableProducts.map((product) => (
-                    <MenuItem key={product.id} value={product.id}>
-                      {product.name} ({product.category.name})
-                    </MenuItem>
-                  ))
-                )}
-              </Select>
+                <ClickAwayListener onClickAway={handleClickAway}>
+                  <Paper elevation={3}>
+                    <MenuList sx={{ maxHeight: 300, overflow: 'auto' }}>
+                      {filteredProducts.map((product) => (
+                        <MenuItem
+                          key={product.id}
+                          onClick={() => handleProductSelect(product)}
+                          selected={selectedProduct === product.id}
+                        >
+                          <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                            <Typography variant="body1">{product.name}</Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              {product.category.name}
+                            </Typography>
+                          </Box>
+                        </MenuItem>
+                      ))}
+                    </MenuList>
+                  </Paper>
+                </ClickAwayListener>
+              </Popper>
             </FormControl>
             <TextField
               label="Price ($)"
@@ -644,7 +705,7 @@ const StoreManagerDashboard = () => {
           </DialogActions>
         </Dialog>
       </Container>
-    </>
+    </Layout>
   );
 };
 

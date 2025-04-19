@@ -62,10 +62,17 @@ export const useAuthStore = create((set, get) => ({
   ability: null,
   isProfileLoading: false,
   profileError: null,
+  modalOpen: false,
+  currentForm: 'login',
+
+  setAbility: (ability) => {
+    set({ ability });
+  },
 
   setUser: (user) => {
     set({ user });
   },
+
 
   setUserProfile: (userProfile) => {
     if (!userProfile) {
@@ -81,8 +88,16 @@ export const useAuthStore = create((set, get) => ({
     }));
   },
 
+  setModalOpen: (open) => {
+    set({ modalOpen: open });
+  },
+
   getUserProfile: () => get().userProfile,
 
+  setCurrentForm: (form) => {
+    set({ currentForm: form });
+  },
+  
   setAbility: (ability) => set({ ability }),
 
   logout: () => {
@@ -110,6 +125,7 @@ export const useAuthStore = create((set, get) => ({
         set({
           userProfile: response.getUserProfile,
           isProfileLoading: false,
+          ability: defineUserAbility(response.getUserProfile.role)
         });
         return response.getUserProfile;
       } else {

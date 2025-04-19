@@ -162,6 +162,12 @@ export const GET_DELIVERIES_BY_DRIVER = `
       pickedUpTime
       deliveredTime
       status
+      comments
+      order {
+        address {
+          address
+        }
+      }
     }
   }
 `;
@@ -379,5 +385,72 @@ export const GET_STORE_PRODUCTS = `
         }
       }
     }
+  }
+`;
+
+export const GET_STORES = `
+  query GetStores {
+    stores {
+      id
+      name
+      address
+      drivers {
+        edges {
+          node {
+            driver {
+              active
+              id
+              email
+              mobile
+              referredBy
+              type
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+// Product queries
+export const GET_PRODUCTS = `
+  query GetProducts {
+    products {
+      categoryId
+      description
+      id
+      image
+      name
+    }
+  }
+`;
+
+export const CREATE_PRODUCT = `
+  mutation CreateProduct($input: CreateProductInput!) {
+    createProduct(input: $input) {
+      id
+      name
+      description
+      categoryId
+      image
+    }
+  }
+`;
+
+export const UPDATE_PRODUCT = `
+  mutation UpdateProduct($id: ID!, $input: UpdateProductInput!) {
+    updateProduct(id: $id, input: $input) {
+      id
+      name
+      description
+      categoryId
+      image
+    }
+  }
+`;
+
+export const DELETE_PRODUCT = `
+  mutation DeleteProduct($id: ID!) {
+    deleteProduct(id: $id)
   }
 `;

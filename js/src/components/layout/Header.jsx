@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import {
   Box,
   Toolbar,
@@ -17,41 +18,82 @@ import { useMediaQuery } from '@mui/material';
 import useStore from '@/store/useStore';
 import { useAuthStore } from '@/store/useStore';
 import { ROUTES } from '@/config/constants/routes';
+import LoginModal from '@/pages/Login/LoginModal';
+import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth';
+
+const Logo = ({ navigate, userRole }) => {
+  const handleLogoClick = () => {
+    if (userRole) {
+      navigate(`/${userRole}`);
+    } else {
+      navigate(`/`);
+    }
+  };
+  return (
+    <Typography
+      onClick={handleLogoClick}
+      sx={{
+        cursor: 'pointer',
+        fontWeight: 800,
+        fontSize: { xs: '1.5rem', sm: '1.75rem' },
+        background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+        WebkitBackgroundClip: 'text',
+        WebkitTextFillColor: 'transparent',
+        letterSpacing: '0.5px',
+      }}
+    >
+      Indimitra
+    </Typography>
+  );
+};
+
 const Header = () => {
   const navigate = useNavigate();
-  const cartCount = useStore((state) => state.cartCount());
+  const [userRole, setUserRole] = useState(null);
   const isMobile = useMediaQuery('(max-width: 600px)');
+  const cartCount = useStore((state) => state.cartCount());
+  const { user, ability, logout } = useAuthStore();
+  const [menuAnchor, setMenuAnchor] = React.useState(null);
+  const { modalOpen, setModalOpen, currentForm, setCurrentForm } = useAuthStore();
+  const [cognitoId, setCognitoId] = useState(null);
 
-  const { user, ability } = useAuthStore();
-  const [cartOpen, setCartOpen] = useState(false);
-  const [menuAnchor, setMenuAnchor] = useState(null);
+  useEffect(() => {
+    const getUserInfo = async () => {
+      try {
+        const session = await fetchAuthSession();
+        const attributes = await fetchUserAttributes();
+        if (session?.tokens?.idToken) {
+          const id = session.tokens.idToken.payload.sub;
+          setCognitoId(id);
+        }
+        const role = attributes['custom:role']?.toLowerCase();
+        setUserRole(role);
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+      }
+    };
 
-  const handleMenuOpen = (event) => setMenuAnchor(event.currentTarget);
-  const handleMenuClose = () => setMenuAnchor(null);
+    getUserInfo();
+  }, []);
+
+  const handleSignInClick = () => {
+    setModalOpen(true);
+    setCurrentForm('login');
+  };
+
   const handleLogout = async () => {
     try {
       await signOut();
-      navigate(ROUTES.LOGIN);
+      logout();
+      navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
     }
   };
 
-  // Determine dashboard route based on user role using ROUTES object
-  const getDashboardRoute = () => {
-    switch (user?.role?.toUpperCase().trim()) {
-      case 'USER':
-        return ROUTES.USER;
-      case 'DELIVERY':
-        return ROUTES.DRIVER;
-      case 'STORE_MANAGER':
-        return ROUTES.STORE_MANAGER;
-      case 'ADMIN':
-        return ROUTES.ADMIN;
-      default:
-        return ROUTES.USER;
-    }
-  };
+  const handleCloseModal = () => setModalOpen(false);
+  const handleMenuOpen = (event) => setMenuAnchor(event.currentTarget);
+  const handleMenuClose = () => setMenuAnchor(null);
 
   return (
     <>
@@ -73,29 +115,37 @@ const Header = () => {
           }}
         >
           {/* Logo */}
-          <Typography
-            variant="h5"
-            onClick={() => navigate('/')}
-            sx={{
-              cursor: 'pointer',
-              fontWeight: 800,
-              fontSize: { xs: '1.5rem', sm: '1.75rem' },
-              background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              letterSpacing: '0.5px',
-            }}
-          >
-            Indimitra
-          </Typography>
+          <Logo navigate={navigate} userRole={user?.role} />
 
           {/* Spacer */}
           <Box sx={{ flexGrow: 1 }} />
 
           {/* Actions */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+            {!cognitoId && (
+              <Button
+                onClick={handleSignInClick}
+                sx={{
+                  color: '#2A2F4F',
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  fontWeight: 500,
+                  px: 2,
+                  '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
+                }}
+              >
+                Sign In
+              </Button>
+            )}
+
+            <LoginModal
+              open={modalOpen}
+              onClose={handleCloseModal}
+              currentForm={currentForm}
+              setCurrentForm={setCurrentForm}
+            />
             {/* Orders (Desktop) */}
-            {!isMobile && ability.can('view', 'orders') && (
+            {!isMobile && cognitoId && ability?.can('view', 'orders') && (
               <Button
                 onClick={() => navigate(ROUTES.ORDERS)}
                 sx={{
@@ -114,38 +164,61 @@ const Header = () => {
             )}
 
             {/* Cart */}
-            <Tooltip title="Cart">
-              <IconButton
-                onClick={() => navigate(ROUTES.CART)}
-                sx={{
-                  background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
-                  color: 'white',
-                  '&:hover': {
-                    background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
-                  },
-                }}
-              >
-                <Badge badgeContent={cartCount}>
-                  <ShoppingCart />
-                </Badge>
-              </IconButton>
-            </Tooltip>
+            {user ? (
+              ability?.can('view', 'cart') && (
+                <Tooltip title="Cart">
+                  <IconButton
+                    onClick={() => navigate(ROUTES.CART)}
+                    sx={{
+                      background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+                      color: 'white',
+                      '&:hover': {
+                        background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
+                      },
+                    }}
+                  >
+                    <Badge badgeContent={cartCount}>
+                      <ShoppingCart />
+                    </Badge>
+                  </IconButton>
+                </Tooltip>
+              )
+            ) : (
+              <Tooltip title="Cart">
+                <IconButton
+                  onClick={() => navigate(ROUTES.CART)}
+                  sx={{
+                    background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+                    color: 'white',
+                    '&:hover': {
+                      background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
+                    },
+                  }}
+                >
+                  <Badge badgeContent={cartCount}>
+                    <ShoppingCart />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
+            )}
 
             {/* Profile */}
-            <Tooltip title="Profile">
-              <IconButton
-                onClick={handleMenuOpen}
-                sx={{
-                  background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
-                  color: 'white',
-                  '&:hover': {
-                    background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
-                  },
-                }}
-              >
-                <Person />
-              </IconButton>
-            </Tooltip>
+            {cognitoId && (
+              <Tooltip title="Profile">
+                <IconButton
+                  onClick={handleMenuOpen}
+                  sx={{
+                    background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+                    color: 'white',
+                    '&:hover': {
+                      background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
+                    },
+                  }}
+                >
+                  <Person />
+                </IconButton>
+              </Tooltip>
+            )}
           </Box>
         </Toolbar>
       </Box>
@@ -166,7 +239,7 @@ const Header = () => {
         }}
       >
         {/* Orders (Mobile) */}
-        {isMobile && ability.can('view', 'orders') && (
+        {isMobile && ability?.can('view', 'orders') && (
           <MenuItem
             onClick={() => {
               navigate(ROUTES.ORDERS);
