@@ -167,6 +167,7 @@ export const GET_DELIVERIES_BY_DRIVER = `
         address {
           address
         }
+        cancelMessage
       }
     }
   }

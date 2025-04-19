@@ -488,17 +488,42 @@ const DriverDashboard = () => {
                     </Typography>
                   )}
 
-                  {delivery.comments && (
-                    <Box sx={{ mt: 1, display: 'flex', alignItems: 'flex-start' }}>
+                  {delivery.status === 'CANCELLED' && delivery.order?.cancelMessage && (
+                    <Box sx={{ mt: 1 }}>
+                      <Typography
+                        variant="body2"
+                        color="error"
+                        sx={{
+                          fontSize: { xs: '0.7rem', sm: '0.75rem' },
+                          fontStyle: 'italic',
+                          bgcolor: 'error.lightest',
+                          p: 1,
+                          borderRadius: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                        }}
+                      >
+                        <CancelIcon fontSize="small" sx={{ mr: 0.5, flexShrink: 0 }} />
+                        <span style={{ lineHeight: 1 }}>
+                          Cancellation Reason: "{delivery.order.cancelMessage}"
+                        </span>
+                      </Typography>
+                    </Box>
+                  )}
+
+                  {delivery.comments && delivery.status !== 'CANCELLED' && (
+                    <Box sx={{ mt: 1 }}>
                       <Typography
                         variant="body2"
                         color="text.secondary"
                         sx={{
                           fontSize: { xs: '0.7rem', sm: '0.75rem' },
                           fontStyle: 'italic',
+                          display: 'flex',
+                          alignItems: 'flex-start',
                         }}
                       >
-                        "{delivery.comments}"
+                        <span>"{delivery.comments}"</span>
                       </Typography>
                     </Box>
                   )}
@@ -633,7 +658,39 @@ const DriverDashboard = () => {
                 </Box>
               )}
 
-              {selectedDelivery.comments && (
+              {selectedDelivery.status === 'CANCELLED' && selectedDelivery.order?.cancelMessage && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" color="error" gutterBottom>
+                    CANCELLATION REASON
+                  </Typography>
+                  <Box
+                    sx={{
+                      p: 2,
+                      bgcolor: 'error.lightest',
+                      borderRadius: 1,
+                      borderLeft: '3px solid',
+                      borderColor: 'error.main',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1,
+                    }}
+                  >
+                    <CancelIcon color="error" sx={{ flexShrink: 0 }} />
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        fontSize: { xs: '0.875rem', sm: '1rem' },
+                        color: 'error.main',
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {selectedDelivery.order.cancelMessage}
+                    </Typography>
+                  </Box>
+                </Box>
+              )}
+
+              {selectedDelivery.comments && selectedDelivery.status !== 'CANCELLED' && (
                 <Box sx={{ mb: 3 }}>
                   <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                     COMMENTS
@@ -647,7 +704,12 @@ const DriverDashboard = () => {
                       borderColor: 'primary.main',
                     }}
                   >
-                    <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        fontSize: { xs: '0.875rem', sm: '1rem' },
+                      }}
+                    >
                       {selectedDelivery.comments}
                     </Typography>
                   </Box>
