@@ -34,7 +34,6 @@ import Header from '@/components/layout/Header';
 // Import the page components
 import UserManagement from './UserManagement';
 import StoreManagement from './StoreManagement';
-import UpdateUserRole from './UpdateUserRole';
 import ProductManagement from './ProductManagement';
 import Orders from './Orders';
 import PaymentOnboarding from './PaymentOnboarding';
@@ -218,7 +217,6 @@ const AdminDashboard = () => {
           <Route path="dashboard" element={<Dashboard />} />
           <Route path="users/*" element={<UserManagement />} />
           <Route path="stores/*" element={<StoreManagement />} />
-          <Route path="update-user-role" element={<UpdateUserRole />} />
           <Route path="products" element={<ProductManagement />} />
           <Route path="orders" element={<Orders />} />
           <Route path="payment-onboarding" element={<PaymentOnboarding />} />

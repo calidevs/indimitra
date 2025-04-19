@@ -44,18 +44,22 @@ import { GET_STORES } from '@/queries/operations';
 
 // Define the GraphQL mutation for creating a store
 const CREATE_STORE = `
-  mutation CreateStore($input: CreateStoreInput!) {
-    createStore(input: $input) {
-      id
-      name
+  mutation CreateStore($name: String!, $address: String!, $managerUserId: Int!, $radius: Float!) {
+    createStore(name: $name, address: $address, managerUserId: $managerUserId, radius: $radius) {
       address
+      managerUserId
+      name
       radius
-      status
+      manager {
+        email
+        id
+        mobile
+      }
     }
   }
 `;
 
-const steps = ['Store Information', 'Location Details', 'Business Details', 'Review'];
+const steps = ['Store Information', 'Inventory', 'Drivers', 'Store Managers', 'Review'];
 
 const StoreManagement = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -63,6 +67,7 @@ const StoreManagement = () => {
   const [shouldFetch, setShouldFetch] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -71,25 +76,12 @@ const StoreManagement = () => {
   const [formData, setFormData] = useState({
     name: '',
     address: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    country: '',
-    phone: '',
-    email: '',
-    website: '',
-    businessType: '',
-    taxId: '',
+    managerUserId: '',
     radius: '',
-    operatingHours: {
-      monday: { open: '09:00', close: '17:00' },
-      tuesday: { open: '09:00', close: '17:00' },
-      wednesday: { open: '09:00', close: '17:00' },
-      thursday: { open: '09:00', close: '17:00' },
-      friday: { open: '09:00', close: '17:00' },
-      saturday: { open: '10:00', close: '15:00' },
-      sunday: { open: '', close: '' },
-    },
+    // Dummy data for additional steps
+    inventory: [],
+    drivers: [],
+    storeManagers: [],
   });
 
   // Fetch stores
@@ -107,21 +99,10 @@ const StoreManagement = () => {
   const createStoreMutation = useMutation({
     mutationFn: (data) => {
       return fetchGraphQL(CREATE_STORE, {
-        input: {
-          name: data.name,
-          address: data.address,
-          city: data.city,
-          state: data.state,
-          zipCode: data.zipCode,
-          country: data.country,
-          phone: data.phone,
-          email: data.email,
-          website: data.website,
-          businessType: data.businessType,
-          taxId: data.taxId,
-          radius: parseInt(data.radius, 10),
-          operatingHours: data.operatingHours,
-        },
+        name: data.name,
+        address: data.address,
+        managerUserId: parseInt(data.managerUserId, 10),
+        radius: parseFloat(data.radius),
       });
     },
     onSuccess: () => {
@@ -131,25 +112,11 @@ const StoreManagement = () => {
       setFormData({
         name: '',
         address: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        country: '',
-        phone: '',
-        email: '',
-        website: '',
-        businessType: '',
-        taxId: '',
+        managerUserId: '',
         radius: '',
-        operatingHours: {
-          monday: { open: '09:00', close: '17:00' },
-          tuesday: { open: '09:00', close: '17:00' },
-          wednesday: { open: '09:00', close: '17:00' },
-          thursday: { open: '09:00', close: '17:00' },
-          friday: { open: '09:00', close: '17:00' },
-          saturday: { open: '10:00', close: '15:00' },
-          sunday: { open: '', close: '' },
-        },
+        inventory: [],
+        drivers: [],
+        storeManagers: [],
       });
       setActiveStep(0);
       refetch();
@@ -170,6 +137,12 @@ const StoreManagement = () => {
   };
 
   const handleNext = () => {
+    // Validate form on the first step before proceeding
+    if (activeStep === 0 && !validateForm()) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
     setActiveStep((prevStep) => prevStep + 1);
   };
 
@@ -183,23 +156,57 @@ const StoreManagement = () => {
       ...prev,
       [name]: value,
     }));
+
+    // Clear validation error when field is edited
+    if (validationErrors[name]) {
+      setValidationErrors((prev) => ({
+        ...prev,
+        [name]: null,
+      }));
+    }
+
+    // Clear general error message when any field is edited
+    if (error) {
+      setError(null);
+    }
   };
 
-  const handleOperatingHoursChange = (day, field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      operatingHours: {
-        ...prev.operatingHours,
-        [day]: {
-          ...prev.operatingHours[day],
-          [field]: value,
-        },
-      },
-    }));
+  const validateForm = () => {
+    const errors = {};
+
+    if (!formData.name.trim()) {
+      errors.name = 'Store name is required';
+    }
+
+    if (!formData.address.trim()) {
+      errors.address = 'Address is required';
+    }
+
+    if (!formData.managerUserId) {
+      errors.managerUserId = 'Manager User ID is required';
+    }
+
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = () => {
-    createStoreMutation.mutate(formData);
+    // Validate form before submission
+    if (!validateForm()) {
+      setError('Please fill in all required fields');
+      return;
+    }
+
+    // Only send the required fields to the mutation
+    const storeData = {
+      name: formData.name,
+      address: formData.address,
+      managerUserId: formData.managerUserId,
+      radius: formData.radius,
+    };
+
+    // Make the actual API call
+    createStoreMutation.mutate(storeData);
   };
 
   // Filter stores based on search term
@@ -220,7 +227,7 @@ const StoreManagement = () => {
                 Basic Store Information
               </Typography>
             </Grid>
-            <Grid item xs={12} md={6}>
+            <Grid item xs={12}>
               <TextField
                 required
                 fullWidth
@@ -228,73 +235,9 @@ const StoreManagement = () => {
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
+                error={!!validationErrors.name}
+                helperText={validationErrors.name}
               />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                required
-                fullWidth
-                label="Email"
-                name="email"
-                type="email"
-                value={formData.email}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                required
-                fullWidth
-                label="Phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Website"
-                name="website"
-                value={formData.website}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth required>
-                <InputLabel>Business Type</InputLabel>
-                <Select
-                  name="businessType"
-                  value={formData.businessType}
-                  onChange={handleChange}
-                  label="Business Type"
-                >
-                  <MenuItem value="RETAIL">Retail</MenuItem>
-                  <MenuItem value="RESTAURANT">Restaurant</MenuItem>
-                  <MenuItem value="GROCERY">Grocery</MenuItem>
-                  <MenuItem value="PHARMACY">Pharmacy</MenuItem>
-                  <MenuItem value="OTHER">Other</MenuItem>
-                </Select>
-              </FormControl>
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Tax ID"
-                name="taxId"
-                value={formData.taxId}
-                onChange={handleChange}
-              />
-            </Grid>
-          </Grid>
-        );
-      case 1:
-        return (
-          <Grid container spacing={3}>
-            <Grid item xs={12}>
-              <Typography variant="h6" gutterBottom>
-                Location Details
-              </Typography>
             </Grid>
             <Grid item xs={12}>
               <TextField
@@ -304,46 +247,24 @@ const StoreManagement = () => {
                 name="address"
                 value={formData.address}
                 onChange={handleChange}
+                error={!!validationErrors.address}
+                helperText={validationErrors.address}
               />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
                 required
                 fullWidth
-                label="City"
-                name="city"
-                value={formData.city}
+                label="Manager User ID"
+                name="managerUserId"
+                type="number"
+                value={formData.managerUserId}
                 onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                required
-                fullWidth
-                label="State"
-                name="state"
-                value={formData.state}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                required
-                fullWidth
-                label="ZIP Code"
-                name="zipCode"
-                value={formData.zipCode}
-                onChange={handleChange}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                required
-                fullWidth
-                label="Country"
-                name="country"
-                value={formData.country}
-                onChange={handleChange}
+                error={!!validationErrors.managerUserId}
+                helperText={
+                  validationErrors.managerUserId ||
+                  'Enter the ID of the user who will manage this store'
+                }
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -355,7 +276,84 @@ const StoreManagement = () => {
                 type="number"
                 value={formData.radius}
                 onChange={handleChange}
+                inputProps={{ step: '0.1' }}
               />
+            </Grid>
+          </Grid>
+        );
+      case 1:
+        return (
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Inventory Management
+              </Typography>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                This is a placeholder for inventory management. In a real implementation, you would
+                be able to add products to the store.
+              </Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+                <Typography variant="subtitle1" gutterBottom>
+                  Sample Inventory Items
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6">Product 1</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Category: Grocery
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Price: $9.99
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Stock: 50
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6">Product 2</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Category: Electronics
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Price: $49.99
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Stock: 25
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6">Product 3</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Category: Clothing
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Price: $19.99
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Stock: 100
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </Paper>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <Button variant="outlined" startIcon={<AddIcon />}>
+                  Add Inventory Item
+                </Button>
+              </Box>
             </Grid>
           </Grid>
         );
@@ -364,34 +362,134 @@ const StoreManagement = () => {
           <Grid container spacing={3}>
             <Grid item xs={12}>
               <Typography variant="h6" gutterBottom>
-                Operating Hours
+                Driver Management
+              </Typography>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                This is a placeholder for driver management. In a real implementation, you would be
+                able to assign drivers to the store.
               </Typography>
             </Grid>
-            {Object.entries(formData.operatingHours).map(([day, hours]) => (
-              <Grid item xs={12} key={day}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <Typography sx={{ width: 100, textTransform: 'capitalize' }}>{day}</Typography>
-                  <TextField
-                    label="Open"
-                    type="time"
-                    value={hours.open}
-                    onChange={(e) => handleOperatingHoursChange(day, 'open', e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                  <Typography>to</Typography>
-                  <TextField
-                    label="Close"
-                    type="time"
-                    value={hours.close}
-                    onChange={(e) => handleOperatingHoursChange(day, 'close', e.target.value)}
-                    InputLabelProps={{ shrink: true }}
-                  />
-                </Box>
-              </Grid>
-            ))}
+            <Grid item xs={12}>
+              <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+                <Typography variant="subtitle1" gutterBottom>
+                  Sample Drivers
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6">John Doe</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Email: john.doe@example.com
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Phone: (555) 123-4567
+                        </Typography>
+                        <Chip label="Active" color="success" size="small" sx={{ mt: 1 }} />
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6">Jane Smith</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Email: jane.smith@example.com
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Phone: (555) 987-6543
+                        </Typography>
+                        <Chip label="Active" color="success" size="small" sx={{ mt: 1 }} />
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6} md={4}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6">Mike Johnson</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Email: mike.johnson@example.com
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Phone: (555) 456-7890
+                        </Typography>
+                        <Chip label="Inactive" color="error" size="small" sx={{ mt: 1 }} />
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </Paper>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <Button variant="outlined" startIcon={<AddIcon />}>
+                  Add Driver
+                </Button>
+              </Box>
+            </Grid>
           </Grid>
         );
       case 3:
+        return (
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
+              <Typography variant="h6" gutterBottom>
+                Store Manager Management
+              </Typography>
+              <Typography variant="body2" color="text.secondary" paragraph>
+                This is a placeholder for store manager management. In a real implementation, you
+                would be able to assign managers to the store.
+              </Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>
+                <Typography variant="subtitle1" gutterBottom>
+                  Sample Store Managers
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6">Sarah Williams</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Email: sarah.williams@example.com
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Phone: (555) 234-5678
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Role: Store Manager
+                        </Typography>
+                        <Chip label="Active" color="success" size="small" sx={{ mt: 1 }} />
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="h6">Robert Brown</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Email: robert.brown@example.com
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Phone: (555) 876-5432
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          Role: Assistant Manager
+                        </Typography>
+                        <Chip label="Active" color="success" size="small" sx={{ mt: 1 }} />
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                </Grid>
+              </Paper>
+              <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+                <Button variant="outlined" startIcon={<AddIcon />}>
+                  Add Store Manager
+                </Button>
+              </Box>
+            </Grid>
+          </Grid>
+        );
+      case 4:
         return (
           <Grid container spacing={3}>
             <Grid item xs={12}>
@@ -412,53 +510,38 @@ const StoreManagement = () => {
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <Typography variant="body2">
-                      <strong>Email:</strong> {formData.email}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="body2">
-                      <strong>Phone:</strong> {formData.phone}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="body2">
-                      <strong>Business Type:</strong> {formData.businessType}
-                    </Typography>
-                  </Grid>
-                </Grid>
-                <Divider sx={{ my: 2 }} />
-                <Typography variant="subtitle1" gutterBottom>
-                  Location
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <Typography variant="body2">
                       <strong>Address:</strong> {formData.address}
                     </Typography>
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <Typography variant="body2">
-                      <strong>City:</strong> {formData.city}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="body2">
-                      <strong>State:</strong> {formData.state}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="body2">
-                      <strong>ZIP Code:</strong> {formData.zipCode}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12} md={6}>
-                    <Typography variant="body2">
-                      <strong>Country:</strong> {formData.country}
+                      <strong>Manager User ID:</strong> {formData.managerUserId}
                     </Typography>
                   </Grid>
                   <Grid item xs={12} md={6}>
                     <Typography variant="body2">
                       <strong>Delivery Radius:</strong> {formData.radius} km
+                    </Typography>
+                  </Grid>
+                </Grid>
+                <Divider sx={{ my: 2 }} />
+                <Typography variant="subtitle1" gutterBottom>
+                  Additional Information (Placeholder)
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="body2">
+                      <strong>Inventory Items:</strong> 3 sample items
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="body2">
+                      <strong>Drivers:</strong> 3 sample drivers
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <Typography variant="body2">
+                      <strong>Store Managers:</strong> 2 sample managers
                     </Typography>
                   </Grid>
                 </Grid>

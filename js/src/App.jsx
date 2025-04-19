@@ -10,7 +10,6 @@ import SignUpPage from './pages/SignUp/SignUp';
 import AdminDashboard from './pages/Admin/AdminDashboard';
 import DriverDashboard from './pages/DriverDashboard';
 import StoreManagerDashboard from './pages/StoreManagerDashboard';
-import UpdateUserRole from './pages/Admin/UpdateUserRole';
 import Orders from './pages/Orders';
 import Profile from './pages/Profile';
 import NotFound from './components/NotFound';
@@ -62,14 +61,6 @@ const App = () => {
           element={
             <ProtectedRoute role="admin">
               <AdminDashboard />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path={ROUTES.UPDATE_USER_ROLE}
-          element={
-            <ProtectedRoute role="admin">
-              <UpdateUserRole />
             </ProtectedRoute>
           }
         />
