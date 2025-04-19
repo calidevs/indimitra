@@ -93,7 +93,8 @@ jobs:
     needs: deploy
     env:
       TF_VAR_image_tag: ${{ needs.deploy.outputs.image_tag }}
-      TF_VAR_password: ${{ secrets.TF_VAR_PASSWORD }}  # Replace with your IAM role ARN
+      TF_VAR_password: ${{ secrets.TF_VAR_PASSWORD }}
+      TF_VAR_ecr_nginx: ${{ env.ECR_REPO_URL }}
     permissions:
       id-token: write
       contents: read
@@ -116,7 +117,7 @@ jobs:
           cd ./terraform/environments/dev
           echo $TF_VAR_image_tag
           echo $TF_VAR_password
-          echo $ACCOUNT_ID
+          echo $TF_VAR_ecr_nginx
           # terraform init 
           # terraform apply -auto-approve
         
