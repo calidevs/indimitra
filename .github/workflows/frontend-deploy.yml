@@ -114,9 +114,9 @@ jobs:
           cd ./terraform/environments/dev
           aws s3 cp s3://tf-state-indimitra/terraform.tfstate terraform.tfstate
           ls -la
-          # echo $TF_VAR_image_tag
-          # echo $TF_VAR_password
-          # terraform init 
-          # terraform apply -auto-approve
+          echo $TF_VAR_image_tag
+          echo $TF_VAR_password
+          terraform init 
+          terraform apply -auto-approve
         
 
