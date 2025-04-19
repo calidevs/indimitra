@@ -167,6 +167,7 @@ locals {
     cpu       = 128
     memory    = 256
     essential = true
+    links = ["backend"]
     portMappings = [
       {
         containerPort = 80
@@ -212,7 +213,7 @@ locals {
   }
 
   custom_app_container = {
-    name      = "indimitra-app"
+    name      = "backend"
     image     = "${var.ecr_app}:latest"
     cpu       = 128
     memory    = 256
@@ -260,7 +261,7 @@ locals {
     command = [
       "sh",
       "-c",
-      "cd /app && python -m dev_bootstrap.bootstrap && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+      "cd /app && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     ]
     logConfiguration = {
       logDriver = "awslogs"
