@@ -106,7 +106,7 @@ jobs:
 
       - name: terraform apply
         run: |
-          cd terraform/environments/dev
+          cd ./terraform/environments/dev
           terraform init 
           terraform apply -auto-approve -var="image_tag=${{ env.IMAGE_TAG }}" -var="ecr_nginx=${{ env.ECR_REPO_URL }}"
 
