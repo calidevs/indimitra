@@ -81,7 +81,7 @@ jobs:
         id: build-image
         run: |
 
-          docker build -t ${{ env.ECR_REPO_URL }} -f ./nginx/Dockerfile .
+          docker build -t ${{ env.ECR_REPO_URL }}:${{ env.IMAGE_TAG }} -f ./nginx/Dockerfile .
           docker tag ${{ env.ECR_REPO_URL }}:${{ env.IMAGE_TAG }} ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_URL }}:${{ env.IMAGE_TAG }}
           # docker push ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_URL }}:${{ env.IMAGE_TAG }}
 
