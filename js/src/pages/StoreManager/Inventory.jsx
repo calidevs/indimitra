@@ -125,6 +125,440 @@ const DELETE_INVENTORY_ITEM = `
   }
 `;
 
+const ADD_PRODUCT_TO_INVENTORY = `
+  mutation AddProductToInventory($storeId: ID!, $productId: ID!, $price: Float!, $quantity: Int!, $size: Float, $measurement_unit: Int) {
+    addProductToInventory(
+      storeId: $storeId
+      productId: $productId
+      price: $price
+      quantity: $quantity
+      size: $size
+      measurement_unit: $measurement_unit
+    ) {
+      id
+      price
+      quantity
+      measurement
+      updatedAt
+      product {
+        id
+        name
+        description
+        category {
+          id
+          name
+        }
+        image
+      }
+    }
+  }
+`;
+
+const EditDialog = React.memo(({ open, onClose, selectedItem, onUpdate, isLoading }) => {
+  const [price, setPrice] = React.useState('');
+  const [quantity, setQuantity] = React.useState('');
+  const [error, setError] = React.useState('');
+
+  React.useEffect(() => {
+    if (selectedItem) {
+      setPrice(selectedItem.price ? selectedItem.price.toString() : '');
+      setQuantity(selectedItem.quantity ? selectedItem.quantity.toString() : '');
+    }
+  }, [selectedItem]);
+
+  const handleUpdate = () => {
+    // Validate inputs
+    if (!price || isNaN(parseFloat(price)) || parseFloat(price) <= 0) {
+      setError('Please enter a valid price greater than zero.');
+      return;
+    }
+
+    if (!quantity || isNaN(parseInt(quantity, 10)) || parseInt(quantity, 10) < 0) {
+      setError('Please enter a valid quantity (0 or greater).');
+      return;
+    }
+
+    setError('');
+    onUpdate({
+      inventoryId: selectedItem.id,
+      price,
+      quantity,
+    });
+  };
+
+  const inputStyles = {
+    width: '100%',
+    padding: '8.5px 14px',
+    fontSize: '1rem',
+    borderRadius: '4px',
+    border: '1px solid rgba(0, 0, 0, 0.23)',
+    marginBottom: '16px',
+    outline: 'none',
+    '&:focus': {
+      borderColor: '#1976d2',
+      borderWidth: '2px',
+    },
+  };
+
+  const labelStyles = {
+    fontSize: '0.875rem',
+    color: 'rgba(0, 0, 0, 0.6)',
+    marginBottom: '4px',
+    display: 'block',
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onClose={() => {
+        setError('');
+        onClose();
+      }}
+      maxWidth="sm"
+      fullWidth
+    >
+      <DialogTitle>Edit Inventory Item</DialogTitle>
+      <DialogContent>
+        {selectedItem && (
+          <>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              {selectedItem.product?.image && (
+                <CardMedia
+                  component="img"
+                  sx={{ width: 80, height: 80, objectFit: 'contain', mr: 2 }}
+                  image={selectedItem.product.image}
+                  alt={selectedItem.product.name}
+                />
+              )}
+              <Box>
+                <Typography variant="subtitle1">
+                  <strong>{selectedItem.product?.name}</strong>
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {selectedItem.product?.category?.name || 'Uncategorized'}
+                </Typography>
+              </Box>
+            </Box>
+            <Divider sx={{ my: 2 }} />
+            <Box sx={{ mt: 2 }}>
+              <label htmlFor="edit-price-input" style={labelStyles}>
+                Price ($)
+              </label>
+              <input
+                id="edit-price-input"
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                min="0"
+                step="0.01"
+                style={inputStyles}
+              />
+              <label htmlFor="edit-quantity-input" style={labelStyles}>
+                Quantity
+              </label>
+              <input
+                id="edit-quantity-input"
+                type="number"
+                value={quantity}
+                onChange={(e) => setQuantity(e.target.value)}
+                min="0"
+                style={inputStyles}
+              />
+            </Box>
+          </>
+        )}
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button
+          onClick={() => {
+            setError('');
+            onClose();
+          }}
+        >
+          Cancel
+        </Button>
+        <Button variant="contained" color="primary" onClick={handleUpdate} disabled={isLoading}>
+          {isLoading ? <CircularProgress size={24} /> : 'Update'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+});
+
+const AddProductDialogNew = React.memo(
+  ({ open, onClose, storeId, availableProducts, onAdd, isLoading, errorMessage }) => {
+    const [selectedProduct, setSelectedProduct] = useState(null);
+    const [formState, setFormState] = useState({
+      price: '',
+      quantity: '',
+      size: '',
+      unit: '',
+      searchInput: '',
+    });
+    const [dropdownOpen, setDropdownOpen] = useState(false);
+    const anchorRef = useRef(null);
+
+    const handleInputChange = (e) => {
+      const { name, value } = e.target;
+      setFormState((prev) => ({
+        ...prev,
+        [name]: value,
+      }));
+    };
+
+    const filteredProducts = React.useMemo(() => {
+      return availableProducts.filter((product) =>
+        product.name.toLowerCase().includes(formState.searchInput.toLowerCase())
+      );
+    }, [availableProducts, formState.searchInput]);
+
+    const handleProductSelect = (product) => {
+      setSelectedProduct(product);
+      setFormState((prev) => ({
+        ...prev,
+        searchInput: product.name,
+      }));
+      setDropdownOpen(false);
+    };
+
+    const handleClickAway = () => {
+      setDropdownOpen(false);
+    };
+
+    const handleSearchChange = (event) => {
+      handleInputChange(event);
+      setDropdownOpen(true);
+    };
+
+    const handleAdd = () => {
+      if (!selectedProduct) return;
+
+      onAdd({
+        storeId,
+        productId: selectedProduct.id,
+        price: formState.price,
+        quantity: formState.quantity,
+        size: formState.size || null,
+        measurementUnit: formState.unit || null,
+      });
+    };
+
+    const resetForm = () => {
+      setSelectedProduct(null);
+      setFormState({
+        price: '',
+        quantity: '',
+        size: '',
+        unit: '',
+        searchInput: '',
+      });
+    };
+
+    React.useEffect(() => {
+      if (!open) {
+        resetForm();
+      }
+    }, [open]);
+
+    const inputStyles = {
+      width: '100%',
+      padding: '8.5px 14px',
+      fontSize: '1rem',
+      borderRadius: '4px',
+      border: '1px solid rgba(0, 0, 0, 0.23)',
+      marginBottom: '16px',
+      outline: 'none',
+    };
+
+    const labelStyles = {
+      fontSize: '0.875rem',
+      color: 'rgba(0, 0, 0, 0.6)',
+      marginBottom: '4px',
+      display: 'block',
+    };
+
+    return (
+      <Dialog
+        open={open}
+        onClose={() => {
+          onClose();
+          resetForm();
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Add Product to Inventory</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2 }}>
+            <label htmlFor="searchInput" style={labelStyles}>
+              Search Product
+            </label>
+            <div style={{ position: 'relative' }}>
+              <input
+                id="searchInput"
+                name="searchInput"
+                type="text"
+                placeholder="Start typing to search..."
+                value={formState.searchInput}
+                onChange={handleSearchChange}
+                onFocus={() => setDropdownOpen(true)}
+                style={inputStyles}
+                ref={anchorRef}
+              />
+              {isLoading && (
+                <CircularProgress
+                  size={20}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                  }}
+                />
+              )}
+            </div>
+            {dropdownOpen && filteredProducts.length > 0 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  width: anchorRef.current?.offsetWidth,
+                  zIndex: 1300,
+                  backgroundColor: '#fff',
+                  border: '1px solid rgba(0, 0, 0, 0.23)',
+                  borderRadius: '4px',
+                  maxHeight: '300px',
+                  overflow: 'auto',
+                }}
+              >
+                {filteredProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    onClick={() => handleProductSelect(product)}
+                    style={{
+                      padding: '8px 16px',
+                      cursor: 'pointer',
+                      backgroundColor:
+                        selectedProduct?.id === product.id ? 'rgba(0, 0, 0, 0.04)' : 'transparent',
+                      '&:hover': {
+                        backgroundColor: 'rgba(0, 0, 0, 0.08)',
+                      },
+                    }}
+                  >
+                    <div>{product.name}</div>
+                    <div style={{ fontSize: '0.875rem', color: 'rgba(0, 0, 0, 0.6)' }}>
+                      {product.category.name}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Box>
+
+          <Box sx={{ mt: 2 }}>
+            <label htmlFor="price" style={labelStyles}>
+              Price ($)
+            </label>
+            <input
+              id="price"
+              name="price"
+              type="number"
+              value={formState.price}
+              onChange={handleInputChange}
+              min="0"
+              step="0.01"
+              style={inputStyles}
+            />
+          </Box>
+
+          <Box sx={{ mt: 2 }}>
+            <label htmlFor="quantity" style={labelStyles}>
+              Quantity
+            </label>
+            <input
+              id="quantity"
+              name="quantity"
+              type="number"
+              value={formState.quantity}
+              onChange={handleInputChange}
+              min="0"
+              style={inputStyles}
+            />
+          </Box>
+
+          <Box sx={{ mt: 2 }}>
+            <label htmlFor="size" style={labelStyles}>
+              Measurement
+            </label>
+            <input
+              id="size"
+              name="size"
+              type="number"
+              value={formState.size}
+              onChange={handleInputChange}
+              min="0"
+              style={inputStyles}
+            />
+          </Box>
+
+          <Box sx={{ mt: 2 }}>
+            <label htmlFor="unit" style={labelStyles}>
+              Unit
+            </label>
+            <select
+              id="unit"
+              name="unit"
+              value={formState.unit}
+              onChange={handleInputChange}
+              style={{
+                ...inputStyles,
+                backgroundColor: 'transparent',
+                appearance: 'auto',
+                height: '40px',
+              }}
+            >
+              <option value="">None</option>
+              <option value="1">Grams (g)</option>
+              <option value="2">Kilograms (kg)</option>
+              <option value="3">Milliliters (ml)</option>
+              <option value="4">Liters (L)</option>
+              <option value="5">Pieces (pcs)</option>
+            </select>
+          </Box>
+
+          {errorMessage && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {errorMessage}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              onClose();
+              resetForm();
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleAdd}
+            disabled={isLoading || !selectedProduct || !formState.price || !formState.quantity}
+          >
+            {isLoading ? <CircularProgress size={24} /> : 'Add Product'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    );
+  }
+);
+
 const Inventory = () => {
   // State variables
   const [cognitoId, setCognitoId] = useState('');
@@ -133,8 +567,6 @@ const Inventory = () => {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [expandedItem, setExpandedItem] = useState(null);
-  const [newPrice, setNewPrice] = useState('');
-  const [newQuantity, setNewQuantity] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
@@ -144,6 +576,7 @@ const Inventory = () => {
   const [rowsPerPage] = useState(10);
   const [filterCategory, setFilterCategory] = useState('all');
   const [categories, setCategories] = useState([]);
+  const [addModalOpen, setAddModalOpen] = useState(false);
 
   // Create refs for select elements to prevent focus issues
   const categorySelectRef = useRef(null);
@@ -252,8 +685,6 @@ const Inventory = () => {
       refetchInventory();
       setEditModalOpen(false);
       setSelectedItem(null);
-      setNewPrice('');
-      setNewQuantity('');
       setSuccessMessage('Inventory item updated successfully');
       setTimeout(() => setSuccessMessage(''), 3000);
     },
@@ -281,64 +712,39 @@ const Inventory = () => {
     },
   });
 
-  // Reset form when modal is closed
-  useEffect(() => {
-    if (!editModalOpen) {
-      setNewPrice('');
-      setNewQuantity('');
-      setErrorMessage('');
-    }
-  }, [editModalOpen]);
-
-  // Reset form when delete modal is closed
-  useEffect(() => {
-    if (!deleteModalOpen) {
-      setErrorMessage('');
-    }
-  }, [deleteModalOpen]);
+  // Mutation for adding product to inventory
+  const addMutation = useMutation({
+    mutationFn: ({ storeId, productId, price, quantity, size, measurementUnit }) => {
+      return fetchGraphQL(ADD_PRODUCT_TO_INVENTORY, {
+        storeId,
+        productId: parseInt(productId, 10),
+        price: parseFloat(price),
+        quantity: parseInt(quantity, 10),
+        size: size ? parseFloat(size) : null,
+        measurement_unit: measurementUnit ? parseInt(measurementUnit, 10) : null,
+      });
+    },
+    onSuccess: () => {
+      refetchInventory();
+      setAddModalOpen(false);
+      setSuccessMessage('Product added to inventory successfully');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    },
+    onError: (error) => {
+      setErrorMessage(`Error adding product: ${error.message}`);
+    },
+  });
 
   const handleEditClick = (item) => {
     if (!item) return;
 
     setSelectedItem(item);
-    setNewPrice(item.price ? item.price.toString() : '');
-    setNewQuantity(item.quantity ? item.quantity.toString() : '');
     setEditModalOpen(true);
   };
 
   const handleDeleteClick = (item) => {
     setSelectedItem(item);
     setDeleteModalOpen(true);
-  };
-
-  const handleUpdateConfirm = () => {
-    if (!selectedItem) return;
-
-    // Validate inputs
-    if (!newPrice || isNaN(parseFloat(newPrice)) || parseFloat(newPrice) <= 0) {
-      setErrorMessage('Please enter a valid price greater than zero.');
-      return;
-    }
-
-    if (!newQuantity || isNaN(parseInt(newQuantity, 10)) || parseInt(newQuantity, 10) < 0) {
-      setErrorMessage('Please enter a valid quantity (0 or greater).');
-      return;
-    }
-
-    setErrorMessage('');
-    updateMutation.mutate({
-      inventoryId: selectedItem.id,
-      price: newPrice,
-      quantity: newQuantity,
-    });
-  };
-
-  const handleDeleteConfirm = () => {
-    if (!selectedItem) return;
-
-    deleteMutation.mutate({
-      inventoryId: selectedItem.id,
-    });
   };
 
   const handleExpandClick = (itemId) => {
@@ -375,6 +781,24 @@ const Inventory = () => {
       setLowStockThreshold,
       categories,
     }) => {
+      const selectStyles = {
+        width: '100%',
+        padding: '8.5px 14px',
+        fontSize: '1rem',
+        borderRadius: '4px',
+        border: '1px solid rgba(0, 0, 0, 0.23)',
+        backgroundColor: 'transparent',
+        appearance: 'auto',
+        height: '40px', // Match Material-UI small input height
+      };
+
+      const labelStyles = {
+        fontSize: '0.875rem',
+        color: 'rgba(0, 0, 0, 0.6)',
+        marginBottom: '4px',
+        display: 'block',
+      };
+
       return (
         <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
           <Grid container spacing={2} alignItems="center">
@@ -392,54 +816,36 @@ const Inventory = () => {
               />
             </Grid>
             <Grid item xs={12} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="category-label">Category</InputLabel>
-                {/* Replace Material-UI Select with native select */}
-                <select
-                  id="category-select"
-                  value={filterCategory}
-                  onChange={(e) => setFilterCategory(e.target.value)}
-                  style={{
-                    width: '100%',
-                    padding: '8.5px 14px',
-                    fontSize: '1rem',
-                    borderRadius: '4px',
-                    border: '1px solid rgba(0, 0, 0, 0.23)',
-                    backgroundColor: 'transparent',
-                    appearance: 'auto',
-                  }}
-                >
-                  <option value="all">All Categories</option>
-                  {categories.map((category) => (
-                    <option key={category} value={category}>
-                      {category}
-                    </option>
-                  ))}
-                </select>
-              </FormControl>
+              <label htmlFor="category-select" style={labelStyles}>
+                Category
+              </label>
+              <select
+                id="category-select"
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                style={selectStyles}
+              >
+                <option value="all">All Categories</option>
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
             </Grid>
             <Grid item xs={12} md={3}>
-              <FormControl fullWidth size="small">
-                <InputLabel id="stock-filter-label">Stock Filter</InputLabel>
-                {/* Replace Material-UI Select with native select */}
-                <select
-                  id="stock-filter-select"
-                  value={lowStockOnly ? 'true' : 'false'}
-                  onChange={(e) => setLowStockOnly(e.target.value === 'true')}
-                  style={{
-                    width: '100%',
-                    padding: '8.5px 14px',
-                    fontSize: '1rem',
-                    borderRadius: '4px',
-                    border: '1px solid rgba(0, 0, 0, 0.23)',
-                    backgroundColor: 'transparent',
-                    appearance: 'auto',
-                  }}
-                >
-                  <option value="false">All Items</option>
-                  <option value="true">Low Stock Only</option>
-                </select>
-              </FormControl>
+              <label htmlFor="stock-filter-select" style={labelStyles}>
+                Stock Filter
+              </label>
+              <select
+                id="stock-filter-select"
+                value={lowStockOnly ? 'true' : 'false'}
+                onChange={(e) => setLowStockOnly(e.target.value === 'true')}
+                style={selectStyles}
+              >
+                <option value="false">All Items</option>
+                <option value="true">Low Stock Only</option>
+              </select>
             </Grid>
             <Grid item xs={12} md={2}>
               <TextField
@@ -520,12 +926,7 @@ const Inventory = () => {
               variant="contained"
               color="primary"
               startIcon={<Add />}
-              onClick={() => {
-                // This would open a dialog to add a new product to inventory
-                // Implementation would depend on your requirements
-                setSuccessMessage('Add product functionality to be implemented');
-                setTimeout(() => setSuccessMessage(''), 3000);
-              }}
+              onClick={() => setAddModalOpen(true)}
             >
               Add Product
             </Button>
@@ -553,20 +954,16 @@ const Inventory = () => {
                   <TableBody>
                     {paginatedInventory.map((item) => {
                       const isLowStock = item.quantity <= lowStockThreshold;
-                      const inventoryItem = item.product?.inventoryItems?.edges[0]?.node;
                       return (
-                        <React.Fragment key={item.productId}>
+                        <React.Fragment key={item.id}>
                           <TableRow
                             sx={{
                               backgroundColor: isLowStock ? 'rgba(255, 0, 0, 0.1)' : 'inherit',
                             }}
                           >
                             <TableCell>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleExpandClick(item.productId)}
-                              >
-                                {expandedItem === item.productId ? (
+                              <IconButton size="small" onClick={() => handleExpandClick(item.id)}>
+                                {expandedItem === item.id ? (
                                   <KeyboardArrowUp />
                                 ) : (
                                   <KeyboardArrowDown />
@@ -590,9 +987,7 @@ const Inventory = () => {
                             <TableCell>${item.price.toFixed(2)}</TableCell>
                             <TableCell>
                               {item.quantity}{' '}
-                              {inventoryItem?.unit
-                                ? getMeasurementUnitLabel(inventoryItem.unit)
-                                : ''}
+                              {item.measurement ? getMeasurementUnitLabel(item.measurement) : ''}
                             </TableCell>
                             <TableCell>
                               {isLowStock ? (
@@ -620,11 +1015,7 @@ const Inventory = () => {
                           </TableRow>
                           <TableRow>
                             <TableCell sx={{ p: 0 }} colSpan={7}>
-                              <Collapse
-                                in={expandedItem === item.productId}
-                                timeout="auto"
-                                unmountOnExit
-                              >
+                              <Collapse in={expandedItem === item.id} timeout="auto" unmountOnExit>
                                 <Box sx={{ p: 3, backgroundColor: 'rgba(0, 0, 0, 0.03)' }}>
                                   <Grid container spacing={2}>
                                     <Grid item xs={12} md={6}>
@@ -633,21 +1024,21 @@ const Inventory = () => {
                                         {item.product?.description || 'No description available'}
                                       </Typography>
                                       <Typography variant="subtitle2" gutterBottom>
-                                        <strong>Product ID:</strong> {item.productId}
+                                        <strong>Product ID:</strong> {item.product?.id}
                                       </Typography>
                                     </Grid>
                                     <Grid item xs={12} md={6}>
                                       <Typography variant="subtitle2" gutterBottom>
                                         <strong>Last Updated:</strong>{' '}
-                                        {inventoryItem?.updatedAt
-                                          ? new Date(inventoryItem.updatedAt).toLocaleString()
+                                        {item.updatedAt
+                                          ? new Date(item.updatedAt).toLocaleString()
                                           : 'N/A'}
                                       </Typography>
                                       <Typography variant="subtitle2" gutterBottom>
                                         <strong>Measurement:</strong>{' '}
-                                        {inventoryItem?.measurement
-                                          ? `${inventoryItem.measurement} ${getMeasurementUnitLabel(
-                                              inventoryItem.unit
+                                        {item.measurement
+                                          ? `${item.measurement} ${getMeasurementUnitLabel(
+                                              item.measurement
                                             )}`
                                           : 'N/A'}
                                       </Typography>
@@ -677,87 +1068,19 @@ const Inventory = () => {
           )}
         </Paper>
 
-        {/* Edit Inventory Item Dialog */}
-        <Dialog
+        {/* Edit Dialog */}
+        <EditDialog
           open={editModalOpen}
           onClose={() => {
             setEditModalOpen(false);
             setErrorMessage('');
           }}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>Edit Inventory Item</DialogTitle>
-          <DialogContent>
-            {selectedItem && (
-              <>
-                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                  {selectedItem.product?.image && (
-                    <CardMedia
-                      component="img"
-                      sx={{ width: 80, height: 80, objectFit: 'contain', mr: 2 }}
-                      image={selectedItem.product.image}
-                      alt={selectedItem.product.name}
-                    />
-                  )}
-                  <Box>
-                    <Typography variant="subtitle1">
-                      <strong>{selectedItem.product?.name}</strong>
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      {selectedItem.product?.category?.name || 'Uncategorized'}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Divider sx={{ my: 2 }} />
-                <Box sx={{ mt: 2 }}>
-                  <TextField
-                    label="Price ($)"
-                    type="number"
-                    fullWidth
-                    value={newPrice || ''}
-                    onChange={(e) => setNewPrice(e.target.value)}
-                    inputProps={{ min: 0, step: 0.01 }}
-                    sx={{ mb: 2 }}
-                  />
-                  <TextField
-                    label="Quantity"
-                    type="number"
-                    fullWidth
-                    value={newQuantity || ''}
-                    onChange={(e) => setNewQuantity(e.target.value)}
-                    inputProps={{ min: 0 }}
-                  />
-                </Box>
-              </>
-            )}
-            {errorMessage && (
-              <Alert severity="error" sx={{ mt: 2 }}>
-                {errorMessage}
-              </Alert>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={() => {
-                setEditModalOpen(false);
-                setErrorMessage('');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              color="primary"
-              onClick={handleUpdateConfirm}
-              disabled={updateMutation.isLoading}
-            >
-              {updateMutation.isLoading ? <CircularProgress size={24} /> : 'Update'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+          selectedItem={selectedItem}
+          onUpdate={(data) => updateMutation.mutate(data)}
+          isLoading={updateMutation.isLoading}
+        />
 
-        {/* Delete Inventory Item Dialog */}
+        {/* Delete Dialog */}
         <Dialog
           open={deleteModalOpen}
           onClose={() => {
@@ -815,13 +1138,23 @@ const Inventory = () => {
             <Button
               variant="contained"
               color="error"
-              onClick={handleDeleteConfirm}
+              onClick={() => deleteMutation.mutate({ inventoryId: selectedItem.id })}
               disabled={deleteMutation.isLoading}
             >
               {deleteMutation.isLoading ? <CircularProgress size={24} /> : 'Delete'}
             </Button>
           </DialogActions>
         </Dialog>
+
+        <AddProductDialogNew
+          open={addModalOpen}
+          onClose={() => setAddModalOpen(false)}
+          storeId={store?.id}
+          availableProducts={availableProducts}
+          onAdd={addMutation.mutate}
+          isLoading={addMutation.isLoading}
+          errorMessage={errorMessage}
+        />
       </Container>
     </Layout>
   );
