@@ -91,7 +91,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: deploy
     env:
-      TF_VAR_image_tag: ${{ needs.deploy.outputs.image_tag }}
+      TF_VAR_image_tag_frontend: ${{ needs.deploy.outputs.image_tag }}
     permissions:
       id-token: write
       contents: read
