@@ -11,11 +11,12 @@ on:
 
 
 env:
-    IAM_ROLE_ARN: ${{ vars.AWS_ROLE_ARN }}  # Replace with your IAM role ARN
+    ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}  # Replace with your IAM role ARN
     AWS_REGION: ${{ vars.AWS_REGION }}  # Replace with your AWS region
 
 jobs:
   deploy:
+    environment: dev
     runs-on: ubuntu-latest
     permissions:
       id-token: write
@@ -28,7 +29,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           audience: sts.amazonaws.com
-          role-to-assume: ${{ env.IAM_ROLE_ARN }}
+          role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/terraform-deploy
           aws-region: ${{ env.AWS_REGION }}
 
 
