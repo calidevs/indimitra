@@ -80,6 +80,8 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build and Push Image to ECR
+        env:
+          IMAGE_TAG: ${{ steps.set-image-tag.outputs.IMAGE_TAG }}
         id: build-image
         run: |
 
