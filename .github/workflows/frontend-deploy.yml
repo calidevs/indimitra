@@ -8,8 +8,6 @@ on:
     # paths:
     #   - 'js/*'    # Only .js files
 
-
-
 env:
     ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}  # Replace with your IAM role ARN
     AWS_REGION: ${{ vars.AWS_REGION }}  # Replace with your AWS region
@@ -116,8 +114,8 @@ jobs:
       - name: terraform apply
         run: |
           cd ./terraform/environments/dev
-          echo $image_tag
-          echo $password
+          echo $TF_VAR_image_tag
+          echo $TF_VAR_password
           echo $ACCOUNT_ID
           # terraform init 
           # terraform apply -auto-approve
