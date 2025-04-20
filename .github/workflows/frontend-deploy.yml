@@ -92,6 +92,7 @@ jobs:
     needs: deploy
     env:
       TF_VAR_image_tag_frontend: ${{ needs.deploy.outputs.image_tag }}
+      TF_VAR_assume_role_arn: ""
     permissions:
       id-token: write
       contents: read
