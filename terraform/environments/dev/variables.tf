@@ -19,6 +19,18 @@ variable "tags" {
   }
 }
 
+variable "assume_role_arn" {
+  description = "The ARN of the role to assume"
+  type        = string
+  default     = ""
+  
+}
+
+variable "aws_profile" {
+  description = "The AWS profile to use"
+  type        = string
+  default     = ""
+}
 
 ############################################
 # S3 variables

@@ -10,11 +10,18 @@ terraform {
 
 provider "aws" {
   region = var.region
-  # profile = "Nonprod-devops"
+  # Only set profile if needed locally
+  profile = var.aws_profile != "" ? var.aws_profile : null
+
+  # Only assume role if specified (e.g., locally)
   assume_role {
-    role_arn = "arn:aws:iam::783764611086:role/terraform-deploy"
-    session_name = "terraform-deploy"
+    role_arn = var.assume_role_arn
   }
+
+  # assume_role {
+  #   role_arn = "arn:aws:iam::783764611086:role/terraform-deploy"
+  #   session_name = "terraform-deploy"
+  # }
 }
 
 module "github_oidc" {
