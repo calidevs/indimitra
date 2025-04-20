@@ -113,6 +113,7 @@ jobs:
         run: |
           cd ./terraform/environments/dev
           aws s3 cp s3://tf-state-indimitra/terraform.tfstate terraform.tfstate
+          aws s3 cp s3://tf-state-indimitra/public-key-ssh/my-key.pub my-key.pub
           ls -la
           echo $TF_VAR_image_tag
           echo $TF_VAR_password
