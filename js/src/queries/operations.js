@@ -455,3 +455,24 @@ export const DELETE_PRODUCT = `
     deleteProduct(id: $id)
   }
 `;
+
+export const ASSIGN_DRIVER_TO_STORE = `
+  mutation AssignDriverToStore($storeId: Int!, $userId: Int!) {
+    assignDriverToStore(storeId: $storeId, userId: $userId) {
+      id
+      userId
+      store {
+        name
+        drivers {
+          edges {
+            node {
+              driver {
+                email
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;

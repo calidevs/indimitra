@@ -42,81 +42,12 @@ import {
 } from '@mui/icons-material';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import fetchGraphQL from '@/config/graphql/graphqlService';
-
-// GraphQL query for fetching all users
-const GET_ALL_USERS = `
-  query GetAllUsers {
-    getAllUsers {
-      active
-      cognitoId
-      email
-      id
-      mobile
-      referralId
-      referredBy
-      type
-    }
-  }
-`;
-
-// GraphQL query for fetching all stores
-const GET_STORES = `
-  query GetStores {
-    stores {
-      id
-      name
-      address
-      radius
-      drivers {
-      edges {
-        node {
-          driver {
-            mobile
-            email
-          }
-        }
-      }
-    }
-    }
-  }
-`;
-
-// GraphQL mutation for updating user type
-const UPDATE_USER_TYPE = `
-  mutation UpdateUserType($requesterId: String!, $targetUserId: String!, $newType: String!) {
-    updateUserType(requesterId: $requesterId, targetUserId: $targetUserId, newType: $newType) {
-      user {
-        id
-        type
-      }
-      error {
-        message
-      }
-    }
-  }
-`;
-
-// GraphQL mutation for assigning driver to store
-const ASSIGN_DRIVER_TO_STORE = `
-  mutation AssignDriverToStore($storeId: Int!, $userId: Int!) {
-    assignDriverToStore(storeId: $storeId, userId: $userId) {
-      id
-      userId
-      store {
-        name
-        drivers {
-          edges {
-            node {
-              driver {
-                email
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-`;
+import {
+  GET_ALL_USERS,
+  GET_STORES,
+  UPDATE_USER_TYPE,
+  ASSIGN_DRIVER_TO_STORE,
+} from '@/queries/operations';
 
 const UserManagement = () => {
   const theme = useTheme();
