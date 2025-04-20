@@ -10,7 +10,7 @@ terraform {
 
 provider "aws" {
   region = var.region
-  profile = "Nonprod-devops"
+  # profile = "Nonprod-devops"
   assume_role {
     role_arn = "arn:aws:iam::783764611086:role/terraform-deploy"
     session_name = "terraform-deploy"
