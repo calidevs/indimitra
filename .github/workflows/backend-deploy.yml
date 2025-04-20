@@ -44,6 +44,10 @@ jobs:
         id: set-image-tag
         run: echo "IMAGE_TAG=v$(date -u +'%b-%d-%Y-%Hhr-%Mmin')" >> $GITHUB_OUTPUT
 
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+        
       - name: Build Docker image
         env:
           IMAGE_TAG: ${{ steps.set-image-tag.outputs.IMAGE_TAG }}
