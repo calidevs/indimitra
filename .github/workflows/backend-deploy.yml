@@ -52,7 +52,8 @@ jobs:
           docker push ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_URL }}:${{ env.IMAGE_TAG }}
 
   update_ecs:
-      uses: ./.github/workflows/update-ecs-task.yml
-      with:
-        image_tag: ${{ needs.deploy.outputs.image_tag }} 
-      secrets: inherit
+    needs: build
+    uses: ./.github/workflows/update-ecs-task.yml
+    with:
+      image_tag: ${{ needs.deploy.outputs.image_tag }} 
+    secrets: inherit
