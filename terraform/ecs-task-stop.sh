@@ -19,6 +19,26 @@ if [ "$TASK_ARN" != "None" ]; then
     --task "$TASK_ARN" \
     --reason "Deploying new version of the task"
   echo "Stopped task: $TASK_ARN"
+
+echo "Waiting for the task to stop..."
+  # Wait until the task is stopped
+while true; do
+    STATUS=$(aws ecs describe-tasks \
+      --cluster "$CLUSTER_NAME" \
+      --tasks "$TASK_ARN" \
+      --query "tasks[0].lastStatus" \
+      --output text)
+
+    echo "Current task status: $STATUS"
+
+    if [ "$STATUS" == "STOPPED" ]; then
+      echo "Task has stopped."
+      break
+    fi
+
+    echo "Waiting for task to stop..."
+    sleep 5
+  done
 else
   echo "No running tasks found to stop."
 fi
