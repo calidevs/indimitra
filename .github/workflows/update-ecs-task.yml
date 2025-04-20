@@ -36,8 +36,8 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           audience: sts.amazonaws.com
-          role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/terraform-deploy
-          aws-region: ${{ env.AWS_REGION }}
+          role-to-assume: arn:aws:iam::${{ inputs.ACCOUNT_ID }}:role/terraform-deploy
+          aws-region: ${{ inputs.AWS_REGION }}
 
       - name: Stop current ECS task
         run: ./terraform/ecs-task-stop.sh
