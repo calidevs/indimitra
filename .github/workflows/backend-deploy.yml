@@ -24,6 +24,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       image_tag: ${{ steps.set-image-tag.outputs.IMAGE_TAG }}
+      latest_tag: ${{ steps.set-latest-tag.outputs.image_tag_frontend }}
     steps:
       - name: Checkout branch
         uses: actions/checkout@v4
@@ -56,10 +57,20 @@ jobs:
           docker build -t ${{ env.ECR_REPO_URL }}:${{ env.IMAGE_TAG }} .
           docker tag ${{ env.ECR_REPO_URL }}:${{ env.IMAGE_TAG }} ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_URL }}:${{ env.IMAGE_TAG }}
           docker push ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_URL }}:${{ env.IMAGE_TAG }}
+        
+      - name: Set latest frontend image tag
+        id: set-latest-tag
+        run: |
+          LATEST_TAG=$(aws ecr describe-images --repository-name dev-ngnix-indimitra-ecr \
+          --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' \
+          --output text)
+          echo "Latest tag: $LATEST_TAG"
+          echo "image_tag_frontend=$LATEST_TAG" >> $GITHUB_OUTPUT
 
   update_ecs:
     needs: build
     uses: ./.github/workflows/update-ecs-task.yml
     with:
-      image_tag_backend: ${{ needs.build.outputs.image_tag }} 
+      image_tag_backend: ${{ needs.build.outputs.image_tag }}
+      image_tag_frontend: ${{ needs.build.outputs.latest_tag }}
     secrets: inherit
