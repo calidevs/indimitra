@@ -30,6 +30,7 @@ import {
   Select,
   MenuItem,
   Snackbar,
+  Divider,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -37,6 +38,7 @@ import {
   Delete as DeleteIcon,
   Add as AddIcon,
   Refresh as RefreshIcon,
+  LocalShipping as LocalShippingIcon,
 } from '@mui/icons-material';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import fetchGraphQL from '@/config/graphql/graphqlService';
@@ -57,6 +59,28 @@ const GET_ALL_USERS = `
   }
 `;
 
+// GraphQL query for fetching all stores
+const GET_STORES = `
+  query GetStores {
+    stores {
+      id
+      name
+      address
+      radius
+      drivers {
+      edges {
+        node {
+          driver {
+            mobile
+            email
+          }
+        }
+      }
+    }
+    }
+  }
+`;
+
 // GraphQL mutation for updating user type
 const UPDATE_USER_TYPE = `
   mutation UpdateUserType($requesterId: String!, $targetUserId: String!, $newType: String!) {
@@ -67,6 +91,28 @@ const UPDATE_USER_TYPE = `
       }
       error {
         message
+      }
+    }
+  }
+`;
+
+// GraphQL mutation for assigning driver to store
+const ASSIGN_DRIVER_TO_STORE = `
+  mutation AssignDriverToStore($storeId: Int!, $userId: Int!) {
+    assignDriverToStore(storeId: $storeId, userId: $userId) {
+      id
+      userId
+      store {
+        name
+        drivers {
+          edges {
+            node {
+              driver {
+                email
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -87,6 +133,11 @@ const UserManagement = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [adminCognitoId, setAdminCognitoId] = useState(null);
 
+  // New state for store assignment
+  const [storeAssignmentModalOpen, setStoreAssignmentModalOpen] = useState(false);
+  const [selectedStore, setSelectedStore] = useState('');
+  const [stores, setStores] = useState([]);
+
   // Fetch all users using React Query
   const {
     data: usersData,
@@ -100,6 +151,21 @@ const UserManagement = () => {
       return response?.getAllUsers || [];
     },
     enabled: true, // Fetch data immediately when component mounts
+  });
+
+  // Fetch all stores using React Query
+  const {
+    data: storesData,
+    isLoading: isLoadingStores,
+    error: storesError,
+    refetch: refetchStores,
+  } = useQuery({
+    queryKey: ['stores'],
+    queryFn: async () => {
+      const response = await fetchGraphQL(GET_STORES);
+      return response?.stores || [];
+    },
+    enabled: true,
   });
 
   // Update user type mutation
@@ -134,6 +200,32 @@ const UserManagement = () => {
     },
   });
 
+  // Assign driver to store mutation
+  const assignDriverToStoreMutation = useMutation({
+    mutationFn: (variables) => fetchGraphQL(ASSIGN_DRIVER_TO_STORE, variables),
+    onSuccess: (response) => {
+      const result = response?.assignDriverToStore;
+
+      if (result) {
+        setSnackbar({
+          open: true,
+          message: `Successfully assigned driver to ${result.store.name}`,
+          severity: 'success',
+        });
+        refetchStores(); // Refresh the stores list
+      }
+      setStoreAssignmentModalOpen(false);
+    },
+    onError: (error) => {
+      console.error('Error assigning driver to store:', error);
+      setSnackbar({
+        open: true,
+        message: 'Error assigning driver to store: ' + error.message,
+        severity: 'error',
+      });
+    },
+  });
+
   // Get current admin's cognitoId
   useEffect(() => {
     const getAdminId = async () => {
@@ -155,6 +247,13 @@ const UserManagement = () => {
       getAdminId();
     }
   }, [usersData]);
+
+  // Update stores state when storesData changes
+  useEffect(() => {
+    if (storesData) {
+      setStores(storesData);
+    }
+  }, [storesData]);
 
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
@@ -207,6 +306,33 @@ const UserManagement = () => {
       requesterId: adminCognitoId,
       targetUserId: selectedUser.cognitoId,
       newType: roleMapping[selectedRole] || selectedRole,
+    });
+  };
+
+  // New handlers for store assignment
+  const handleAssignToStore = (user) => {
+    setSelectedUser(user);
+    setSelectedStore('');
+    setStoreAssignmentModalOpen(true);
+  };
+
+  const handleStoreChange = (event) => {
+    setSelectedStore(event.target.value);
+  };
+
+  const handleStoreAssignmentSubmit = () => {
+    if (!selectedStore || !selectedUser) {
+      setSnackbar({
+        open: true,
+        message: 'Please select a store',
+        severity: 'error',
+      });
+      return;
+    }
+
+    assignDriverToStoreMutation.mutate({
+      storeId: parseInt(selectedStore),
+      userId: parseInt(selectedUser.id),
     });
   };
 
@@ -282,6 +408,16 @@ const UserManagement = () => {
                   <IconButton size="small" color="error">
                     <DeleteIcon />
                   </IconButton>
+                  {user.type === 'DELIVERY' && (
+                    <IconButton
+                      size="small"
+                      color="secondary"
+                      onClick={() => handleAssignToStore(user)}
+                      title="Assign to Store"
+                    >
+                      <LocalShippingIcon />
+                    </IconButton>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
@@ -373,6 +509,14 @@ const UserManagement = () => {
                   </IconButton>
                   <IconButton size="small" color="error">
                     <DeleteIcon />
+                  </IconButton>
+                  <IconButton
+                    size="small"
+                    color="secondary"
+                    onClick={() => handleAssignToStore(partner)}
+                    title="Assign to Store"
+                  >
+                    <LocalShippingIcon />
                   </IconButton>
                 </TableCell>
               </TableRow>
@@ -550,6 +694,110 @@ const UserManagement = () => {
             disabled={updateUserTypeMutation.isPending}
           >
             {updateUserTypeMutation.isPending ? 'Updating...' : 'Update Role'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Store Assignment Modal */}
+      <Dialog
+        open={storeAssignmentModalOpen}
+        onClose={() => setStoreAssignmentModalOpen(false)}
+        fullWidth
+        maxWidth="sm"
+        PaperProps={{
+          sx: {
+            width: '100%',
+            maxWidth: '600px',
+            m: { xs: 2, sm: 3, md: 4 },
+            p: { xs: 2, sm: 3 },
+          },
+        }}
+      >
+        <DialogTitle sx={{ pb: 1 }}>Assign Driver to Store</DialogTitle>
+        <DialogContent>
+          {selectedUser && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="subtitle1" gutterBottom>
+                Driver: {selectedUser.email}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" gutterBottom sx={{ mb: 3 }}>
+                ID: {selectedUser.id}
+              </Typography>
+
+              <Divider sx={{ my: 2 }} />
+
+              <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                Select Store
+              </Typography>
+
+              {isLoadingStores ? (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                  <CircularProgress size={24} />
+                </Box>
+              ) : storesError ? (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  Error loading stores: {storesError.message}
+                </Alert>
+              ) : stores.length === 0 ? (
+                <Alert severity="info" sx={{ mb: 2 }}>
+                  No stores available
+                </Alert>
+              ) : (
+                <FormControl fullWidth sx={{ mt: 1 }}>
+                  <InputLabel>Store</InputLabel>
+                  <Select
+                    value={selectedStore}
+                    onChange={handleStoreChange}
+                    label="Store"
+                    sx={{ mb: 2 }}
+                  >
+                    {stores.map((store) => (
+                      <MenuItem key={store.id} value={store.id}>
+                        {store.name} - {store.address}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              )}
+
+              {selectedStore && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Current Drivers
+                  </Typography>
+                  {stores.find((s) => s.id === parseInt(selectedStore))?.drivers?.edges?.length >
+                  0 ? (
+                    <Box sx={{ mt: 1 }}>
+                      {stores
+                        .find((s) => s.id === parseInt(selectedStore))
+                        ?.drivers?.edges?.map((edge, index) => (
+                          <Chip
+                            key={index}
+                            label={edge.node.driver.email}
+                            size="small"
+                            sx={{ mr: 1, mb: 1 }}
+                          />
+                        ))}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      No drivers assigned to this store yet
+                    </Typography>
+                  )}
+                </Box>
+              )}
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button onClick={() => setStoreAssignmentModalOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleStoreAssignmentSubmit}
+            variant="contained"
+            color="primary"
+            disabled={!selectedStore || assignDriverToStoreMutation.isPending}
+          >
+            {assignDriverToStoreMutation.isPending ? 'Assigning...' : 'Assign to Store'}
           </Button>
         </DialogActions>
       </Dialog>
