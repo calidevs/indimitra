@@ -6,6 +6,12 @@ on:
       image_tag:
         required: true
         type: string
+      ACCOUNT_ID:
+        required: true
+        type: string
+      AWS_REGION:
+        required: true
+        type: string
    
 
 jobs:
@@ -14,8 +20,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TF_VAR_image_tag_frontend: ${{ inputs.image_tag }}
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}  # Replace with your IAM role ARN
+      AWS_REGION: ${{ inputs.AWS_REGION }}
+      ACCOUNT_ID: ${{ inputs.ACCOUNT_ID }}  # Replace with your IAM role ARN
     permissions:
       id-token: write
       contents: read
