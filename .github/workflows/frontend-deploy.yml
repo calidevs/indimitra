@@ -69,7 +69,8 @@ jobs:
 
       - name: Set image tag
         id: set-image-tag
-        run: echo "IMAGE_TAG=v$(date -u +'%b-%d-%Y-%Hhr-%Mmin')" >> $GITHUB_OUTPUT
+        run: |
+          echo "IMAGE_TAG=v$(date -u +'%b-%d-%Y-%Hhr-%Mmin')" >> $GITHUB_OUTPUT
 
       - name: Login to AWS ECR
         id: login-ecr
@@ -88,6 +89,9 @@ jobs:
     needs: deploy
     uses: ./.github/workflows/update-ecs-task.yml
     with:
-          image_tag: ${{ needs.deploy.outputs.image_tag }}
-          ACCOUNT_ID: ${{ github.env.ACCOUNT_ID }}  # Replace with your IAM role ARN
-          AWS_REGION: ${{ github.env.AWS_REGION }}  # Replace with your AWS region
+          image_tag: ${{ needs.deploy.outputs.image_tag }}  
+    secrets: inherit
+            
+            
+ 
+     

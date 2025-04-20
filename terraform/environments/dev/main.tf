@@ -10,27 +10,13 @@ terraform {
 
 provider "aws" {
   region = var.region
-  dynamic "profile" {
-    for_each = var.aws_profile != null && var.aws_profile != "" ? [1] : []
-    content {
-      profile = var.aws_profile
-    }
-  }
+  #Only set profile if needed locally
+  profile = var.aws_profile != "" ? var.aws_profile : null
 
-  # Use assume role if provided
-  dynamic "assume_role" {
-    for_each = var.assume_role_arn != null && var.assume_role_arn != "" ? [1] : []
-    content {
-      role_arn     = var.assume_role_arn
-    }
+  # Only assume role if specified (e.g., locally)
+  assume_role {
+    role_arn = var.assume_role_arn != "" ? var.assume_role_arn : null
   }
-  # Only set profile if needed locally
-  # profile = var.aws_profile != "" ? var.aws_profile : null
-
-  # # Only assume role if specified (e.g., locally)
-  # assume_role {
-  #   role_arn = var.assume_role_arn
-  # }
 
   # assume_role {
   #   role_arn = "arn:aws:iam::783764611086:role/terraform-deploy"
