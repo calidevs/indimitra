@@ -4,10 +4,10 @@ on:
   workflow_call:
     inputs:
       image_tag_frontend:
-        required: false
+        required: true
         type: string
       image_tag_backend:
-        required: false
+        required: true
         type: string
     secrets:
         ACCOUNT_ID:
@@ -24,18 +24,10 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TF_VAR_password: ${{ secrets.TF_VAR_password }}
-    steps:
+      TF_VAR_image_tag_frontend: ${{ inputs.image_tag_frontend }}
+      TF_VAR_image_tag_backend: ${{ inputs.image_tag_backend }}
 
-      - name: Set image tags
-        run: |
-          if [ ! -z "${{ inputs.image_tag_frontend }}" ]; then
-            echo "TF_VAR_image_tag_frontend=${{ inputs.image_tag_frontend }}" >> $GITHUB_ENV
-          fi
-
-          if [ ! -z "${{ inputs.image_tag_backend }}" ]; then
-            echo "TF_VAR_image_tag_backend=${{ inputs.image_tag_backend }}" >> $GITHUB_ENV
-          fi          
-
+    steps:        
       - name: Checkout branch
         uses: actions/checkout@v4
 
