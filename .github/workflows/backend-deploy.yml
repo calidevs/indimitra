@@ -12,7 +12,7 @@ on:
 env:
     ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}  
     AWS_REGION: ${{ vars.AWS_REGION }}  # Replace with your AWS region
-    ECR_REPO_URL: "dev-ngnix-indimitra-ecr"  # Replace with your ECR repository URL
+    ECR_REPO_URL: ${{ vars.ECR_BACKEND }}  # Replace with your ECR repository URL
     TF_VAR_password: ${{ secrets.TF_VAR_PASSWORD }}  
 
 permissions:
