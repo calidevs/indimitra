@@ -22,6 +22,8 @@ jobs:
   update_ecs:
     environment: dev
     runs-on: ubuntu-latest
+    env:
+      TF_VAR_password: ${{ secrets.TF_VAR_password }}
     steps:
 
       - name: Set image tags
