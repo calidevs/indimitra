@@ -106,7 +106,7 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           audience: sts.amazonaws.com
-          role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/terraform-deploy
+          role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/Nonprod-devops
           aws-region: ${{ env.AWS_REGION }}
 
       - name: terraform apply
@@ -119,5 +119,6 @@ jobs:
           echo $TF_VAR_password
           terraform init 
           terraform apply -auto-approve
+          aws s3 cp terraform.tfstate s3://tf-state-indimitra/terraform.tfstate
         
 
