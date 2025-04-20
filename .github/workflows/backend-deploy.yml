@@ -45,6 +45,8 @@ jobs:
         run: echo "IMAGE_TAG=v$(date -u +'%b-%d-%Y-%Hhr-%Mmin')" >> $GITHUB_OUTPUT
 
       - name: Build Docker image
+        env:
+          IMAGE_TAG: ${{ steps.set-image-tag.outputs.IMAGE_TAG }}
         run: |
           cd ./python
           docker build -t ${{ env.ECR_REPO_URL }}:${{ env.IMAGE_TAG }} .
@@ -55,5 +57,5 @@ jobs:
     needs: build
     uses: ./.github/workflows/update-ecs-task.yml
     with:
-      image_tag: ${{ needs.deploy.outputs.image_tag }} 
+      image_tag_backend: ${{ needs.deploy.outputs.image_tag }} 
     secrets: inherit

@@ -3,8 +3,11 @@ name: Update ECS Task Definition
 on:
   workflow_call:
     inputs:
-      image_tag:
-        required: true
+      image_tag_frontend:
+        required: false
+        type: string
+      image_tag_backend:
+        required: false
         type: string
     secrets:
         ACCOUNT_ID:
@@ -15,14 +18,22 @@ on:
 permissions:
     id-token: write
     contents: read
-env:
-    TF_VAR_image_tag_frontend: ${{ inputs.image_tag }}
-    TF_VAR_password: ${{ secrets.TF_VAR_password }}
 jobs:
   update_ecs:
     environment: dev
     runs-on: ubuntu-latest
     steps:
+
+      - name: Set image tags
+        run: |
+          if [ ! -z "${{ inputs.image_tag_frontend }}" ]; then
+            echo "TF_VAR_image_tag_frontend=${{ inputs.image_tag_frontend }}" >> $GITHUB_ENV
+          fi
+
+          if [ ! -z "${{ inputs.image_tag_backend }}" ]; then
+            echo "TF_VAR_image_tag_backend=${{ inputs.image_tag_backend }}" >> $GITHUB_ENV
+          fi          
+
       - name: Checkout branch
         uses: actions/checkout@v4
 

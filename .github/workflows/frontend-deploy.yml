@@ -89,7 +89,7 @@ jobs:
     needs: deploy
     uses: ./.github/workflows/update-ecs-task.yml
     with:
-          image_tag: ${{ needs.deploy.outputs.image_tag }}  
+          image_tag_frontend: ${{ needs.deploy.outputs.image_tag }}  
     secrets: inherit
             
             
