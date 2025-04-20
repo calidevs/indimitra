@@ -28,6 +28,7 @@ variable "bucket" {
   type        = string
 }
 
+
 ############################################
 # RDS variables
 ############################################
@@ -91,7 +92,6 @@ variable "s3_tags" {
   type        = map(string)
   default     = {
     Environment = "dev"
-    Name =""
   }
 }
 
@@ -122,6 +122,18 @@ variable "ecr_ngnix" {
 #   type        = string
 #   default     = "us-east-1"
 # }
+
+variable "image_tag_frontend" {
+  description = "Tag for the frontend Docker image"
+  type        = string
+  default     = "latest"
+}
+
+variable "image_tag_backend" {
+  description = "Tag for the backend Docker image"
+  type        = string
+  default     = "latest"
+}
 
 variable "instance_type" {
   description = "EC2 instance type for ECS nodes"

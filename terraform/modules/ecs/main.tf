@@ -134,7 +134,7 @@ data "aws_ami" "ecs_optimized" {
 ### ##################################
 resource "aws_key_pair" "key_pair" {
   key_name   = "ec2-key-pair"
-  public_key = file("~/petprojects/indimitra/my-key.pub")
+  public_key = file("./my-key.pub")
 }
 
 # ##################################

@@ -25,7 +25,13 @@ module "github_oidc" {
 
 module "frontend_bucket" {
   source = "../../modules/s3"
-  bucket = var.bucket
+  bucket = "frontend-indimitra"
+  tags = var.s3_tags
+}
+
+module "tf_state_bucket" {
+  source = "../../modules/s3"
+  bucket = "tf-state-indimitra"
   tags = var.s3_tags
 }
 
@@ -163,7 +169,7 @@ module "ecr_ngnix" {
 locals {
   nginx_container = {
     name      = "nginx"
-    image     = "${var.ecr_ngnix}:latest"
+    image     = "${var.ecr_ngnix}:${var.image_tag_frontend}"
     cpu       = 128
     memory    = 256
     essential = true
@@ -214,7 +220,7 @@ locals {
 
   custom_app_container = {
     name      = "backend"
-    image     = "${var.ecr_app}:latest"
+    image     = "${var.ecr_app}:${var.image_tag_backend}"
     cpu       = 128
     memory    = 256
     essential = true
