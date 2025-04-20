@@ -58,5 +58,5 @@ jobs:
         uses: ./.github/workflows/update-ecs-task.yml
         with:
           image_tag: ${{ env.IMAGE_TAG }}
-          ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}  # Replace with your IAM role ARN
-          AWS_REGION: ${{ vars.AWS_REGION }}  # Replace with your AWS region
+          ACCOUNT_ID: ${{ env.ACCOUNT_ID }}  # Replace with your IAM role ARN
+          AWS_REGION: ${{ env.AWS_REGION }}  # Replace with your AWS region
