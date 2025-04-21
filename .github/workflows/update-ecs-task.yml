@@ -2,13 +2,6 @@ name: Update ECS Task Definition
 
 on:
   workflow_call:
-    inputs:
-      image_tag_frontend:
-        required: true
-        type: string
-      image_tag_backend:
-        required: true
-        type: string
     secrets:
         ACCOUNT_ID:
             required: true
@@ -24,8 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TF_VAR_password: ${{ secrets.TF_VAR_password }}
-      TF_VAR_image_tag_frontend: ${{ inputs.image_tag_frontend }}
-      TF_VAR_image_tag_backend: ${{ inputs.image_tag_backend }}
+      TF_VAR_image_tag_frontend: latest
+      TF_VAR_image_tag_backend: latest
 
     steps:        
       - name: Checkout branch
@@ -46,10 +39,13 @@ jobs:
           cd ./terraform/environments/dev
           aws s3 cp s3://tf-state-indimitra/terraform.tfstate terraform.tfstate
           aws s3 cp s3://tf-state-indimitra/public-key-ssh/my-key.pub my-key.pub
-          ls -la
-          echo $TF_VAR_image_tag_fronted
-          echo $TF_VAR_password
           terraform init 
           terraform plan
           terraform apply -auto-approve
-          aws s3 cp terraform.tfstate s3://tf-state-indimitra/terraform.tfstate
+          
+      - name: Stop current ECS task
+        run: |
+          cd ./terraform/
+          chmod +x ecs-task-stop.sh
+          ./ecs-task-stop.sh
+
