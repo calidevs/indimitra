@@ -23,4 +23,8 @@ data
 .DS_Store
 
 .mise.toml
+
+*.pub
+*.pem
 .idx/
+

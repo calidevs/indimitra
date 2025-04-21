@@ -1,0 +1,75 @@
+name: Backend Deployment
+
+on:
+  push:
+    branches:  
+    - main
+    paths:
+      - 'python/*'
+
+
+env:
+    ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}  
+    AWS_REGION: ${{ vars.AWS_REGION }}  # Replace with your AWS region
+    ECR_REPO_URL: ${{ vars.ECR_BACKEND }}  # Replace with your ECR repository URL
+    TF_VAR_password: ${{ secrets.TF_VAR_PASSWORD }}  
+
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  build:
+    environment: dev
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.set-image-tag.outputs.IMAGE_TAG }}
+      latest_tag: ${{ steps.set-latest-tag.outputs.image_tag_frontend }}
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          audience: sts.amazonaws.com
+          role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/terraform-deploy
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Set image tag
+        id: set-image-tag
+        run: echo "IMAGE_TAG=v$(date -u +'%b-%d-%Y-%Hhr-%Mmin')" >> $GITHUB_OUTPUT
+
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build Docker image
+        env:
+          IMAGE_TAG: ${{ steps.set-image-tag.outputs.IMAGE_TAG }}
+        run: |
+          cd ./python
+          docker build -t ${{ env.ECR_REPO_URL }}:${{ env.IMAGE_TAG }} .
+          docker tag ${{ env.ECR_REPO_URL }}:${{ env.IMAGE_TAG }} ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_URL }}:${{ env.IMAGE_TAG }}
+          docker push ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_URL }}:${{ env.IMAGE_TAG }}
+        
+      - name: Set latest frontend image tag
+        id: set-latest-tag
+        run: |
+          LATEST_TAG=$(aws ecr describe-images --repository-name dev-ngnix-indimitra-ecr \
+          --query 'sort_by(imageDetails,& imagePushedAt)[-1].imageTags[0]' \
+          --output text)
+          echo "Latest tag: $LATEST_TAG"
+          echo "image_tag_frontend=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+  update_ecs:
+    needs: build
+    uses: ./.github/workflows/update-ecs-task.yml
+    with:
+      image_tag_backend: ${{ needs.build.outputs.image_tag }}
+      image_tag_frontend: ${{ needs.build.outputs.latest_tag }}
+    secrets: inherit

@@ -10,11 +10,18 @@ terraform {
 
 provider "aws" {
   region = var.region
-  profile = "Nonprod-devops"
+  #Only set profile if needed locally
+  profile = var.aws_profile != "" ? var.aws_profile : null
+
+  # Only assume role if specified (e.g., locally)
   assume_role {
-    role_arn = "arn:aws:iam::783764611086:role/terraform-deploy"
-    session_name = "terraform-deploy"
+    role_arn = var.assume_role_arn != "" ? var.assume_role_arn : null
   }
+
+  # assume_role {
+  #   role_arn = "arn:aws:iam::783764611086:role/terraform-deploy"
+  #   session_name = "terraform-deploy"
+  # }
 }
 
 module "github_oidc" {
@@ -25,7 +32,13 @@ module "github_oidc" {
 
 module "frontend_bucket" {
   source = "../../modules/s3"
-  bucket = var.bucket
+  bucket = "frontend-indimitra"
+  tags = var.s3_tags
+}
+
+module "tf_state_bucket" {
+  source = "../../modules/s3"
+  bucket = "tf-state-indimitra"
   tags = var.s3_tags
 }
 
@@ -163,10 +176,11 @@ module "ecr_ngnix" {
 locals {
   nginx_container = {
     name      = "nginx"
-    image     = "${var.ecr_ngnix}:latest"
+    image     = "${var.ecr_ngnix}:${var.image_tag_frontend}"
     cpu       = 128
     memory    = 256
     essential = true
+    links = ["backend"]
     portMappings = [
       {
         containerPort = 80
@@ -212,8 +226,8 @@ locals {
   }
 
   custom_app_container = {
-    name      = "indimitra-app"
-    image     = "${var.ecr_app}:latest"
+    name      = "backend"
+    image     = "${var.ecr_app}:${var.image_tag_backend}"
     cpu       = 128
     memory    = 256
     essential = true
@@ -260,7 +274,7 @@ locals {
     command = [
       "sh",
       "-c",
-      "cd /app && python -m dev_bootstrap.bootstrap && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+      "cd /app && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     ]
     logConfiguration = {
       logDriver = "awslogs"

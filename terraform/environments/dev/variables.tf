@@ -19,6 +19,18 @@ variable "tags" {
   }
 }
 
+variable "assume_role_arn" {
+  description = "The ARN of the role to assume"
+  type        = string
+  default     = ""
+  
+}
+
+variable "aws_profile" {
+  description = "The AWS profile to use"
+  type        = string
+  default     = ""
+}
 
 ############################################
 # S3 variables
@@ -27,6 +39,7 @@ variable "bucket" {
   description = "The name of the S3 bucket"
   type        = string
 }
+
 
 ############################################
 # RDS variables
@@ -91,7 +104,6 @@ variable "s3_tags" {
   type        = map(string)
   default     = {
     Environment = "dev"
-    Name =""
   }
 }
 
@@ -122,6 +134,18 @@ variable "ecr_ngnix" {
 #   type        = string
 #   default     = "us-east-1"
 # }
+
+variable "image_tag_frontend" {
+  description = "Tag for the frontend Docker image"
+  type        = string
+  default     = "latest"
+}
+
+variable "image_tag_backend" {
+  description = "Tag for the backend Docker image"
+  type        = string
+  default     = "latest"
+}
 
 variable "instance_type" {
   description = "EC2 instance type for ECS nodes"
