@@ -2,11 +2,10 @@ name: Backend Deployment
 
 on:
   push:
-    branches:
-      
-      - feature/deploy-actions
-    # paths:
-    #   - 'python/*'
+    branches:  
+    - main
+    paths:
+      - 'python/*'
 
 
 env:
