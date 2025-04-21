@@ -3,10 +3,9 @@ name: Frontend Deployment
 on:
   push:
     branches:
-      # - main
-      - feature/deploy-actions
-    # paths:
-    #   - 'js/*'    # Only .js files
+      - main
+    paths:
+      - 'js/*'    # Only .js files
 
 env:
     ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}  # Replace with your IAM role ARN
