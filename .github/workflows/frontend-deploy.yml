@@ -6,7 +6,8 @@ on:
       - main
     paths:
       - 'js/*'    # Only .js files
-
+  workflow_dispatch:
+    
 env:
     ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}  # Replace with your IAM role ARN
     AWS_REGION: ${{ vars.AWS_REGION }}  # Replace with your AWS region
