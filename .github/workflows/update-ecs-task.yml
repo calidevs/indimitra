@@ -42,10 +42,10 @@ jobs:
           terraform init 
           terraform plan
           terraform apply -auto-approve
-          aws s3 cp terraform.tfstate s3://tf-state-indimitra/terraform.tfstate
           
       - name: Stop current ECS task
         run: |
           cd ./terraform/
           chmod +x ecs-task-stop.sh
           ./ecs-task-stop.sh
+
