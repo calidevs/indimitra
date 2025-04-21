@@ -5,8 +5,8 @@ on:
     branches:
       - main
       - feature/workflow_dispatch
-    paths:
-      - 'js/*'    # Only .js files
+    # paths:
+    #   - 'js/*'    # Only .js files
   workflow_dispatch:
     
 env:
