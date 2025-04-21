@@ -6,7 +6,7 @@ on:
     - main
     paths:
       - 'python/*'
-
+  workflow_dispatch:
 
 env:
     ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}  
