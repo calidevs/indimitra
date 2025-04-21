@@ -3,9 +3,9 @@ name: Backend Deployment
 on:
   push:
     branches:  
-    - feature/workflow_dispatch
-    # paths:
-    #   - 'python/*'
+      - main
+    paths:
+      - 'python/*'
   workflow_dispatch:
 
 env:
