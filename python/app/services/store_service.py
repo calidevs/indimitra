@@ -27,7 +27,7 @@ def get_stores_by_manager(manager_user_id: int) -> List[StoreModel]:
     finally:
         db.close()
 
-def create_store(name: str, address: str, manager_user_id: int, radius: Optional[float] = None) -> StoreModel:
+def create_store(name: str, address: str, manager_user_id: int, email: str, radius: Optional[float] = None, mobile: Optional[str] = None) -> StoreModel:
     """Create a new store"""
     db = SessionLocal()
     try:
@@ -36,20 +36,38 @@ def create_store(name: str, address: str, manager_user_id: int, radius: Optional
             raise ValueError("Store name cannot be empty")
         if not address or address.strip() == "":
             raise ValueError("Store address cannot be empty")
+        if not email or email.strip() == "":
+            raise ValueError("Store email cannot be empty")
             
         # Normalize input (trim whitespace)
         name = name.strip()
         address = address.strip()
+        email = email.strip()
+        if mobile:
+            mobile = mobile.strip()
         
         # Check if a store with the same name already exists
         existing_store = db.query(StoreModel).filter(StoreModel.name == name).first()
         if existing_store:
             raise ValueError(f"A store with the name '{name}' already exists")
         
+        # Check if a store with the same email already exists
+        existing_email = db.query(StoreModel).filter(StoreModel.email == email).first()
+        if existing_email:
+            raise ValueError(f"A store with the email '{email}' already exists")
+            
+        # Check if a store with the same mobile already exists (if mobile is provided)
+        if mobile:
+            existing_mobile = db.query(StoreModel).filter(StoreModel.mobile == mobile).first()
+            if existing_mobile:
+                raise ValueError(f"A store with the mobile number '{mobile}' already exists")
+        
         # Create the new store
         store = StoreModel(
             name=name,
             address=address,
+            email=email,
+            mobile=mobile,
             managerUserId=manager_user_id,
             radius=radius
         )
@@ -64,6 +82,8 @@ def update_store(
     store_id: int, 
     name: Optional[str] = None, 
     address: Optional[str] = None, 
+    email: Optional[str] = None,
+    mobile: Optional[str] = None,
     manager_user_id: Optional[int] = None, 
     radius: Optional[float] = None
 ) -> Optional[StoreModel]:
@@ -96,6 +116,40 @@ def update_store(
             if address.strip() == "":
                 raise ValueError("Store address cannot be empty")
             store.address = address.strip()
+        
+        # Update email if provided
+        if email is not None:
+            if email.strip() == "":
+                raise ValueError("Store email cannot be empty")
+            email = email.strip()
+            
+            # Check if the new email is already taken by another store
+            if email != store.email:
+                existing = db.query(StoreModel).filter(
+                    StoreModel.email == email,
+                    StoreModel.id != store_id
+                ).first()
+                if existing:
+                    raise ValueError(f"A store with the email '{email}' already exists")
+            store.email = email
+        
+        # Update mobile if provided
+        if mobile is not None:
+            # Allow clearing mobile by setting to empty string
+            if mobile.strip() == "":
+                store.mobile = None
+            else:
+                mobile = mobile.strip()
+                
+                # Check if the new mobile is already taken by another store
+                if mobile != store.mobile:
+                    existing = db.query(StoreModel).filter(
+                        StoreModel.mobile == mobile,
+                        StoreModel.id != store_id
+                    ).first()
+                    if existing:
+                        raise ValueError(f"A store with the mobile number '{mobile}' already exists")
+                store.mobile = mobile
             
         # Update other fields if provided
         if manager_user_id:

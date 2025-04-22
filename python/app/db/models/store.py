@@ -10,6 +10,8 @@ class StoreModel(Base):
     address = Column(String, nullable=False)
     radius = Column(Float, nullable=True)
     managerUserId = Column(Integer, ForeignKey("users.id"), nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    mobile = Column(String, unique=True, nullable=True)
     
     # Relationships
     manager = relationship("UserModel", back_populates="stores")
