@@ -12,7 +12,9 @@ env:
     ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}  # Replace with your IAM role ARN
     AWS_REGION: ${{ vars.AWS_REGION }}  # Replace with your AWS region
     ECR_REPO_URL: ${{ vars.ECR_FRONTEND }} # Replace with your ECR repository URL
-    TF_VAR_password: ${{ secrets.TF_VAR_PASSWORD }}  # Replace with your IAM role ARN
+    TF_VAR_password: ${{ secrets.TF_VAR_PASSWORD }} 
+    TF_VAR_COGNITO_USER_POOL_CLIENT_ID: ${{ secrets.TF_VAR_COGNITO_USER_POOL_CLIENT_ID }}
+    TF_VAR_COGNITO_USER_POOL_ID: ${{ secrets.TF_VAR_COGNITO_USER_POOL_ID }}
 
 permissions:
   id-token: write

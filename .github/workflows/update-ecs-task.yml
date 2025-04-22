@@ -7,6 +7,10 @@ on:
             required: true
         TF_VAR_password:
             required: true
+        TF_VAR_COGNITO_USER_POOL_CLIENT_ID:
+            required: true
+        TF_VAR_COGNITO_USER_POOL_ID:
+            required: true
 
 permissions:
     id-token: write
@@ -19,6 +23,8 @@ jobs:
       TF_VAR_password: ${{ secrets.TF_VAR_password }}
       TF_VAR_image_tag_frontend: latest
       TF_VAR_image_tag_backend: latest
+      TF_VAR_COGNITO_USER_POOL_CLIENT_ID: ${{ secrets.TF_VAR_COGNITO_USER_POOL_CLIENT_ID }}
+      TF_VAR_COGNITO_USER_POOL_ID: ${{ secrets.TF_VAR_COGNITO_USER_POOL_ID }}
 
     steps:        
       - name: Checkout branch
