@@ -13,6 +13,16 @@ def get_all_products():
 def create_product(name: str, description: str, category_id: int):
     db = SessionLocal()
     try:
+        # Validate required fields
+        if not name or name.strip() == "":
+            raise ValueError("Product name cannot be empty")
+        if not description or description.strip() == "":
+            raise ValueError("Product description cannot be empty")
+            
+        # Normalize input (trim whitespace)
+        name = name.strip()
+        description = description.strip()
+        
         # Check if the category exists
         category = db.query(CategoryModel).get(category_id)
         if not category:
