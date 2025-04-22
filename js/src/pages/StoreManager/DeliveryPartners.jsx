@@ -32,24 +32,18 @@ import fetchGraphQL from '@/config/graphql/graphqlService';
 
 // Define the GraphQL query for getting drivers by store
 const GET_DRIVERS_BY_STORE = `
-  query GetDriversByStore($storeId: Int!) {
-    getDriversByStore(storeId: $storeId) {
+  query GetStoreDrivers($storeId: Int!) {
+    getStoreDrivers(storeId: $storeId) {
       id
-      name
+      userId
+      driver {
+      id
       email
-      phone
-      status
-      orders {
-        id
-        status
-        totalAmount
-        deliveryDate
-        createdAt
-        user {
-          id
-          name
-        }
-      }
+      mobile
+      active
+      referralId
+      referredBy
+    }
     }
   }
 `;
@@ -62,13 +56,7 @@ const GET_ALL_ORDERS = `
       status
       totalAmount
       deliveryDate
-      createdAt
       storeId
-      driverId
-      user {
-        id
-        name
-      }
     }
   }
 `;
@@ -328,7 +316,7 @@ const DeliveryPartners = () => {
         ) : (
           <>
             <Typography variant="h6" gutterBottom>
-              Delivery Partners ({filterDrivers(driversData?.getDriversByStore || []).length})
+              Delivery Partners ({filterDrivers(driversData?.getStoreDrivers || []).length})
             </Typography>
             <TableContainer component={Paper}>
               <Table>
@@ -344,17 +332,17 @@ const DeliveryPartners = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filterDrivers(driversData?.getDriversByStore || []).map((driver) => (
+                  {filterDrivers(driversData?.getStoreDrivers || []).map((driver) => (
                     <React.Fragment key={driver.id}>
                       <TableRow>
-                        <TableCell>{driver.id}</TableCell>
+                        <TableCell>{driver?.userId}</TableCell>
                         <TableCell>{driver.name}</TableCell>
-                        <TableCell>{driver.email}</TableCell>
-                        <TableCell>{driver.phone}</TableCell>
+                        <TableCell>{driver?.driver?.email}</TableCell>
+                        <TableCell>{driver?.driver?.mobile}</TableCell>
                         <TableCell>
                           <Chip
-                            label={driver.status}
-                            color={getStatusColor(driver.status)}
+                            label={driver?.driver?.active ? 'Active' : 'Inactive'}
+                            color={getStatusColor(driver?.driver?.active)}
                             size="small"
                           />
                         </TableCell>
@@ -429,7 +417,7 @@ const DeliveryPartners = () => {
                       )}
                     </React.Fragment>
                   ))}
-                  {filterDrivers(driversData?.getDriversByStore || []).length === 0 && (
+                  {filterDrivers(driversData?.getStoreDrivers || []).length === 0 && (
                     <TableRow>
                       <TableCell colSpan={7} align="center">
                         No delivery partners found with the current filters.
