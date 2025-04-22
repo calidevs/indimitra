@@ -9,14 +9,35 @@ from app.graphql.resolvers.address_resolver import AddressQuery, AddressMutation
 from app.graphql.resolvers.inventory_resolver import InventoryQuery, InventoryMutation
 from app.graphql.resolvers.store_resolver import StoreQuery, StoreMutation
 from app.graphql.resolvers.store_driver_resolver import StoreDriverQuery, StoreDriverMutation
+from app.graphql.resolvers.category_resolver import CategoryQuery, CategoryMutation
 
 
 @strawberry.type
-class Query(UserQuery, ProductQuery, OrderQuery, DeliveryQuery, AddressQuery, InventoryQuery, StoreQuery, StoreDriverQuery):
+class Query(
+    UserQuery, 
+    ProductQuery, 
+    OrderQuery, 
+    DeliveryQuery, 
+    AddressQuery, 
+    InventoryQuery, 
+    StoreQuery, 
+    StoreDriverQuery,
+    CategoryQuery
+):
     pass
 
 @strawberry.type
-class Mutation(UserMutation, ProductMutation, OrderMutation, DeliveryMutation, AddressMutation, InventoryMutation, StoreMutation, StoreDriverMutation):
+class Mutation(
+    UserMutation, 
+    ProductMutation, 
+    OrderMutation, 
+    DeliveryMutation, 
+    AddressMutation, 
+    InventoryMutation, 
+    StoreMutation, 
+    StoreDriverMutation,
+    CategoryMutation
+):
     pass
 
 # Finalize the mapper so that all decorated types are registered.
