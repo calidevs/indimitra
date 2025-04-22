@@ -190,3 +190,12 @@ variable "scan_on_push" {
   default     = true
 }
 
+variable "COGNITO_USER_POOL_ID" {
+  description = "Cognito User Pool ID"
+  type        = string
+}
+
+variable "COGNITO_USER_POOL_CLIENT_ID" {
+  description = "Cognito Client ID"
+  type        = string
+}
