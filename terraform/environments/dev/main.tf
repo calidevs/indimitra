@@ -269,6 +269,18 @@ locals {
       {
         name  = "POSTGRES_PORT"
         value = "5432"
+      },
+      {
+        name =  "AWS_REGION"
+        value = "us-east-1"
+      },
+      {
+        name = "COGNITO_USER_POOL_ID"
+        value = "${var.COGNITO_USER_POOL_ID}"
+      },
+      {
+        name = "COGNITO_USER_POOL_CLIENT_ID"
+        value = "${var.COGNITO_USER_POOL_CLIENT_ID}"
       }
     ]
     command = [
