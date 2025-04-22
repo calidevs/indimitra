@@ -51,6 +51,23 @@ def get_all_orders() -> List[OrderModel]:
     finally:
         db.close()
 
+def get_orders_by_store(store_id: int) -> List[OrderModel]:
+    """
+    Get all orders for a specific store
+    
+    Args:
+        store_id: The ID of the store to get orders for
+        
+    Returns:
+        A list of orders for the specified store
+    """
+    db = SessionLocal()
+    try:
+        orders = db.query(OrderModel).filter(OrderModel.storeId == store_id).all()
+        return orders
+    finally:
+        db.close()
+
 def create_order(user_id: int, address_id: int, store_id: int, product_items: List[dict]) -> OrderModel:
     """
     Create a new order with multiple order items
