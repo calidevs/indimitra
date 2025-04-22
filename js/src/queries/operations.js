@@ -262,13 +262,11 @@ export const GET_STORE_INFO = `
 `;
 
 export const GET_STORE_INVENTORY = `
-  query GetStoreInventory($storeId: Int!) {
-    getStoreInventory(storeId: $storeId) {
+  query GetInventoryByStore($storeId: Int!) {
+    getInventoryByStore(storeId: $storeId) {
       id
       quantity
       price
-      size
-      measurement_unit
       updatedAt
       product {
         id
@@ -296,11 +294,29 @@ export const UPDATE_INVENTORY_ITEM = `
 `;
 
 export const ADD_PRODUCT_TO_INVENTORY = `
-  mutation AddProductToInventory($storeId: Int!, $productId: Int!, $price: Float!, $quantity: Int!, $size: Float, $measurement_unit: Int) {
-    addProductToInventory(storeId: $storeId, productId: $productId, price: $price, quantity: $quantity, size: $size, measurement_unit: $measurement_unit) {
+  mutation AddProductToInventory(
+    $productId: Int!
+    $storeId: Int!
+    $price: Float!
+    $quantity: Int!
+    $measurement: Int
+    $unit: String
+  ) {
+    addProductToInventory(
+      productId: $productId
+      storeId: $storeId
+      price: $price
+      quantity: $quantity
+      measurement: $measurement
+      unit: $unit
+    ) {
       id
+      measurement
       price
+      productId
       quantity
+      storeId
+      unit
     }
   }
 `;
@@ -427,8 +443,8 @@ export const GET_PRODUCTS = `
 `;
 
 export const CREATE_PRODUCT = `
-  mutation CreateProduct($input: CreateProductInput!) {
-    createProduct(input: $input) {
+  mutation CreateProduct($name: String!, $description: String!, $categoryId: Int!) {
+    createProduct(name: $name, description: $description, categoryId: $categoryId) {
       id
       name
       description

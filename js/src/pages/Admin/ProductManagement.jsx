@@ -69,7 +69,7 @@ const ProductManagement = () => {
 
   // Create product mutation
   const createProductMutation = useMutation({
-    mutationFn: (data) => fetchGraphQL(CREATE_PRODUCT, { input: data }),
+    mutationFn: (data) => fetchGraphQL(CREATE_PRODUCT, data),
     onSuccess: () => {
       refetch();
       handleCloseDialog();
@@ -129,7 +129,12 @@ const ProductManagement = () => {
     if (editingProduct) {
       updateProductMutation.mutate({ id: editingProduct.id, data: formData });
     } else {
-      createProductMutation.mutate(formData);
+      // Convert categoryId to integer
+      const mutationData = {
+        ...formData,
+        categoryId: parseInt(formData.categoryId, 10),
+      };
+      createProductMutation.mutate(mutationData);
     }
   };
 

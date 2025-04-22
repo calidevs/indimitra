@@ -28,6 +28,7 @@ import {
   Payment as PaymentIcon,
   Storefront as StorefrontIcon,
   Person as PersonIcon,
+  Category as CategoryIcon,
 } from '@mui/icons-material';
 import Header from '@/components/layout/Header';
 
@@ -38,6 +39,7 @@ import ProductManagement from './ProductManagement';
 import Orders from './Orders';
 import PaymentOnboarding from './PaymentOnboarding';
 import Dashboard from './Dashboard';
+import InventoryManagement from './InventoryManagement';
 
 const DRAWER_WIDTH = 240;
 const COLLAPSED_DRAWER_WIDTH = 65;
@@ -46,6 +48,7 @@ const menuItems = [
   { text: 'Dashboard', icon: <DashboardIcon />, path: '/admin/dashboard' },
   { text: 'Stores', icon: <StoreIcon />, path: '/admin/stores' },
   { text: 'Product Management', icon: <InventoryIcon />, path: '/admin/products' },
+  { text: 'Inventory Management', icon: <CategoryIcon />, path: '/admin/inventory' },
   { text: 'Orders', icon: <OrdersIcon />, path: '/admin/orders' },
   { text: 'Users', icon: <PeopleIcon />, path: '/admin/users' },
   { text: 'Payment Onboarding', icon: <PaymentIcon />, path: '/admin/payment-onboarding' },
@@ -218,6 +221,7 @@ const AdminDashboard = () => {
           <Route path="users/*" element={<UserManagement />} />
           <Route path="stores/*" element={<StoreManagement />} />
           <Route path="products" element={<ProductManagement />} />
+          <Route path="inventory" element={<InventoryManagement />} />
           <Route path="orders" element={<Orders />} />
           <Route path="payment-onboarding" element={<PaymentOnboarding />} />
           {/* Add more routes as needed */}

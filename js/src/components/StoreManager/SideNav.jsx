@@ -34,7 +34,6 @@ const menuItems = [
   { text: 'Orders', icon: <OrdersIcon />, path: ROUTES.STORE_ORDERS },
   { text: 'Delivery Partners', icon: <DeliveryIcon />, path: '/store_manager/delivery-partners' },
   { text: 'Inventory', icon: <InventoryIcon />, path: '/store_manager/inventory' },
-  { text: 'Customers', icon: <CustomersIcon />, path: '/store_manager/customers' },
   { text: 'Settings', icon: <SettingsIcon />, path: '/store_manager/settings' },
 ];
 
