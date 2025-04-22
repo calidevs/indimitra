@@ -13,7 +13,8 @@ from app.services.order_service import (
     get_order_by_id, 
     create_order, 
     cancel_order, 
-    update_order_status
+    update_order_status,
+    get_orders_by_store
 )
 from app.services.delivery_service import assign_delivery
 
@@ -35,6 +36,11 @@ class OrderQuery:
     def getOrdersByUser(self, userId: int) -> List[Order]:
         """Fetch all orders placed by a specific user"""
         return get_orders_by_user(user_id=userId)
+    
+    @strawberry.field
+    def getOrdersByStore(self, storeId: int) -> List[Order]:
+        """Fetch all orders for a specific store"""
+        return get_orders_by_store(store_id=storeId)
 
 
 # ✅ Input Type for Order Items
