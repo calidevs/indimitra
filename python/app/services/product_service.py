@@ -43,11 +43,20 @@ def create_product(name: str, description: str, category_id: int):
 def delete_product(product_id: int) -> bool:
     db = SessionLocal()
     try:
+        # Check if product exists
         product = db.query(ProductModel).get(product_id)
         if not product:
             return False
+            
+        # Delete associated inventory items first
+        db.query(InventoryModel).filter(InventoryModel.productId == product_id).delete()
+        
+        # Delete the product
         db.delete(product)
         db.commit()
         return True
+    except Exception as e:
+        db.rollback()
+        raise ValueError(f"Failed to delete product: {str(e)}")
     finally:
         db.close()
