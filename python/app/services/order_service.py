@@ -68,7 +68,7 @@ def get_orders_by_store(store_id: int) -> List[OrderModel]:
     finally:
         db.close()
 
-def create_order(user_id: int, address_id: int, store_id: int, product_items: List[dict]) -> OrderModel:
+def create_order(user_id: int, address_id: int, store_id: int, product_items: List[dict], delivery_instructions: Optional[str] = None) -> OrderModel:
     """
     Create a new order with multiple order items
     
@@ -77,6 +77,7 @@ def create_order(user_id: int, address_id: int, store_id: int, product_items: Li
         address_id: The ID of the delivery address
         store_id: The ID of the store the order is being placed from
         product_items: List of product items [{"product_id": int, "quantity": int}, ...]
+        delivery_instructions: Optional special instructions for delivery
     
     Returns:
         The created order
@@ -122,7 +123,8 @@ def create_order(user_id: int, address_id: int, store_id: int, product_items: Li
             storeId=store_id,
             status=OrderStatus.PENDING,
             totalAmount=total_amount,
-            deliveryDate=None
+            deliveryDate=None,
+            deliveryInstructions=delivery_instructions
         )
         
         db.add(order)
@@ -147,13 +149,14 @@ def create_order(user_id: int, address_id: int, store_id: int, product_items: Li
     finally:
         db.close()
 
-def update_order_status(order_id: int, status: str) -> Optional[OrderModel]:
+def update_order_status(order_id: int, status: str, delivery_instructions: Optional[str] = None) -> Optional[OrderModel]:
     """
     Update order status and prevent overwriting if already assigned.
 
     Args:
         order_id: Order ID to update
         status: The new status
+        delivery_instructions: Optional delivery instructions to update
 
     Returns:
         Updated order or None if not found
@@ -164,11 +167,16 @@ def update_order_status(order_id: int, status: str) -> Optional[OrderModel]:
         if not order:
             return None
 
+        # Update delivery instructions if provided
+        if delivery_instructions is not None:
+            order.deliveryInstructions = delivery_instructions
+
         # ✅ Only update if status is different
         if order.status != status:
             order.status = OrderStatus(status)
-            db.commit()
-            db.refresh(order)
+            
+        db.commit()
+        db.refresh(order)
 
         return order
     finally:
