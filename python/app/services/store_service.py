@@ -31,6 +31,16 @@ def create_store(name: str, address: str, manager_user_id: int, radius: Optional
     """Create a new store"""
     db = SessionLocal()
     try:
+        # Validate required fields
+        if not name or name.strip() == "":
+            raise ValueError("Store name cannot be empty")
+        if not address or address.strip() == "":
+            raise ValueError("Store address cannot be empty")
+            
+        # Normalize input (trim whitespace)
+        name = name.strip()
+        address = address.strip()
+        
         # Check if a store with the same name already exists
         existing_store = db.query(StoreModel).filter(StoreModel.name == name).first()
         if existing_store:
@@ -65,19 +75,29 @@ def update_store(
         if not store:
             return None
         
-        # Check if the new name is already taken by another store
-        if name and name != store.name:
-            existing = db.query(StoreModel).filter(
-                StoreModel.name == name,
-                StoreModel.id != store_id
-            ).first()
-            if existing:
-                raise ValueError(f"A store with the name '{name}' already exists")
+        # Validate and normalize inputs
+        if name is not None:
+            if name.strip() == "":
+                raise ValueError("Store name cannot be empty")
+            name = name.strip()
+            
+            # Check if the new name is already taken by another store
+            if name != store.name:
+                existing = db.query(StoreModel).filter(
+                    StoreModel.name == name,
+                    StoreModel.id != store_id
+                ).first()
+                if existing:
+                    raise ValueError(f"A store with the name '{name}' already exists")
             store.name = name
         
+        # Update address if provided
+        if address is not None:
+            if address.strip() == "":
+                raise ValueError("Store address cannot be empty")
+            store.address = address.strip()
+            
         # Update other fields if provided
-        if address:
-            store.address = address
         if manager_user_id:
             store.managerUserId = manager_user_id
         if radius is not None:  # Allow setting radius to 0

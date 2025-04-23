@@ -5,6 +5,13 @@ from app.db.models.address import AddressModel
 def create_address(address: str, user_id: int, is_primary: bool = False) -> AddressModel:
     db = SessionLocal()
     try:
+        # Validate required fields
+        if not address or address.strip() == "":
+            raise ValueError("Address cannot be empty")
+            
+        # Normalize input
+        address = address.strip()
+        
         # Check if this address already exists for this user
         existing_address = db.query(AddressModel).filter(
             AddressModel.userId == user_id,
@@ -64,42 +71,50 @@ def update_address(address_id: int, address: str = None, is_primary: bool = None
             return None
 
         # If we're updating the address text, check for duplicates
-        if address is not None and address != addr.address:
-            # Check if the new address text already exists for this user
-            existing_address = db.query(AddressModel).filter(
-                AddressModel.userId == addr.userId,
-                AddressModel.address == address,
-                AddressModel.id != addr.id  # Exclude current address
-            ).first()
-            
-            if existing_address:
-                # Instead of creating a duplicate, we could:
-                # 1. Return the existing address (current implementation)
-                # 2. Raise an error
-                # 3. Merge the records
+        if address is not None:
+            # Validate address
+            if address.strip() == "":
+                raise ValueError("Address cannot be empty")
                 
-                # For now, let's handle primary flag transfer and return existing
-                if is_primary and is_primary is True:
-                    # Update primary status on the existing address
-                    db.query(AddressModel).filter(
-                        AddressModel.userId == addr.userId,
-                        AddressModel.id != existing_address.id
-                    ).update({"isPrimary": False})
-                    
-                    existing_address.isPrimary = True
-                    
-                    # Delete the current address since we're effectively merging
-                    db.delete(addr)
-                    db.commit()
-                    db.refresh(existing_address)
-                    
-                    return existing_address
-                else:
-                    # Just return the existing address without changes
-                    return existing_address
+            # Normalize input
+            address = address.strip()
             
-            # No duplicate found, update the address text
-            addr.address = address
+            if address != addr.address:
+                # Check if the new address text already exists for this user
+                existing_address = db.query(AddressModel).filter(
+                    AddressModel.userId == addr.userId,
+                    AddressModel.address == address,
+                    AddressModel.id != addr.id  # Exclude current address
+                ).first()
+                
+                if existing_address:
+                    # Instead of creating a duplicate, we could:
+                    # 1. Return the existing address (current implementation)
+                    # 2. Raise an error
+                    # 3. Merge the records
+                    
+                    # For now, let's handle primary flag transfer and return existing
+                    if is_primary and is_primary is True:
+                        # Update primary status on the existing address
+                        db.query(AddressModel).filter(
+                            AddressModel.userId == addr.userId,
+                            AddressModel.id != existing_address.id
+                        ).update({"isPrimary": False})
+                        
+                        existing_address.isPrimary = True
+                        
+                        # Delete the current address since we're effectively merging
+                        db.delete(addr)
+                        db.commit()
+                        db.refresh(existing_address)
+                        
+                        return existing_address
+                    else:
+                        # Just return the existing address without changes
+                        return existing_address
+                
+                # No duplicate found, update the address text
+                addr.address = address
             
         # Handle primary address logic
         if is_primary is not None and is_primary is True:
