@@ -40,6 +40,7 @@ import Orders from './Orders';
 import PaymentOnboarding from './PaymentOnboarding';
 import Dashboard from './Dashboard';
 import InventoryManagement from './InventoryManagement';
+import CategoryManagement from './CategoryManagement';
 
 const DRAWER_WIDTH = 240;
 const COLLAPSED_DRAWER_WIDTH = 65;
@@ -53,6 +54,7 @@ const menuItems = [
   { text: 'Users', icon: <PeopleIcon />, path: '/admin/users' },
   { text: 'Payment Onboarding', icon: <PaymentIcon />, path: '/admin/payment-onboarding' },
   { text: 'Settings', icon: <SettingsIcon />, path: '/admin/settings' },
+  { text: 'Categories', icon: <CategoryIcon />, path: '/admin/categories' },
 ];
 
 const AdminDashboard = () => {
@@ -224,7 +226,7 @@ const AdminDashboard = () => {
           <Route path="inventory" element={<InventoryManagement />} />
           <Route path="orders" element={<Orders />} />
           <Route path="payment-onboarding" element={<PaymentOnboarding />} />
-          {/* Add more routes as needed */}
+          <Route path="categories" element={<CategoryManagement />} />
         </Routes>
       </Box>
     </Box>

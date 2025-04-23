@@ -278,18 +278,6 @@ const ProductManagement = () => {
           <AddIcon sx={{ mr: 1 }} />
           <Typography variant="h5">Product Management</Typography>
         </Box>
-
-        {/* Add Category Button */}
-        <Box sx={{ mb: 3 }}>
-          <Button
-            variant="outlined"
-            startIcon={<AddIcon />}
-            onClick={() => setCategoryDialogOpen(true)}
-          >
-            Add New Category
-          </Button>
-        </Box>
-
         {/* Filters */}
         <Grid container spacing={2} sx={{ mb: 3 }}>
           <Grid item xs={12} md={4}>
