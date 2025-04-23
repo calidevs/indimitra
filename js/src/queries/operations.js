@@ -433,11 +433,18 @@ export const GET_STORES = `
 export const GET_PRODUCTS = `
   query GetProducts {
     products {
-      categoryId
-      description
       id
-      image
       name
+      description
+      categoryId
+      image
+      inventoryItems {
+        edges {
+          node {
+            id
+          }
+        }
+      }
     }
   }
 `;
@@ -467,8 +474,8 @@ export const UPDATE_PRODUCT = `
 `;
 
 export const DELETE_PRODUCT = `
-  mutation DeleteProduct($id: ID!) {
-    deleteProduct(id: $id)
+  mutation DeleteProduct($productId: Int!) {
+    deleteProduct(productId: $productId)
   }
 `;
 

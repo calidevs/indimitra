@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   Box,
@@ -25,6 +25,7 @@ import {
   Select,
   MenuItem,
   Chip,
+  TablePagination,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -35,16 +36,27 @@ import {
 } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_PRODUCTS, CREATE_PRODUCT, UPDATE_PRODUCT, DELETE_PRODUCT } from '@/queries/operations';
+import graphqlService from '@/config/graphql/graphqlService';
 
-// Category mapping for display
-const CATEGORY_MAP = {
-  1: 'Rice',
-  2: 'Pulses',
-  3: 'Flour',
-  4: 'Snacks',
-  5: 'Oils',
-  6: 'Spices',
-};
+const GET_CATEGORIES = `
+  query GetCategories {
+    categories {
+      id
+      name
+    }
+  }
+`;
+
+const CREATE_CATEGORY = `
+  mutation CreateCategory($name: String!) {
+    createCategory(name: $name) {
+      category {
+        id
+        name
+      }
+    }
+  }
+`;
 
 const ProductManagement = () => {
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -59,12 +71,27 @@ const ProductManagement = () => {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [categoryError, setCategoryError] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [allProducts, setAllProducts] = useState([]);
 
-  // Fetch products
+  // Fetch all products at once
   const { data: productsData, refetch } = useQuery({
     queryKey: ['products', selectedCategory],
-    queryFn: () => fetchGraphQL(GET_PRODUCTS),
-    enabled: false, // Don't fetch automatically
+    queryFn: () => graphqlService(GET_PRODUCTS),
+    enabled: false,
+  });
+
+  // Fetch categories with proper refetch function
+  const { data: categoriesData, refetch: refetchCategories } = useQuery({
+    queryKey: ['categories'],
+    queryFn: async () => {
+      const result = await graphqlService(GET_CATEGORIES);
+      return result.categories || [];
+    },
   });
 
   // Create product mutation
@@ -87,11 +114,34 @@ const ProductManagement = () => {
 
   // Delete product mutation
   const deleteProductMutation = useMutation({
-    mutationFn: (id) => fetchGraphQL(DELETE_PRODUCT, { id }),
+    mutationFn: (productId) => graphqlService(DELETE_PRODUCT, { productId }),
     onSuccess: () => {
       refetch();
     },
   });
+
+  // Create category mutation with proper refetch
+  const createCategoryMutation = useMutation({
+    mutationFn: (name) => graphqlService(CREATE_CATEGORY, { name }),
+    onSuccess: () => {
+      setCategoryDialogOpen(false);
+      setNewCategoryName('');
+      setCategoryError('');
+      refetchCategories(); // Refetch categories after successful creation
+    },
+    onError: (error) => {
+      setCategoryError(error.message || 'Failed to create category');
+    },
+  });
+
+  // Create category mapping from fetched data
+  const CATEGORY_MAP = useMemo(() => {
+    if (!categoriesData) return {};
+    return categoriesData.reduce((acc, category) => {
+      acc[category.id] = category.name;
+      return acc;
+    }, {});
+  }, [categoriesData]);
 
   const handleOpenDialog = (product = null) => {
     if (product) {
@@ -139,47 +189,87 @@ const ProductManagement = () => {
   };
 
   const handleDelete = (id) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      deleteProductMutation.mutate(id);
+    // First check if the product has inventory items
+    const product = allProducts.find((p) => p.id === id);
+    const hasInventory = product?.inventoryItems?.edges?.length > 0;
+
+    if (hasInventory) {
+      const confirmForceDelete = window.confirm(
+        'This product has inventory items. Deleting it will also remove all associated inventory items. Are you sure you want to proceed?'
+      );
+
+      if (!confirmForceDelete) {
+        return;
+      }
+    } else {
+      const confirmDelete = window.confirm('Are you sure you want to delete this product?');
+
+      if (!confirmDelete) {
+        return;
+      }
     }
+
+    // Proceed with deletion
+    deleteProductMutation.mutate(parseInt(id, 10));
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    if (name === 'categoryId' && value === 'new') {
+      setCategoryDialogOpen(true);
+      return;
+    }
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
   };
 
+  // Update handleFetchProducts to store all products
   const handleFetchProducts = () => {
     setIsLoading(true);
     setError(null);
 
-    // Simulate API call with setTimeout
-    setTimeout(() => {
-      try {
-        // In a real app, this would be an API call
-        refetch()
-          .then(() => {
-            setDataLoaded(true);
-            setIsLoading(false);
-          })
-          .catch((err) => {
-            setError('Failed to load products. Please try again.');
-            setIsLoading(false);
-          });
-      } catch (err) {
+    refetch()
+      .then((result) => {
+        if (result.data?.products) {
+          setAllProducts(result.data.products);
+        }
+        setDataLoaded(true);
+        setIsLoading(false);
+      })
+      .catch((err) => {
         setError('Failed to load products. Please try again.');
         setIsLoading(false);
-      }
-    }, 1000);
+      });
   };
 
-  // Filter products based on selected category
-  const filteredProducts = productsData?.products?.filter(
-    (product) => !selectedCategory || product.categoryId === parseInt(selectedCategory)
-  );
+  const handleCreateCategory = () => {
+    if (!newCategoryName.trim()) {
+      setCategoryError('Category name is required');
+      return;
+    }
+    createCategoryMutation.mutate(newCategoryName.trim());
+  };
+
+  // Filter and paginate products on the client side
+  const filteredProducts = useMemo(() => {
+    const filtered = allProducts.filter(
+      (product) => !selectedCategory || product.categoryId === parseInt(selectedCategory)
+    );
+    const start = page * rowsPerPage;
+    return filtered.slice(start, start + rowsPerPage);
+  }, [allProducts, selectedCategory, page, rowsPerPage]);
+
+  // Simple pagination handlers that only update state
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
   return (
     <Box>
@@ -187,6 +277,17 @@ const ProductManagement = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
           <AddIcon sx={{ mr: 1 }} />
           <Typography variant="h5">Product Management</Typography>
+        </Box>
+
+        {/* Add Category Button */}
+        <Box sx={{ mb: 3 }}>
+          <Button
+            variant="outlined"
+            startIcon={<AddIcon />}
+            onClick={() => setCategoryDialogOpen(true)}
+          >
+            Add New Category
+          </Button>
         </Box>
 
         {/* Filters */}
@@ -280,7 +381,9 @@ const ProductManagement = () => {
                           />
                         </TableCell>
                         <TableCell>{product.name}</TableCell>
-                        <TableCell>{CATEGORY_MAP[product.categoryId] || 'Unknown'}</TableCell>
+                        <TableCell>
+                          {CATEGORY_MAP[product.categoryId] || 'Unknown Category'}
+                        </TableCell>
                         <TableCell>{product.description}</TableCell>
                         <TableCell>
                           <IconButton size="small" onClick={() => handleOpenDialog(product)}>
@@ -295,6 +398,15 @@ const ProductManagement = () => {
                   )}
                 </TableBody>
               </Table>
+              <TablePagination
+                component="div"
+                count={allProducts.length}
+                page={page}
+                onPageChange={handleChangePage}
+                rowsPerPage={rowsPerPage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                rowsPerPageOptions={[5, 10, 25, 50]}
+              />
             </TableContainer>
           </>
         )}
@@ -324,11 +436,20 @@ const ProductManagement = () => {
                   onChange={handleChange}
                   label="Category"
                 >
+                  <MenuItem value="">
+                    <em>Select a category</em>
+                  </MenuItem>
                   {Object.entries(CATEGORY_MAP).map(([id, name]) => (
                     <MenuItem key={id} value={id}>
                       {name}
                     </MenuItem>
                   ))}
+                  <MenuItem value="new" sx={{ borderTop: '1px solid #e0e0e0', mt: 1 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', color: 'primary.main' }}>
+                      <AddIcon sx={{ mr: 1 }} />
+                      Add New Category
+                    </Box>
+                  </MenuItem>
                 </Select>
               </FormControl>
             </Grid>
@@ -370,6 +491,38 @@ const ProductManagement = () => {
             ) : (
               'Add'
             )}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Category Dialog */}
+      <Dialog open={categoryDialogOpen} onClose={() => setCategoryDialogOpen(false)}>
+        <DialogTitle>Add New Category</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Category Name"
+            fullWidth
+            value={newCategoryName}
+            onChange={(e) => setNewCategoryName(e.target.value)}
+            error={!!categoryError}
+            helperText={categoryError}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handleCreateCategory();
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCategoryDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={handleCreateCategory}
+            variant="contained"
+            disabled={createCategoryMutation.isLoading}
+          >
+            {createCategoryMutation.isLoading ? 'Creating...' : 'Create'}
           </Button>
         </DialogActions>
       </Dialog>
