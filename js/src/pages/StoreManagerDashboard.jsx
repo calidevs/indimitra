@@ -31,6 +31,7 @@ import {
   MenuList,
   ListItemText,
   ListItemIcon,
+  TablePagination,
 } from '@mui/material';
 import { Edit, KeyboardArrowDown, KeyboardArrowUp, Add } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
@@ -66,6 +67,8 @@ const StoreManagerDashboard = () => {
   const [filteredProducts, setFilteredProducts] = useState([]);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const anchorRef = useRef(null);
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   // Fetch Cognito ID on component mount
   useEffect(() => {
@@ -178,6 +181,21 @@ const StoreManagerDashboard = () => {
 
     return matchesSearch && matchesStock;
   });
+
+  // Create paginated inventory
+  const paginatedInventory = React.useMemo(() => {
+    return filteredInventory.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
+  }, [filteredInventory, page, rowsPerPage]);
+
+  // Handle pagination change
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
 
   const handleEditClick = (item) => {
     setSelectedItem(item);
@@ -432,7 +450,7 @@ const StoreManagerDashboard = () => {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {filteredInventory.map((item) => {
+                      {paginatedInventory.map((item) => {
                         const isLowStock = item.quantity <= lowStockThreshold;
                         return (
                           <React.Fragment key={item.id}>
@@ -513,6 +531,15 @@ const StoreManagerDashboard = () => {
                   </Table>
                 </TableContainer>
               )}
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25, 50]}
+                component="div"
+                count={filteredInventory.length}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+              />
             </>
           )}
         </Paper>
