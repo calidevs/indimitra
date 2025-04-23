@@ -1,15 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Box,
   Typography,
-  Paper,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
   TableRow,
+  Paper,
   IconButton,
   Chip,
   Dialog,
@@ -19,147 +18,163 @@ import {
   Button,
   TextField,
   MenuItem,
-  CircularProgress,
   Alert,
+  CircularProgress,
+  Grid,
+  Card,
+  CardContent,
+  TablePagination,
+  InputAdornment,
+  Tooltip,
 } from '@mui/material';
 import {
   Edit as EditIcon,
   Cancel as CancelIcon,
   ExpandMore as ExpandMoreIcon,
   ExpandLess as ExpandLessIcon,
+  Search as SearchIcon,
+  FilterList as FilterIcon,
+  Sort as SortIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/useStore';
-import { UPDATE_ORDER_STATUS, CANCEL_ORDER } from '@/queries/operations';
 import Layout from '@/components/StoreManager/Layout';
-import fetchGraphQL from '@/config/graphql/graphqlService';
+import { useQuery } from '@tanstack/react-query';
+import { fetchUserAttributes } from 'aws-amplify/auth';
+import graphqlService from '@/config/graphql/graphqlService';
 
 const ORDER_STATUSES = [
-  { value: 'PENDING', label: 'Pending' },
-  { value: 'PROCESSING', label: 'Processing' },
-  { value: 'READY_FOR_DELIVERY', label: 'Ready for Delivery' },
-  { value: 'OUT_FOR_DELIVERY', label: 'Out for Delivery' },
-  { value: 'DELIVERED', label: 'Delivered' },
-  { value: 'CANCELLED', label: 'Cancelled' },
+  { value: 'PENDING', label: 'Pending', color: 'warning' },
+  { value: 'CONFIRMED', label: 'Confirmed', color: 'info' },
+  { value: 'PREPARING', label: 'Preparing', color: 'primary' },
+  { value: 'READY', label: 'Ready', color: 'success' },
+  { value: 'DELIVERED', label: 'Delivered', color: 'success' },
+  { value: 'CANCELLED', label: 'Cancelled', color: 'error' },
 ];
 
-// Define the GraphQL query for getting store orders
-const GET_STORE_ORDERS = `
-  query GetOrdersByStore($storeId: Int!) {
-    getOrdersByStore(storeId: $storeId) {
+const GET_USER_PROFILE = `
+  query GetUserProfile($userId: String!) {
+    getUserProfile(userId: $userId) {
       id
-      address { 
-        id
-        address
-        isPrimary
-      }
-      status
-      totalAmount
-      deliveryDate
-      createdAt
-      user {
-        id
-        name
-      }
-      orderItems {
-        id
-        quantity
-        price
-        product {
-          id
-          name
+      email
+      type
+      stores {
+        edges {
+          node {
+            id
+            name
+          }
         }
       }
     }
   }
 `;
 
-const StoreOrders = () => {
-  const { userProfile } = useAuthStore();
-  const [expandedOrder, setExpandedOrder] = useState(null);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedOrder, setSelectedOrder] = useState(null);
-  const [newStatus, setNewStatus] = useState('');
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [error, setError] = useState(null);
-  const [storeId, setStoreId] = useState(null);
-
-  // Fetch store ID when profile is available
-  useEffect(() => {
-    const fetchStoreId = async () => {
-      if (userProfile?.id) {
-        try {
-          const response = await fetchGraphQL(
-            `
-            query GetStoreInfo($managerId: Int!) {
-              storesByManager(managerUserId: $managerId) {
-                id
-                name
-              }
+const GET_ORDERS_BY_STORE = `
+  query GetOrdersByStore($storeId: Int!) {
+    getOrdersByStore(storeId: $storeId) {
+      id
+      addressId
+      cancelledAt
+      cancelledByUserId
+      createdByUserId
+      deliveryDate
+      deliveryInstructions
+      paymentId
+      status
+      storeId
+      totalAmount
+      orderItems {
+        edges {
+          node {
+            id
+            inventoryId
+            orderAmount
+            orderId
+            productId
+            quantity
+            product {
+              id
+              name
+              description
             }
-          `,
-            { managerId: userProfile.id }
-          );
-
-          if (response?.storesByManager && response.storesByManager.length > 0) {
-            setStoreId(response.storesByManager[0].id);
-          } else {
-            setError('No store found for this manager');
           }
-        } catch (error) {
-          console.error('Error fetching store ID:', error);
-          setError('Failed to fetch store information');
         }
       }
+    }
+  }
+`;
+
+const UPDATE_ORDER_STATUS = `
+  mutation UpdateOrderStatus($orderId: Int!, $status: String!) {
+    updateOrderStatus(orderId: $orderId, status: $status) {
+      id
+      status
+    }
+  }
+`;
+
+const CANCEL_ORDER = `
+  mutation CancelOrder($orderId: Int!) {
+    cancelOrder(orderId: $orderId) {
+      id
+      status
+    }
+  }
+`;
+
+const StoreOrders = () => {
+  const { userProfile } = useAuthStore();
+  const [cognitoId, setCognitoId] = useState('');
+  const [expandedOrder, setExpandedOrder] = useState(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [newStatus, setNewStatus] = useState('');
+  const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [sortField, setSortField] = useState('createdAt');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  // Fetch Cognito ID on component mount
+  useEffect(() => {
+    const getUserInfo = async () => {
+      try {
+        const userAttributes = await fetchUserAttributes();
+        setCognitoId(userAttributes.sub);
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+      }
     };
+    getUserInfo();
+  }, []);
 
-    fetchStoreId();
-  }, [userProfile]);
+  // Fetch user profile using Cognito ID
+  const { data: profileData, isLoading: profileLoading } = useQuery({
+    queryKey: ['getUserProfile', cognitoId],
+    queryFn: async () => {
+      return await graphqlService(GET_USER_PROFILE, { userId: cognitoId });
+    },
+    enabled: !!cognitoId,
+  });
 
-  // Fetch orders for the store
+  const storeId = profileData?.getUserProfile?.stores?.edges?.[0]?.node?.id;
+
+  // Fetch orders using store ID
   const {
     data: ordersData,
-    isLoading,
-    error: queryError,
-    refetch,
+    isLoading: ordersLoading,
+    error: ordersError,
+    refetch: refetchOrders,
   } = useQuery({
     queryKey: ['storeOrders', storeId],
-    queryFn: () => fetchGraphQL(GET_STORE_ORDERS, { storeId }),
+    queryFn: async () => {
+      const result = await graphqlService(GET_ORDERS_BY_STORE, { storeId });
+      return result.getOrdersByStore || [];
+    },
     enabled: !!storeId,
-  });
-
-  // Mutation for updating order status
-  const updateStatusMutation = useMutation({
-    mutationFn: (variables) =>
-      fetchGraphQL(UPDATE_ORDER_STATUS, {
-        orderId: variables.orderId,
-        status: variables.status,
-      }),
-    onSuccess: () => {
-      refetch();
-      setEditDialogOpen(false);
-      setError(null);
-    },
-    onError: (err) => {
-      setError(err.message);
-    },
-  });
-
-  // Mutation for canceling order
-  const cancelMutation = useMutation({
-    mutationFn: (variables) =>
-      fetchGraphQL(CANCEL_ORDER, {
-        orderId: variables.orderId,
-        cancelMessage: 'Cancelled by store manager',
-        cancelledByUserId: userProfile?.id,
-      }),
-    onSuccess: () => {
-      refetch();
-      setCancelDialogOpen(false);
-      setError(null);
-    },
-    onError: (err) => {
-      setError(err.message);
-    },
   });
 
   const handleEditClick = (order) => {
@@ -173,32 +188,92 @@ const StoreOrders = () => {
     setCancelDialogOpen(true);
   };
 
-  const handleStatusUpdate = () => {
-    updateStatusMutation.mutate({
-      orderId: selectedOrder.id,
-      status: newStatus,
-    });
+  const handleStatusUpdate = async () => {
+    try {
+      await graphqlService(UPDATE_ORDER_STATUS, {
+        orderId: selectedOrder.id,
+        status: newStatus,
+      });
+      setEditDialogOpen(false);
+      refetchOrders();
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
-  const handleCancelOrder = () => {
-    cancelMutation.mutate({
-      orderId: selectedOrder.id,
-    });
+  const handleCancelOrder = async () => {
+    try {
+      await graphqlService(CANCEL_ORDER, {
+        orderId: selectedOrder.id,
+      });
+      setCancelDialogOpen(false);
+      refetchOrders();
+    } catch (err) {
+      setError(err.message);
+    }
   };
 
   const getStatusColor = (status) => {
-    const colors = {
-      PENDING: 'warning',
-      PROCESSING: 'info',
-      READY_FOR_DELIVERY: 'primary',
-      OUT_FOR_DELIVERY: 'secondary',
-      DELIVERED: 'success',
-      CANCELLED: 'error',
-    };
-    return colors[status] || 'default';
+    return ORDER_STATUSES.find((s) => s.value === status)?.color || 'default';
   };
 
-  if (isLoading) {
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortOrder('asc');
+    }
+  };
+
+  const filteredOrders = React.useMemo(() => {
+    if (!ordersData) return [];
+
+    let filtered = [...ordersData];
+
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (order) =>
+          order.id.toString().includes(searchTerm) ||
+          (order.deliveryInstructions || '').toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== 'ALL') {
+      filtered = filtered.filter((order) => order.status === statusFilter);
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      if (sortField === 'totalAmount') {
+        comparison = a[sortField] - b[sortField];
+      } else {
+        comparison = String(a[sortField] || '').localeCompare(String(b[sortField] || ''));
+      }
+      return sortOrder === 'asc' ? comparison : -comparison;
+    });
+
+    return filtered;
+  }, [ordersData, searchTerm, statusFilter, sortField, sortOrder]);
+
+  const paginatedOrders = React.useMemo(() => {
+    const start = page * rowsPerPage;
+    return filteredOrders.slice(start, start + rowsPerPage);
+  }, [filteredOrders, page, rowsPerPage]);
+
+  if (profileLoading || ordersLoading) {
     return (
       <Layout>
         <Box
@@ -210,15 +285,15 @@ const StoreOrders = () => {
     );
   }
 
-  if (queryError) {
+  if (ordersError) {
     return (
       <Layout>
-        <Alert severity="error">{queryError.message}</Alert>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {ordersError.message}
+        </Alert>
       </Layout>
     );
   }
-
-  const orders = ordersData?.getOrdersByStore || [];
 
   return (
     <Layout>
@@ -233,31 +308,109 @@ const StoreOrders = () => {
           </Alert>
         )}
 
-        {orders.length === 0 ? (
+        <Card sx={{ mb: 3 }}>
+          <CardContent>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} md={4}>
+                <TextField
+                  fullWidth
+                  placeholder="Search orders..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Filter by Status"
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <FilterIcon />
+                      </InputAdornment>
+                    ),
+                  }}
+                >
+                  <MenuItem value="ALL">All Statuses</MenuItem>
+                  {ORDER_STATUSES.map((status) => (
+                    <MenuItem key={status.value} value={status.value}>
+                      {status.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Typography variant="body2" color="textSecondary">
+                  Total Orders: {filteredOrders.length}
+                </Typography>
+              </Grid>
+            </Grid>
+          </CardContent>
+        </Card>
+
+        {filteredOrders.length === 0 ? (
           <Alert severity="info" sx={{ mb: 2 }}>
-            No orders found for this store.
+            No orders found.
           </Alert>
         ) : (
           <TableContainer component={Paper}>
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>Order ID</TableCell>
-                  <TableCell>Date</TableCell>
-                  <TableCell>Customer</TableCell>
-                  <TableCell>Total</TableCell>
+                  <TableCell>
+                    <Box
+                      sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                      onClick={() => handleSort('id')}
+                    >
+                      Order ID
+                      <SortIcon
+                        sx={{
+                          ml: 1,
+                          transform:
+                            sortField === 'id' && sortOrder === 'desc' ? 'rotate(180deg)' : 'none',
+                        }}
+                      />
+                    </Box>
+                  </TableCell>
+                  <TableCell>Delivery Instructions</TableCell>
+                  <TableCell>
+                    <Box
+                      sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
+                      onClick={() => handleSort('totalAmount')}
+                    >
+                      Total
+                      <SortIcon
+                        sx={{
+                          ml: 1,
+                          transform:
+                            sortField === 'totalAmount' && sortOrder === 'desc'
+                              ? 'rotate(180deg)'
+                              : 'none',
+                        }}
+                      />
+                    </Box>
+                  </TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Actions</TableCell>
                   <TableCell />
                 </TableRow>
               </TableHead>
               <TableBody>
-                {orders.map((order) => (
+                {paginatedOrders.map((order) => (
                   <React.Fragment key={order.id}>
                     <TableRow>
                       <TableCell>{order.id}</TableCell>
-                      <TableCell>{new Date(order.createdAt).toLocaleDateString()}</TableCell>
-                      <TableCell>{order.user?.name}</TableCell>
+                      <TableCell>{order.deliveryInstructions || 'N/A'}</TableCell>
                       <TableCell>₹{order.totalAmount}</TableCell>
                       <TableCell>
                         <Chip
@@ -270,20 +423,24 @@ const StoreOrders = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleEditClick(order)}
-                          disabled={order.status === 'CANCELLED' || order.status === 'DELIVERED'}
-                        >
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          onClick={() => handleCancelClick(order)}
-                          disabled={order.status === 'CANCELLED' || order.status === 'DELIVERED'}
-                        >
-                          <CancelIcon />
-                        </IconButton>
+                        <Tooltip title="Edit Order">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleEditClick(order)}
+                            disabled={order.status === 'CANCELLED' || order.status === 'DELIVERED'}
+                          >
+                            <EditIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Cancel Order">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleCancelClick(order)}
+                            disabled={order.status === 'CANCELLED' || order.status === 'DELIVERED'}
+                          >
+                            <CancelIcon />
+                          </IconButton>
+                        </Tooltip>
                       </TableCell>
                       <TableCell>
                         <IconButton
@@ -298,7 +455,7 @@ const StoreOrders = () => {
                     </TableRow>
                     {expandedOrder === order.id && (
                       <TableRow>
-                        <TableCell colSpan={7}>
+                        <TableCell colSpan={6}>
                           <Box sx={{ p: 2 }}>
                             <Typography variant="subtitle2" gutterBottom>
                               Order Items:
@@ -308,17 +465,15 @@ const StoreOrders = () => {
                                 <TableRow>
                                   <TableCell>Product</TableCell>
                                   <TableCell>Quantity</TableCell>
-                                  <TableCell>Price</TableCell>
                                   <TableCell>Total</TableCell>
                                 </TableRow>
                               </TableHead>
                               <TableBody>
-                                {order.orderItems.map((item) => (
+                                {order.orderItems.edges.map(({ node: item }) => (
                                   <TableRow key={item.id}>
                                     <TableCell>{item.product.name}</TableCell>
                                     <TableCell>{item.quantity}</TableCell>
-                                    <TableCell>₹{item.price}</TableCell>
-                                    <TableCell>₹{item.quantity * item.price}</TableCell>
+                                    <TableCell>₹{item.orderAmount}</TableCell>
                                   </TableRow>
                                 ))}
                               </TableBody>
@@ -331,6 +486,15 @@ const StoreOrders = () => {
                 ))}
               </TableBody>
             </Table>
+            <TablePagination
+              component="div"
+              count={filteredOrders.length}
+              page={page}
+              onPageChange={handleChangePage}
+              rowsPerPage={rowsPerPage}
+              onRowsPerPageChange={handleChangeRowsPerPage}
+              rowsPerPageOptions={[5, 10, 25, 50]}
+            />
           </TableContainer>
         )}
 
