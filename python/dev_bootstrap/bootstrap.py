@@ -240,5 +240,155 @@ def create_data():
     db.close()
     print("Bootstrap complete with users, store, products and inventory with measurements and units.")
 
+# Add this new function to create 3000 products
+def create_bulk_products(target_count=3000):
+    """
+    Create a large number of products by repeating the existing product data with variations.
+    
+    Args:
+        target_count: The target number of products to reach in the database
+    """
+    db = SessionLocal()
+    try:
+        # Check current product count
+        current_count = db.query(ProductModel).count()
+        print(f"Current product count: {current_count}")
+        
+        if current_count >= target_count:
+            print(f"Already have {current_count} products, no need to add more.")
+            db.close()
+            return
+        
+        # Calculate how many more products we need to add
+        products_to_add = target_count - current_count
+        print(f"Adding {products_to_add} more products to reach target of {target_count}")
+        
+        # Load product data from JSON file
+        with open("dev_bootstrap/product_data.json", "r") as file:
+            data = json.load(file)
+        
+        # Get all categories from database
+        categories = {}
+        category_objects = db.query(CategoryModel).all()
+        for category in category_objects:
+            categories[category.name] = category
+        
+        # If any categories from our source data don't exist, create them
+        for item in data:
+            cat_name = item.get("category")
+            if cat_name not in categories:
+                category_obj = CategoryModel(name=cat_name)
+                db.add(category_obj)
+                db.flush()
+                categories[cat_name] = category_obj
+        
+        # Get the store for inventory items
+        store = db.query(StoreModel).first()
+        if not store:
+            print("No store found. Please run create_data() first.")
+            db.close()
+            return
+            
+        # Store the ID as a simple integer to avoid DetachedInstanceError after expunge_all
+        store_id = store.id
+            
+        # Define measurement and unit information based on category
+        category_units = {
+            "Grains & Rice": {"measurement": 1000, "unit": "grams"},
+            "Pulses & Lentils": {"measurement": 1000, "unit": "grams"},
+            "Spices & Masalas": {"measurement": 100, "unit": "grams"},
+            "Flours": {"measurement": 1000, "unit": "grams"},
+            "Oils & Ghee": {"measurement": 1000, "unit": "ml"},
+            "Snacks & Namkeen": {"measurement": 100, "unit": "grams"},
+            "Beverages": {"measurement": 200, "unit": "ml"},
+            "Dairy & Paneer": {"measurement": 500, "unit": "grams"},
+            "Pickles & Chutneys": {"measurement": 250, "unit": "grams"},
+            "Sweets & Desserts": {"measurement": 250, "unit": "grams"}
+        }
+        
+        # Set batch size for committing to avoid memory issues
+        batch_size = 100
+        total_added = 0
+        
+        # Add products in batches with name variations until we reach the target
+        while total_added < products_to_add:
+            batch_products = []
+            batch_inventory = []
+            
+            # Calculate how many items to add in this batch
+            items_in_batch = min(batch_size, products_to_add - total_added)
+            
+            # For each batch, cycle through our base products
+            for i in range(items_in_batch):
+                # Get base product data (cycling through the data array)
+                base_item = data[i % len(data)]
+                
+                # Create variation number
+                variation = (total_added + i) // len(data) + 1
+                
+                # Create a varied name to ensure uniqueness
+                varied_name = f"{base_item['name']} (Batch {variation})"
+                
+                # Get category
+                cat_name = base_item.get("category")
+                category_obj = categories.get(cat_name)
+                
+                # Create product with varied name
+                product = ProductModel(
+                    name=varied_name,
+                    description=base_item.get("description"),
+                    image=base_item.get("image"),
+                    category=category_obj
+                )
+                batch_products.append(product)
+            
+            # Add and commit the batch
+            db.add_all(batch_products)
+            db.commit()
+            
+            # Now create inventory items for each product
+            for i, product in enumerate(batch_products):
+                base_item = data[i % len(data)]
+                price = base_item.get("price")
+                category = base_item.get("category")
+                
+                # Get measurement and unit based on category
+                measurement = category_units.get(category, {}).get("measurement")
+                unit = category_units.get(category, {}).get("unit")
+                
+                # Create inventory entry
+                inventory_item = InventoryModel(
+                    storeId=store_id,  # Use the stored integer ID instead of accessing the object
+                    productId=product.id,
+                    price=price,
+                    quantity=50,  # Default stock of 50
+                    measurement=measurement,
+                    unit=unit
+                )
+                batch_inventory.append(inventory_item)
+            
+            # Add and commit inventory items
+            db.add_all(batch_inventory)
+            db.commit()
+            
+            total_added += items_in_batch
+            print(f"Added batch of {items_in_batch} products. Total added: {total_added}")
+            
+            # Refresh the session to avoid memory issues
+            db.expunge_all()
+        
+        final_count = db.query(ProductModel).count()
+        print(f"Finished adding products. Final product count: {final_count}")
+        
+    finally:
+        db.close()
+
 if __name__ == "__main__":
-    create_data()
+    import sys
+    
+    if len(sys.argv) > 1 and sys.argv[1] == "bulk":
+        # If run with "python bootstrap.py bulk", create 3000 products
+        create_bulk_products()
+    else:
+        # Default behavior: just create the initial data
+        create_data()
