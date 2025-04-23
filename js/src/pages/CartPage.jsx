@@ -3,7 +3,6 @@ import {
   Box,
   Typography,
   Button,
-  TextField,
   Select,
   MenuItem,
   InputLabel,
@@ -12,7 +11,7 @@ import {
   Alert,
   Divider
 } from '@components';
-import { FormControlLabel, Checkbox, Collapse, Stack } from '@mui/material';
+import { FormControlLabel, Checkbox, Collapse, Stack, TextField } from '@mui/material';
 import { Remove, Add, LocationOn, ExpandMore, ExpandLess } from '@mui/icons-material';
 import useStore, { useAuthStore, useAddressStore } from './../store/useStore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -23,6 +22,7 @@ import {
 import { DELIVERY_FEE, TAX_RATE } from '../config/constants/constants';
 import { useNavigate, Link } from 'react-router-dom';
 import LoginModal from './Login/LoginModal'; // Import the LoginModal
+import AddressAutocomplete from '@/components/AddressAutocomplete/AddressAutocomplete';
 
 const CartPage = () => {
   const { cart, removeFromCart, addToCart, cartTotal, clearCart } = useStore();
@@ -48,7 +48,7 @@ const CartPage = () => {
   const [newAddress, setNewAddress] = useState('');
   const [isPrimary, setIsPrimary] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
-
+  const [isValidAddress, setIsValidAddress] = useState(false);
   const subtotal = cartTotal() || 0;
   const tax = subtotal * TAX_RATE;
   const deliveryFee = subtotal > 0 ? DELIVERY_FEE : 0;
@@ -282,13 +282,10 @@ const CartPage = () => {
                     Add New Delivery Address
                   </Typography>
                   <Stack spacing={2}>
-                    <TextField
-                      label="Address"
-                      fullWidth
-                      multiline
-                      rows={3}
+                    <AddressAutocomplete
                       value={newAddress}
-                      onChange={(e) => setNewAddress(e.target.value)}
+                      onChange={setNewAddress}
+                      onValidAddress={setIsValidAddress}
                     />
                     <FormControlLabel
                       control={
@@ -299,7 +296,7 @@ const CartPage = () => {
                       }
                       label="Set as Primary Address"
                     />
-                    <Button variant="contained" onClick={handleAddAddress} disabled={!newAddress.trim() || isAddingAddress} startIcon={isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />}>
+                    <Button variant="contained" onClick={handleAddAddress} disabled={!newAddress.trim() || isAddingAddress || !isValidAddress} startIcon={isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />}>
                       {isAddingAddress ? 'Adding...' : 'Add Address'}
                     </Button>
                   </Stack>
