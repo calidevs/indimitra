@@ -5,7 +5,7 @@ on:
     branches:
       - main
     paths:
-      - 'js/*'    # Only .js files
+      - 'js/**'    # Only .js files
   workflow_dispatch:
     
 env:
