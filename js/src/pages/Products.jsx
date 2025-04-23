@@ -8,7 +8,8 @@ import {
   InputAdornment,
   CircularProgress,
   Box,
-  Button,
+    Button,
+  TablePagination,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import StoreIcon from '@mui/icons-material/Storefront';
@@ -16,6 +17,7 @@ import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_STORE_PRODUCTS } from '@/queries/operations';
 import useStore from '@/store/useStore';
 import { ProductGrid } from '@components';
+
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -35,6 +37,9 @@ function useDebounce(value, delay) {
 
 const Products = ({setStoreModalOpen}) => {
   const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(12); // Default rows per page
+
   const { selectedStore, availableStores } = useStore();
 
   const debouncedSearch = useDebounce(search, 300);
@@ -81,11 +86,30 @@ const Products = ({setStoreModalOpen}) => {
     );
   }, [products, debouncedSearch]);
 
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const visibleRows = useMemo(() => {
+    return filteredProducts.slice(
+      page * rowsPerPage,
+      page * rowsPerPage + rowsPerPage
+    );
+  }, [filteredProducts, page, rowsPerPage]);
+
+  console.log({visibleRows})
+
   if (inventoryError)
     return <Typography>Error fetching products: {inventoryError.message}</Typography>;
 
   return (
     <Container>
+       {/* Store Selection */}
       {/* Store Selection */}
       {selectedStore && (
         <Box
@@ -144,9 +168,21 @@ const Products = ({setStoreModalOpen}) => {
           No products available in this store.
         </Typography>
       ) : (
-        <ProductGrid products={filteredProducts} />
+        <ProductGrid products={visibleRows} />
         // <div></div>
       )}
+      {/* Add pagination controls */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+        <TablePagination
+          rowsPerPageOptions={[8, 12, 24]}
+          component="div"
+          count={filteredProducts.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+      </Box>
     </Container>
   );
 };
