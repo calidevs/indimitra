@@ -59,6 +59,7 @@ class UpdateOrderStatusInput:
     status: str
     driverId: Optional[int] = None  # Required if status = READY_FOR_DELIVERY
     scheduleTime: Optional[datetime] = None  # Required if status = READY_FOR_DELIVERY
+    deliveryInstructions: Optional[str] = None  # Optional delivery instructions
 
 
 # ✅ Order Mutations
@@ -70,7 +71,8 @@ class OrderMutation:
         userId: int,
         addressId: int,
         storeId: int,
-        productItems: List[OrderItemInput]
+        productItems: List[OrderItemInput],
+        deliveryInstructions: Optional[str] = None
     ) -> Order:
         """
         Create a new order with multiple order items.
@@ -80,6 +82,7 @@ class OrderMutation:
             addressId (int): The ID of the delivery address.
             storeId (int): The ID of the store the order is being placed from.
             productItems (List[OrderItemInput]): List of items with product IDs and quantities.
+            deliveryInstructions (str, optional): Special instructions for delivery.
         
         Returns:
             Order: The newly created order.
@@ -90,7 +93,8 @@ class OrderMutation:
             user_id=userId, 
             address_id=addressId, 
             store_id=storeId,
-            product_items=items
+            product_items=items,
+            delivery_instructions=deliveryInstructions
         )
     
     @strawberry.mutation
@@ -118,8 +122,10 @@ class OrderMutation:
         Update order status and remove the assigned delivery record if needed.
 
         Args:
-            input: Contains orderId, status, driverId (optional), and scheduleTime (optional).
+            input: Contains orderId, status, driverId (optional), scheduleTime (optional),
+                  and deliveryInstructions (optional).
             scheduleTime is used to set the deliveryDate for the order.
+            deliveryInstructions can be used to add special instructions for delivery.
 
         Returns:
             Updated Order object.
@@ -135,6 +141,11 @@ class OrderMutation:
             # ✅ Check if status is valid
             if input.status not in OrderStatus.__members__:
                 raise ValueError(f"Invalid order status: {input.status}. Allowed: {list(OrderStatus.__members__.keys())}")
+
+            # ✅ Update delivery instructions if provided
+            if input.deliveryInstructions is not None:
+                order.deliveryInstructions = input.deliveryInstructions
+                db.commit()
 
             # Define statuses that should maintain the delivery agent
             delivery_progression_statuses = ["READY_FOR_DELIVERY", "SCHEDULED", "PICKED_UP", "DELIVERED"]
