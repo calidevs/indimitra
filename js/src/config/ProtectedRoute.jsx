@@ -6,12 +6,13 @@ import { defineUserAbility } from '../ability/defineAbility';
 import { LoadingSpinner } from '../components';
 import Layout from '@/components/layout/Layout';
 import { ROUTES } from '../config/constants/routes';
-
+import { ROLES } from '../config/constants/roles';
 
 const ProtectedRoute = ({ children, role }) => {
   const { user, setUser, ability, setAbility } = useAuthStore();
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [currentAbility, setCurrentAbility] = useState(null);
   const location = useLocation();
 
   useEffect(() => {
@@ -20,22 +21,22 @@ const ProtectedRoute = ({ children, role }) => {
         const session = await fetchAuthSession();
 
         if (session?.tokens?.idToken) {
-          const userRole = session.tokens.idToken.payload['custom:role'].toLowerCase();
-          
+          const userRole = session.tokens.idToken.payload['custom:role']?.toLowerCase();
+
           if (!user) {
             setUser({ role: userRole });
           }
 
+          // Initialize ability with the current session role
           const newAbility = defineUserAbility(userRole);
           setAbility(newAbility);
-
+          setCurrentAbility(newAbility);
           setIsAuthenticated(true);
         } else {
-          console.warn('⚠️ No valid session tokens found.');
           setIsAuthenticated(false);
         }
       } catch (err) {
-        console.error('❌ Error while checking authentication:', err);
+        console.error('Error checking authentication:', err);
         setIsAuthenticated(false);
       } finally {
         setLoading(false);
@@ -51,9 +52,13 @@ const ProtectedRoute = ({ children, role }) => {
   if (location.pathname === ROUTES.PROFILE) return <Layout>{children}</Layout>;
 
   const roles = Array.isArray(role) ? role : [role];
+  const normalizedRoles = roles.map((r) => r.toLowerCase());
 
-  const isAuthorized = roles.some(requiredRole => ability?.can('view', requiredRole));
-  if (!ability || !isAuthorized) return <Navigate to="/not-authorized" replace />;
+  // Use the local ability state for authorization check
+  const isAuthorized =
+    currentAbility &&
+    normalizedRoles.some((requiredRole) => currentAbility.can('view', requiredRole));
+  if (!isAuthorized) return <Navigate to="/not-authorized" replace />;
 
   return <Layout>{children}</Layout>;
 };
