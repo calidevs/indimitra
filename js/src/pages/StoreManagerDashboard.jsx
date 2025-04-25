@@ -69,6 +69,7 @@ const StoreManagerDashboard = () => {
   const anchorRef = useRef(null);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // Fetch Cognito ID on component mount
   useEffect(() => {
@@ -81,6 +82,15 @@ const StoreManagerDashboard = () => {
       }
     };
     getUserInfo();
+  }, []);
+
+  // Set isInitialLoad to false after component mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoad(false);
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
   }, []);
 
   // Fetch user profile using Cognito ID
@@ -302,7 +312,8 @@ const StoreManagerDashboard = () => {
     setDropdownOpen(false);
   };
 
-  if (profileLoading || storeLoading) {
+  // Check loading state first
+  if (profileLoading || storeLoading || isInitialLoad) {
     return (
       <Layout>
         <Container sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
@@ -312,6 +323,7 @@ const StoreManagerDashboard = () => {
     );
   }
 
+  // Check for errors
   if (storeError) {
     return (
       <Layout>
@@ -322,6 +334,7 @@ const StoreManagerDashboard = () => {
     );
   }
 
+  // Check if store exists
   if (!store) {
     return (
       <Layout>
