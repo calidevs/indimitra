@@ -53,6 +53,11 @@ resource "aws_iam_role_policy_attachment" "ecs_instance_cloudwatch_policy" {
 data "aws_iam_policy" "ecsTaskExecutionRolePolicy" {
   arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
+
+data "aws_iam_policy" "cognito_power_user" {
+  arn = "arn:aws:iam::aws:policy/AmazonCognitoPowerUser"
+}
+
 data "aws_iam_policy_document" "ecsExecutionRolePolicy" {
   statement {
     actions = ["sts:AssumeRole"]
@@ -75,6 +80,11 @@ resource "aws_iam_role_policy_attachment" "ecsTaskExecutionPolicy" {
 resource "aws_iam_role_policy_attachment" "ecsTaskExecutionPolicy_2" {
   role       = aws_iam_role.ecsTaskExecutionRole.name
   policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "ecsTaskExecutionPolicy_cognito" {
+  role       = aws_iam_role.ecsTaskExecutionRole.name
+  policy_arn = data.aws_iam_policy.cognito_power_user.arn
 }
 
 # ###############################
