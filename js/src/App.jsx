@@ -74,9 +74,9 @@ const App = () => {
           }
         />
         <Route
-          path={ROUTES.DRIVER}
+          path={ROUTES.DELIVERY_AGENT}
           element={
-            <ProtectedRoute role="driver">
+            <ProtectedRoute role="delivery_agent">
               <DriverDashboard />
             </ProtectedRoute>
           }
