@@ -252,14 +252,17 @@ const ProductManagement = () => {
     createCategoryMutation.mutate(newCategoryName.trim());
   };
 
-  // Filter and paginate products on the client side
+  // Filter products based on selected category
   const filteredProducts = useMemo(() => {
-    const filtered = allProducts.filter(
-      (product) => !selectedCategory || product.categoryId === parseInt(selectedCategory)
-    );
-    const start = page * rowsPerPage;
-    return filtered.slice(start, start + rowsPerPage);
-  }, [allProducts, selectedCategory, page, rowsPerPage]);
+    if (!selectedCategory) return allProducts;
+    return allProducts.filter((product) => product.categoryId === parseInt(selectedCategory));
+  }, [allProducts, selectedCategory]);
+
+  // Get paginated products
+  const paginatedProducts = useMemo(() => {
+    const startIndex = page * rowsPerPage;
+    return filteredProducts.slice(startIndex, startIndex + rowsPerPage);
+  }, [filteredProducts, page, rowsPerPage]);
 
   // Simple pagination handlers that only update state
   const handleChangePage = (event, newPage) => {
@@ -340,7 +343,7 @@ const ProductManagement = () => {
         ) : (
           <>
             {/* Products Table */}
-            <TableContainer>
+            <TableContainer component={Paper}>
               <Table>
                 <TableHead>
                   <TableRow>
@@ -352,43 +355,33 @@ const ProductManagement = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {filteredProducts?.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} align="center">
-                        No products found
+                  {paginatedProducts.map((product) => (
+                    <TableRow key={product.id}>
+                      <TableCell>
+                        <img
+                          src={product.image}
+                          alt={product.name}
+                          style={{ width: '50px', height: '50px', objectFit: 'cover' }}
+                        />
+                      </TableCell>
+                      <TableCell>{product.name}</TableCell>
+                      <TableCell>{CATEGORY_MAP[product.categoryId] || 'Unknown'}</TableCell>
+                      <TableCell>{product.description}</TableCell>
+                      <TableCell>
+                        <IconButton size="small" onClick={() => handleOpenDialog(product)}>
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton size="small" onClick={() => handleDelete(product.id)}>
+                          <DeleteIcon />
+                        </IconButton>
                       </TableCell>
                     </TableRow>
-                  ) : (
-                    filteredProducts?.map((product) => (
-                      <TableRow key={product.id}>
-                        <TableCell>
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            style={{ width: '50px', height: '50px', objectFit: 'cover' }}
-                          />
-                        </TableCell>
-                        <TableCell>{product.name}</TableCell>
-                        <TableCell>
-                          {CATEGORY_MAP[product.categoryId] || 'Unknown Category'}
-                        </TableCell>
-                        <TableCell>{product.description}</TableCell>
-                        <TableCell>
-                          <IconButton size="small" onClick={() => handleOpenDialog(product)}>
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton size="small" onClick={() => handleDelete(product.id)}>
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
               <TablePagination
                 component="div"
-                count={allProducts.length}
+                count={filteredProducts.length}
                 page={page}
                 onPageChange={handleChangePage}
                 rowsPerPage={rowsPerPage}
