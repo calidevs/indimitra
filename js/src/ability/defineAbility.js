@@ -16,14 +16,13 @@ export const defineUserAbility = (role) => {
       can('view', 'cart');
     }
 
-    if (role === ROLES.DRIVER) {
-      can('view', ROLES.DRIVER);
+    if (role === ROLES.DELIVERY_AGENT) {
+      can('view', ROLES.DELIVERY_AGENT);
     }
 
     if (role === ROLES.STORE_MANAGER) {
       can('view', ROLES.STORE_MANAGER);
       can('manage', 'inventory');
-      can('view', 'orders');
     }
   });
 };

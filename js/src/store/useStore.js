@@ -73,7 +73,6 @@ export const useAuthStore = create((set, get) => ({
     set({ user });
   },
 
-
   setUserProfile: (userProfile) => {
     if (!userProfile) {
       console.warn('Attempted to set null userProfile!');
@@ -97,7 +96,7 @@ export const useAuthStore = create((set, get) => ({
   setCurrentForm: (form) => {
     set({ currentForm: form });
   },
-  
+
   setAbility: (ability) => set({ ability }),
 
   logout: () => {
@@ -125,7 +124,7 @@ export const useAuthStore = create((set, get) => ({
         set({
           userProfile: response.getUserProfile,
           isProfileLoading: false,
-          ability: defineUserAbility(response.getUserProfile.role)
+          ability: defineUserAbility(response.getUserProfile.role),
         });
         return response.getUserProfile;
       } else {

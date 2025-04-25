@@ -22,13 +22,33 @@ import LoginModal from '@/pages/Login/LoginModal';
 import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth';
 
 const Logo = ({ navigate, userRole }) => {
-  const handleLogoClick = () => {
-    if (userRole) {
-      navigate(`/${userRole}`);
+  const { setUser } = useAuthStore();
+
+  const handleLogoClick = async () => {
+    let roleToUse = userRole;
+
+    // If role is undefined, fetch it from the session
+    if (!roleToUse) {
+      try {
+        const session = await fetchAuthSession();
+        if (session?.tokens?.idToken) {
+          roleToUse = session.tokens.idToken.payload['custom:role']?.toLowerCase();
+          // Store the role in the auth store
+          setUser({ role: roleToUse });
+        }
+      } catch (error) {
+        console.error('Error fetching role from session:', error);
+      }
+    }
+
+    // Navigate based on the role
+    if (roleToUse) {
+      navigate(`/${roleToUse}`);
     } else {
       navigate(`/`);
     }
   };
+
   return (
     <Typography
       onClick={handleLogoClick}

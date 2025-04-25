@@ -3,7 +3,7 @@ export const ROUTES = {
   FORGOT_PASSWORD: '/forgot-password',
   ADMIN: '/admin',
   USER: '/user',
-  DRIVER: '/driver',
+  DELIVERY_AGENT: '/delivery_agent',
   STORE_MANAGER: '/store_manager',
   STORE_ORDERS: '/store_manager/orders',
   PRODUCTS: '/products',

@@ -27,6 +27,12 @@ import {
   Select,
   MenuItem,
   Divider,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Stack,
+  Snackbar,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -59,6 +65,26 @@ const CREATE_STORE = `
   }
 `;
 
+// Add the mutation
+const UPDATE_STORE = `
+  mutation UpdateStore($storeId: Int!, $address: String!, $managerUserId: Int!, $name: String!, $radius: Float!) {
+    updateStore(storeId: $storeId, address: $address, managerUserId: $managerUserId, name: $name, radius: $radius) {
+      address
+      id
+      managerUserId
+      name
+      radius
+    }
+  }
+`;
+
+// Add the delete mutation
+const DELETE_STORE = `
+  mutation DeleteStore($storeId: Int!) {
+    deleteStore(storeId: $storeId)
+  }
+`;
+
 const steps = ['Store Information', 'Inventory', 'Drivers', 'Store Managers', 'Review'];
 
 const StoreManagement = () => {
@@ -83,6 +109,12 @@ const StoreManagement = () => {
     drivers: [],
     storeManagers: [],
   });
+
+  const [editStore, setEditStore] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [deleteStore, setDeleteStore] = useState(null);
+  const [deleteConfirmation, setDeleteConfirmation] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   // Fetch stores
   const {
@@ -124,6 +156,53 @@ const StoreManagement = () => {
     onError: (error) => {
       setError(error.message || 'Failed to create store');
       setSuccess(false);
+    },
+  });
+
+  // Add the mutation hook
+  const updateStoreMutation = useMutation({
+    mutationFn: (variables) => {
+      return fetchGraphQL(UPDATE_STORE, variables);
+    },
+    onSuccess: () => {
+      setSnackbar({
+        open: true,
+        message: 'Store updated successfully',
+        severity: 'success',
+      });
+      setEditStore(null);
+      refetch();
+    },
+    onError: (error) => {
+      setSnackbar({
+        open: true,
+        message: 'Failed to update store: ' + error.message,
+        severity: 'error',
+      });
+    },
+  });
+
+  // Add the delete mutation hook
+  const deleteStoreMutation = useMutation({
+    mutationFn: (variables) => {
+      return fetchGraphQL(DELETE_STORE, variables);
+    },
+    onSuccess: () => {
+      setSnackbar({
+        open: true,
+        message: 'Store deleted successfully',
+        severity: 'success',
+      });
+      setDeleteStore(null);
+      setDeleteConfirmation('');
+      refetch();
+    },
+    onError: (error) => {
+      setSnackbar({
+        open: true,
+        message: 'Failed to delete store: ' + error.message,
+        severity: 'error',
+      });
     },
   });
 
@@ -207,6 +286,49 @@ const StoreManagement = () => {
 
     // Make the actual API call
     createStoreMutation.mutate(storeData);
+  };
+
+  const handleEditClick = (store) => {
+    setEditStore(store);
+  };
+
+  const handleCloseEdit = () => {
+    setEditStore(null);
+  };
+
+  const handleUpdateStore = (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    updateStoreMutation.mutate({
+      storeId: editStore.id,
+      address: formData.get('address'),
+      managerUserId: parseInt(formData.get('managerUserId')),
+      name: formData.get('name'),
+      radius: parseFloat(formData.get('radius')),
+    });
+  };
+
+  const handleDeleteClick = (store) => {
+    setDeleteStore(store);
+    setDeleteConfirmation('');
+    setDeleteError('');
+  };
+
+  const handleCloseDelete = () => {
+    setDeleteStore(null);
+    setDeleteConfirmation('');
+    setDeleteError('');
+  };
+
+  const handleDeleteConfirm = () => {
+    if (deleteConfirmation.toLowerCase() !== 'delete') {
+      setDeleteError('Please type "delete" to confirm');
+      return;
+    }
+
+    deleteStoreMutation.mutate({
+      storeId: deleteStore.id,
+    });
   };
 
   // Filter stores based on search term
@@ -732,7 +854,12 @@ const StoreManagement = () => {
                         </Box>
                       </CardContent>
                       <CardActions sx={{ justifyContent: 'space-between', px: 2, py: 1 }}>
-                        <Button size="small" startIcon={<EditIcon />} sx={{ flex: 1, mr: 1 }}>
+                        <Button
+                          size="small"
+                          startIcon={<EditIcon />}
+                          sx={{ flex: 1, mr: 1 }}
+                          onClick={() => handleEditClick(store)}
+                        >
                           Edit
                         </Button>
                         <Button
@@ -740,6 +867,7 @@ const StoreManagement = () => {
                           color="error"
                           startIcon={<DeleteIcon />}
                           sx={{ flex: 1 }}
+                          onClick={() => handleDeleteClick(store)}
                         >
                           Delete
                         </Button>
@@ -785,6 +913,108 @@ const StoreManagement = () => {
           </Box>
         )}
       </Paper>
+
+      {/* Edit Store Modal */}
+      <Dialog open={!!editStore} onClose={handleCloseEdit} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Store</DialogTitle>
+        <form onSubmit={handleUpdateStore}>
+          <DialogContent>
+            <Stack spacing={3}>
+              <TextField
+                name="name"
+                label="Store Name"
+                defaultValue={editStore?.name}
+                required
+                fullWidth
+              />
+              <TextField
+                name="address"
+                label="Address"
+                defaultValue={editStore?.address}
+                required
+                fullWidth
+              />
+              <TextField
+                name="managerUserId"
+                label="Manager User ID"
+                type="number"
+                defaultValue={editStore?.managerUserId}
+                required
+                fullWidth
+              />
+              <TextField
+                name="radius"
+                label="Radius (km)"
+                type="number"
+                defaultValue={editStore?.radius}
+                required
+                fullWidth
+                inputProps={{ step: 0.1 }}
+              />
+            </Stack>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={handleCloseEdit}>Cancel</Button>
+            <Button type="submit" variant="contained" disabled={updateStoreMutation.isPending}>
+              {updateStoreMutation.isPending ? 'Updating...' : 'Update Store'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
+
+      {/* Delete Store Confirmation Dialog */}
+      <Dialog open={!!deleteStore} onClose={handleCloseDelete} maxWidth="sm" fullWidth>
+        <DialogTitle>Delete Store</DialogTitle>
+        <DialogContent>
+          <Stack spacing={3}>
+            <Typography>
+              Are you sure you want to delete the store "{deleteStore?.name}"? This action cannot be
+              undone.
+            </Typography>
+            <Typography variant="body2" color="error">
+              Please type "delete" to confirm:
+            </Typography>
+            <TextField
+              value={deleteConfirmation}
+              onChange={(e) => {
+                setDeleteConfirmation(e.target.value);
+                setDeleteError('');
+              }}
+              error={!!deleteError}
+              helperText={deleteError}
+              fullWidth
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDelete}>Cancel</Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            variant="contained"
+            color="error"
+            disabled={
+              deleteStoreMutation.isPending || deleteConfirmation.toLowerCase() !== 'delete'
+            }
+          >
+            {deleteStoreMutation.isPending ? 'Deleting...' : 'Delete Store'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Success/Error Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+      >
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
