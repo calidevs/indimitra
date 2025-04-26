@@ -20,6 +20,7 @@ import { useAuthStore } from '@/store/useStore';
 import { ROUTES } from '@/config/constants/routes';
 import LoginModal from '@/pages/Login/LoginModal';
 import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth';
+import { defineUserAbility } from '@/ability/defineAbility';
 
 const Logo = ({ navigate, userRole }) => {
   const { setUser } = useAuthStore();
@@ -115,6 +116,9 @@ const Header = () => {
   const handleMenuOpen = (event) => setMenuAnchor(event.currentTarget);
   const handleMenuClose = () => setMenuAnchor(null);
 
+  // Get ability directly from the ability file
+  const userAbility = defineUserAbility(user?.role || 'user');
+
   return (
     <>
       <Box
@@ -165,7 +169,7 @@ const Header = () => {
               setCurrentForm={setCurrentForm}
             />
             {/* Orders (Desktop) */}
-            {!isMobile && cognitoId && ability?.can('view', 'orders') && (
+            {!isMobile && cognitoId && userAbility && userAbility.can('view', 'orders') && (
               <Button
                 onClick={() => navigate(ROUTES.ORDERS)}
                 sx={{
@@ -185,7 +189,7 @@ const Header = () => {
 
             {/* Cart */}
             {user ? (
-              ability?.can('view', 'cart') && (
+              userAbility?.can('view', 'cart') && (
                 <Tooltip title="Cart">
                   <IconButton
                     onClick={() => navigate(ROUTES.CART)}
@@ -259,7 +263,7 @@ const Header = () => {
         }}
       >
         {/* Orders (Mobile) */}
-        {isMobile && ability?.can('view', 'orders') && (
+        {isMobile && userAbility?.can('view', 'orders') && (
           <MenuItem
             onClick={() => {
               navigate(ROUTES.ORDERS);
