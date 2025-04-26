@@ -114,8 +114,12 @@ const UPDATE_ORDER_STATUS = `
 `;
 
 const CANCEL_ORDER = `
-  mutation CancelOrder($orderId: Int!) {
-    cancelOrder(orderId: $orderId) {
+  mutation CancelOrder($orderId: Int!, $cancelMessage: String!, $cancelledByUserId: Int!) {
+    cancelOrderById(
+      orderId: $orderId, 
+      cancelMessage: $cancelMessage, 
+      cancelledByUserId: $cancelledByUserId
+    ) {
       id
       status
     }
@@ -137,6 +141,7 @@ const StoreOrders = () => {
   const [sortOrder, setSortOrder] = useState('desc');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const [cancelMessage, setCancelMessage] = useState('');
 
   // Fetch Cognito ID on component mount
   useEffect(() => {
@@ -205,9 +210,13 @@ const StoreOrders = () => {
     try {
       await graphqlService(CANCEL_ORDER, {
         orderId: selectedOrder.id,
+        cancelMessage: cancelMessage,
+        cancelledByUserId: userProfile.id,
       });
       setCancelDialogOpen(false);
+      setCancelMessage('');
       refetchOrders();
+      setSelectedOrder(null);
     } catch (err) {
       setError(err.message);
     }
@@ -532,10 +541,25 @@ const StoreOrders = () => {
             <Typography>
               Are you sure you want to cancel this order? This action cannot be undone.
             </Typography>
+            <TextField
+              fullWidth
+              label="Cancellation Reason"
+              value={cancelMessage}
+              onChange={(e) => setCancelMessage(e.target.value)}
+              multiline
+              rows={3}
+              sx={{ mt: 2 }}
+              required
+            />
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setCancelDialogOpen(false)}>No</Button>
-            <Button onClick={handleCancelOrder} variant="contained" color="error">
+            <Button
+              onClick={handleCancelOrder}
+              variant="contained"
+              color="error"
+              disabled={!cancelMessage.trim()}
+            >
               Yes, Cancel Order
             </Button>
           </DialogActions>
