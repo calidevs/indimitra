@@ -166,6 +166,7 @@ const StoreOrders = () => {
   });
 
   const storeId = profileData?.getUserProfile?.stores?.edges?.[0]?.node?.id;
+  const userId = profileData?.getUserProfile?.id;
 
   // Fetch orders using store ID
   const {
@@ -208,10 +209,15 @@ const StoreOrders = () => {
 
   const handleCancelOrder = async () => {
     try {
+      if (!userId) {
+        setError('User profile not found. Please try again.');
+        return;
+      }
+
       await graphqlService(CANCEL_ORDER, {
         orderId: selectedOrder.id,
         cancelMessage: cancelMessage,
-        cancelledByUserId: userProfile.id,
+        cancelledByUserId: userId,
       });
       setCancelDialogOpen(false);
       setCancelMessage('');
