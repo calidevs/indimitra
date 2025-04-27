@@ -26,6 +26,10 @@ import {
   TablePagination,
   InputAdornment,
   Tooltip,
+  Divider,
+  FormControl,
+  InputLabel,
+  Select,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -37,94 +41,33 @@ import {
   Sort as SortIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/useStore';
+import { useStore } from '@/store/useStore';
+import { formatCurrency, formatDate } from '@/utils/formatters';
+import { generateClient } from 'aws-amplify/api';
+import {
+  GET_USER_PROFILE,
+  GET_ORDERS_BY_STORE,
+  GET_STORE_DRIVERS,
+  UPDATE_ORDER_STATUS,
+  CANCEL_ORDER,
+} from '@/queries/operations';
 import Layout from '@/components/StoreManager/Layout';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { fetchUserAttributes } from 'aws-amplify/auth';
 import graphqlService from '@/config/graphql/graphqlService';
 
+const client = generateClient();
+
 const ORDER_STATUSES = [
   { value: 'PENDING', label: 'Pending', color: 'warning' },
-  { value: 'CONFIRMED', label: 'Confirmed', color: 'info' },
-  { value: 'PREPARING', label: 'Preparing', color: 'primary' },
-  { value: 'READY', label: 'Ready', color: 'success' },
+  { value: 'ORDER_PLACED', label: 'Order Placed', color: 'info' },
+  { value: 'ACCEPTED', label: 'Accepted', color: 'primary' },
+  { value: 'READY_FOR_DELIVERY', label: 'Ready for Delivery', color: 'success' },
+  { value: 'SCHEDULED', label: 'Scheduled', color: 'info' },
+  { value: 'PICKED_UP', label: 'Picked Up', color: 'info' },
   { value: 'DELIVERED', label: 'Delivered', color: 'success' },
   { value: 'CANCELLED', label: 'Cancelled', color: 'error' },
 ];
-
-const GET_USER_PROFILE = `
-  query GetUserProfile($userId: String!) {
-    getUserProfile(userId: $userId) {
-      id
-      email
-      type
-      stores {
-        edges {
-          node {
-            id
-            name
-          }
-        }
-      }
-    }
-  }
-`;
-
-const GET_ORDERS_BY_STORE = `
-  query GetOrdersByStore($storeId: Int!) {
-    getOrdersByStore(storeId: $storeId) {
-      id
-      addressId
-      cancelledAt
-      cancelledByUserId
-      createdByUserId
-      deliveryDate
-      deliveryInstructions
-      paymentId
-      status
-      storeId
-      totalAmount
-      orderItems {
-        edges {
-          node {
-            id
-            inventoryId
-            orderAmount
-            orderId
-            productId
-            quantity
-            product {
-              id
-              name
-              description
-            }
-          }
-        }
-      }
-    }
-  }
-`;
-
-const UPDATE_ORDER_STATUS = `
-  mutation UpdateOrderStatus($orderId: Int!, $status: String!) {
-    updateOrderStatus(orderId: $orderId, status: $status) {
-      id
-      status
-    }
-  }
-`;
-
-const CANCEL_ORDER = `
-  mutation CancelOrder($orderId: Int!, $cancelMessage: String!, $cancelledByUserId: Int!) {
-    cancelOrderById(
-      orderId: $orderId, 
-      cancelMessage: $cancelMessage, 
-      cancelledByUserId: $cancelledByUserId
-    ) {
-      id
-      status
-    }
-  }
-`;
 
 const StoreOrders = () => {
   const { userProfile } = useAuthStore();
@@ -142,6 +85,9 @@ const StoreOrders = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [cancelMessage, setCancelMessage] = useState('');
+  const [deliveryInstructions, setDeliveryInstructions] = useState('');
+  const [driverId, setDriverId] = useState('');
+  const [scheduleTime, setScheduleTime] = useState('');
 
   // Fetch Cognito ID on component mount
   useEffect(() => {
@@ -168,6 +114,20 @@ const StoreOrders = () => {
   const storeId = profileData?.getUserProfile?.stores?.edges?.[0]?.node?.id;
   const userId = profileData?.getUserProfile?.id;
 
+  // Fetch drivers for the store
+  const {
+    data: driversData,
+    isLoading: driversLoading,
+    error: driversError,
+    refetch: refetchDrivers,
+  } = useQuery({
+    queryKey: ['storeDrivers', storeId],
+    queryFn: async () => {
+      return await graphqlService(GET_STORE_DRIVERS, { storeId });
+    },
+    enabled: !!storeId,
+  });
+
   // Fetch orders using store ID
   const {
     data: ordersData,
@@ -183,9 +143,37 @@ const StoreOrders = () => {
     enabled: !!storeId,
   });
 
+  // Update order status mutation
+  const updateOrderStatusMutation = useMutation({
+    mutationFn: async (variables) => {
+      return await graphqlService(UPDATE_ORDER_STATUS, {
+        input: {
+          orderId: variables.orderId,
+          status: variables.status,
+          deliveryInstructions: variables.deliveryInstructions || '',
+          driverId: variables.driverId || null,
+          scheduleTime: variables.scheduleTime || null,
+        },
+      });
+    },
+    onSuccess: () => {
+      refetchOrders();
+      setEditDialogOpen(false);
+      setSelectedOrder(null);
+      setNewStatus('');
+      setDeliveryInstructions('');
+      setDriverId('');
+      setScheduleTime('');
+    },
+    onError: (error) => {
+      setError(error.message);
+    },
+  });
+
   const handleEditClick = (order) => {
     setSelectedOrder(order);
     setNewStatus(order.status);
+    setDeliveryInstructions(order.deliveryInstructions || '');
     setEditDialogOpen(true);
   };
 
@@ -196,12 +184,27 @@ const StoreOrders = () => {
 
   const handleStatusUpdate = async () => {
     try {
-      await graphqlService(UPDATE_ORDER_STATUS, {
+      const input = {
         orderId: selectedOrder.id,
         status: newStatus,
-      });
-      setEditDialogOpen(false);
-      refetchOrders();
+        deliveryInstructions: deliveryInstructions,
+      };
+
+      // Add driver and schedule time for READY or READY_FOR_DELIVERY status
+      if (newStatus === 'READY' || newStatus === 'READY_FOR_DELIVERY') {
+        if (!driverId) {
+          setError('Driver ID is required for this status');
+          return;
+        }
+        if (!scheduleTime) {
+          setError('Schedule time is required for this status');
+          return;
+        }
+        input.driverId = parseInt(driverId);
+        input.scheduleTime = scheduleTime;
+      }
+
+      await updateOrderStatusMutation.mutateAsync(input);
     } catch (err) {
       setError(err.message);
     }
@@ -288,7 +291,7 @@ const StoreOrders = () => {
     return filteredOrders.slice(start, start + rowsPerPage);
   }, [filteredOrders, page, rowsPerPage]);
 
-  if (profileLoading || ordersLoading) {
+  if (profileLoading || ordersLoading || driversLoading) {
     return (
       <Layout>
         <Box
@@ -300,11 +303,11 @@ const StoreOrders = () => {
     );
   }
 
-  if (ordersError) {
+  if (ordersError || driversError) {
     return (
       <Layout>
         <Alert severity="error" sx={{ mb: 2 }}>
-          {ordersError.message}
+          {ordersError?.message || driversError?.message || 'An error occurred'}
         </Alert>
       </Layout>
     );
@@ -426,7 +429,7 @@ const StoreOrders = () => {
                     <TableRow>
                       <TableCell>{order.id}</TableCell>
                       <TableCell>{order.deliveryInstructions || 'N/A'}</TableCell>
-                      <TableCell>₹{order.totalAmount}</TableCell>
+                      <TableCell>{formatCurrency(order.totalAmount)}</TableCell>
                       <TableCell>
                         <Chip
                           label={
@@ -514,28 +517,84 @@ const StoreOrders = () => {
         )}
 
         {/* Edit Status Dialog */}
-        <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)}>
+        <Dialog
+          open={editDialogOpen}
+          onClose={() => setEditDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
           <DialogTitle>Update Order Status</DialogTitle>
           <DialogContent>
-            <TextField
-              select
-              fullWidth
-              label="Status"
-              value={newStatus}
-              onChange={(e) => setNewStatus(e.target.value)}
-              sx={{ mt: 2 }}
-            >
-              {ORDER_STATUSES.map((status) => (
-                <MenuItem key={status.value} value={status.value}>
-                  {status.label}
-                </MenuItem>
-              ))}
-            </TextField>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Status"
+                  value={newStatus}
+                  onChange={(e) => setNewStatus(e.target.value)}
+                >
+                  {ORDER_STATUSES.map((status) => (
+                    <MenuItem key={status.value} value={status.value}>
+                      {status.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Delivery Instructions"
+                  value={deliveryInstructions}
+                  onChange={(e) => setDeliveryInstructions(e.target.value)}
+                  multiline
+                  rows={3}
+                />
+              </Grid>
+              {newStatus === 'READY_FOR_DELIVERY' && (
+                <>
+                  <Grid item xs={12} md={6}>
+                    <FormControl fullWidth required>
+                      <InputLabel>Delivery Agent</InputLabel>
+                      <Select
+                        value={driverId}
+                        onChange={(e) => setDriverId(e.target.value)}
+                        label="Delivery Agent"
+                      >
+                        {driversData?.getStoreDrivers?.map((storeDriver) => (
+                          <MenuItem key={storeDriver.userId} value={storeDriver.userId}>
+                            {storeDriver.driver.email} ({storeDriver.driver.mobile})
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <TextField
+                      fullWidth
+                      label="Schedule Time"
+                      value={scheduleTime}
+                      onChange={(e) => setScheduleTime(e.target.value)}
+                      type="datetime-local"
+                      required
+                      InputLabelProps={{
+                        shrink: true,
+                      }}
+                    />
+                  </Grid>
+                </>
+              )}
+            </Grid>
           </DialogContent>
           <DialogActions>
             <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleStatusUpdate} variant="contained" color="primary">
-              Update
+            <Button
+              onClick={handleStatusUpdate}
+              variant="contained"
+              color="primary"
+              disabled={updateOrderStatusMutation.isLoading}
+            >
+              {updateOrderStatusMutation.isLoading ? 'Updating...' : 'Update'}
             </Button>
           </DialogActions>
         </Dialog>

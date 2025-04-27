@@ -139,16 +139,12 @@ export const GET_ALL_USERS = `query getAllUsers {
 }`;
 
 export const UPDATE_ORDER_STATUS = `
-  mutation UpdateOrderStatus($orderId: Int!, $status: String!, $driverId: Int, $scheduleTime: DateTime) {
-    updateOrderStatus(input: { 
-      orderId: $orderId, 
-      status: $status, 
-      driverId: $driverId, 
-      scheduleTime: $scheduleTime
-    }) {
+  mutation UpdateOrderStatus($input: UpdateOrderStatusInput!) {
+    updateOrderStatus(input: $input) {
       id
       status
       deliveryDate
+      deliveryInstructions
     }
   }
 `;
@@ -178,10 +174,69 @@ export const GET_USER_PROFILE = `
     getUserProfile(userId: $userId) {
       id
       email
-      mobile
-      active
       type
-      referralId
+      stores {
+        edges {
+          node {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const GET_ORDERS_BY_STORE = `
+  query GetOrdersByStore($storeId: Int!) {
+    getOrdersByStore(storeId: $storeId) {
+      id
+      addressId
+      cancelledAt
+      cancelledByUserId
+      createdByUserId
+      deliveryDate
+      deliveryInstructions
+      id
+      paymentId
+      status
+      storeId
+      totalAmount
+      orderItems {
+        edges {
+          node {
+            id
+            inventoryId
+            orderAmount
+            orderId
+            productId
+            quantity
+            product {
+              id
+              name
+              description
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const GET_STORE_DRIVERS = `
+  query GetStoreDrivers($storeId: Int!) {
+    getStoreDrivers(storeId: $storeId) {
+      id
+      storeId
+      userId
+      driver {
+        active
+        email
+        mobile
+        referralId
+        referredBy
+        type
+      }
     }
   }
 `;
