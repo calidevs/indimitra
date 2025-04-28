@@ -467,6 +467,7 @@ export const GET_STORES = `
       id
       name
       address
+      managerUserId
       drivers {
         edges {
           node {
