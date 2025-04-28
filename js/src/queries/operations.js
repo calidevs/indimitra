@@ -98,27 +98,28 @@ export const GET_ALL_ORDERS = `
 query GetAllOrders {
   getAllOrders {
     id
+    creator {
+      email
+      mobile
+    }
     address { 
       id
       address
       isPrimary
     }
     status
+    storeId
     totalAmount
     deliveryDate
+    deliveryInstructions
     orderItems {
       edges {
         node {
+          id
           product {
-            name
             id
-            inventoryItems {
-              edges {
-                node {
-                  price
-                }
-              }
-            }
+            name
+            description
           }
           quantity
           orderAmount
