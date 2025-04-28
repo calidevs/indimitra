@@ -336,9 +336,6 @@ const UserManagement = () => {
                   <IconButton size="small" color="primary" onClick={() => handleRoleUpdate(user)}>
                     <EditIcon />
                   </IconButton>
-                  <IconButton size="small" color="error">
-                    <DeleteIcon />
-                  </IconButton>
                   {user.type === 'DELIVERY' && (
                     <IconButton
                       size="small"
@@ -390,9 +387,6 @@ const UserManagement = () => {
                   <IconButton size="small" color="primary" onClick={() => handleRoleUpdate(user)}>
                     <EditIcon />
                   </IconButton>
-                  <IconButton size="small" color="error">
-                    <DeleteIcon />
-                  </IconButton>
                 </TableCell>
               </TableRow>
             ))}
@@ -437,9 +431,6 @@ const UserManagement = () => {
                     onClick={() => handleRoleUpdate(partner)}
                   >
                     <EditIcon />
-                  </IconButton>
-                  <IconButton size="small" color="error">
-                    <DeleteIcon />
                   </IconButton>
                   <IconButton
                     size="small"
@@ -493,9 +484,6 @@ const UserManagement = () => {
                     onClick={() => handleRoleUpdate(manager)}
                   >
                     <EditIcon />
-                  </IconButton>
-                  <IconButton size="small" color="error">
-                    <DeleteIcon />
                   </IconButton>
                 </TableCell>
               </TableRow>
