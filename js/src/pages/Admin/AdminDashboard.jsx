@@ -31,6 +31,8 @@ import {
   Category as CategoryIcon,
 } from '@mui/icons-material';
 import Header from '@/components/layout/Header';
+import { signOut } from 'aws-amplify/auth';
+import { useAuthStore } from '@/store/useStore';
 
 // Import the page components
 import UserManagement from './UserManagement';
@@ -60,6 +62,7 @@ const menuItems = [
 const AdminDashboard = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [open, setOpen] = useState(true);
+  const { user, ability, logout } = useAuthStore();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const navigate = useNavigate();
@@ -72,6 +75,17 @@ const AdminDashboard = () => {
   const handleSidebarToggle = () => {
     setOpen(!open);
   };
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Error signing out:', error);
+    }
+  };
+
 
   const handleNavigation = (path) => {
     navigate(path);
@@ -143,7 +157,9 @@ const AdminDashboard = () => {
         <Divider sx={{ my: 2 }} />
         <ListItem
           button
-          onClick={() => handleNavigation('/logout')}
+          onClick={() => {
+            handleLogout();
+          }}
           sx={{
             minHeight: 48,
             justifyContent: open ? 'initial' : 'center',
