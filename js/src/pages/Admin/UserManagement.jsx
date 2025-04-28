@@ -539,9 +539,6 @@ const UserManagement = () => {
             }}
             sx={{ flexGrow: 1, minWidth: 200 }}
           />
-          <Button variant="contained" startIcon={<AddIcon />} sx={{ minWidth: 150 }}>
-            Add New
-          </Button>
         </Box>
 
         {usersError && (
