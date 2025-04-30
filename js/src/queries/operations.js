@@ -203,6 +203,9 @@ export const GET_ORDERS_BY_STORE = `
       status
       storeId
       totalAmount
+      delivery {
+        driverId
+      }
       orderItems {
         edges {
           node {
