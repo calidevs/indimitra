@@ -4,6 +4,7 @@ import {
   Box,
   Typography,
   Paper,
+  Divider,
   Table,
   TableBody,
   TableCell,
@@ -12,36 +13,32 @@ import {
   TableRow,
   IconButton,
   Chip,
-  CircularProgress,
-  TextField,
-  InputAdornment,
+  CircularProgress,  TextField,
   FormControl,
   InputLabel,
   Select,
   MenuItem,
   Grid,
   Dialog,
-  DialogTitle,
+  DialogTitle,  
   DialogContent,
   DialogActions,
   Button,
-  Divider,
   Alert,
   Stepper,
   Step,
   StepLabel,
+  InputAdornment
+
 } from '@mui/material';
 import {
-  Search as SearchIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
-  Payment as PaymentIcon,
   Add as AddIcon,
-  CheckCircle as CheckCircleIcon,
-  Error as ErrorIcon,
-  Pending as PendingIcon,
+  Payment as PaymentIcon,
+  Search as SearchIcon,
 } from '@mui/icons-material';
-import fetchGraphQL from '@/config/graphql/graphqlService';
+
+import fetchGraphQL from '../../config/graphql/graphqlService';
 
 // Define GraphQL queries and mutations
 const GET_PAYMENT_ONBOARDING = `
@@ -120,6 +117,7 @@ const PaymentOnboarding = () => {
   const [formData, setFormData] = useState({
     storeId: '',
     paymentMethod: '',
+
     accountDetails: {
       accountName: '',
       accountNumber: '',
@@ -138,6 +136,7 @@ const PaymentOnboarding = () => {
     data: onboardingData,
     isLoading,
     refetch,
+    error: queryError,
   } = useQuery({
     queryKey: ['paymentOnboarding', statusFilter, searchTerm],
     queryFn: () =>
@@ -298,7 +297,7 @@ const PaymentOnboarding = () => {
     }
   };
 
-  const getStatusColor = (status) => {
+  const getStatusColor = status => {
     switch (status) {
       case 'APPROVED':
         return 'success';
@@ -311,7 +310,7 @@ const PaymentOnboarding = () => {
     }
   };
 
-  const getStatusIcon = (status) => {
+  const getStatusIcon = status => {
     switch (status) {
       case 'APPROVED':
         return <CheckCircleIcon />;
@@ -327,6 +326,7 @@ const PaymentOnboarding = () => {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleString();
+
   };
 
   const renderStepContent = (step) => {
@@ -546,13 +546,14 @@ const PaymentOnboarding = () => {
         </Box>
 
         {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
+          <Alert severity='error' sx={{ mb: 3 }}>
             {error}
           </Alert>
         )}
 
         {success && (
-          <Alert severity="success" sx={{ mb: 3 }}>
+
+          <Alert severity='success' sx={{ mb: 3 }}>
             {editingOnboarding
               ? 'Payment onboarding updated successfully!'
               : 'Payment onboarding created successfully!'}
@@ -600,6 +601,7 @@ const PaymentOnboarding = () => {
           startIcon={<AddIcon />}
           onClick={() => handleOpenDialog()}
           sx={{ mb: 3 }}
+          disabled={true}
         >
           Add Payment Onboarding
         </Button>
@@ -617,8 +619,14 @@ const PaymentOnboarding = () => {
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
-            <TableBody>
-              {isLoading ? (
+
+            <TableBody>{queryError ? (
+              <TableRow>
+                <TableCell colSpan={6} align='center'>
+                  <Typography color='error'>Error fetching payment onboarding</Typography>
+                </TableCell>
+              </TableRow>)
+              : isLoading ? (
                 <TableRow>
                   <TableCell colSpan={6} align="center">
                     <CircularProgress />
@@ -654,7 +662,9 @@ const PaymentOnboarding = () => {
                       </IconButton>
                     </TableCell>
                   </TableRow>
+
                 ))
+
               )}
             </TableBody>
           </Table>
