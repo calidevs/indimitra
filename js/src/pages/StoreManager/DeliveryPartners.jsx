@@ -64,7 +64,6 @@ const ORDER_STATUSES = [
 const DRIVER_STATUSES = [
   { value: 'ACTIVE', label: 'Active' },
   { value: 'INACTIVE', label: 'Inactive' },
-  { value: 'BUSY', label: 'Busy' },
 ];
 
 const DeliveryPartners = () => {
