@@ -17,7 +17,7 @@ import { Link } from 'react-router-dom';
 import Visibility from '@mui/icons-material/Visibility';
 import VisibilityOff from '@mui/icons-material/VisibilityOff';
 
-const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
+const SignUpForm = ({ referredBy = '', onSuccess }) => {
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -50,8 +50,7 @@ const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
       });
 
       setSuccess('Signup successful! Enter the OTP sent to your email.');
-      if (onOtpStep) onOtpStep(email);
-      if (onSuccess) onSuccess();
+      if (onSuccess) onSuccess(email);
     } catch (err) {
       console.error('Signup error:', err);
 
@@ -62,7 +61,7 @@ const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
           // 🔄 Resend OTP if user is unconfirmed
           await resendSignUpCode({ username: email });
           setSuccess('OTP resent. Please check your email.');
-          if (onOtpStep) onOtpStep(email);
+          if (onSuccess) onSuccess(email);
         } catch (resendError) {
           console.error('❌ Error resending OTP:', resendError);
           setError(resendError.message || 'Error resending OTP.');
