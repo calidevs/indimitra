@@ -1,5 +1,6 @@
 import { Box, Container } from '@components';
 import Header from './Header';
+import WhatsAppButton from '../common/WhatsAppButton';
 
 const Layout = ({ children }) => {
   return (
@@ -8,6 +9,7 @@ const Layout = ({ children }) => {
       <Container component="main" sx={{ flex: 1 }}>
         {children}
       </Container>
+      <WhatsAppButton />
     </Box>
   );
 };
