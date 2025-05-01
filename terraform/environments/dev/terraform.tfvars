@@ -13,7 +13,7 @@ engine = "postgres"
 instance_class = "db.t3.micro"
 db_name = "dev_userpool_db"
 username = "postgres"
-POSTGRES_HOST="dummy-db.ci528kc2ig6e.us-east-1.rds.amazonaws.com"
+POSTGRES_HOST="dev-cognito.ci528kc2ig6e.us-east-1.rds.amazonaws.com"
 #s3 variables
 bucket = "frontend-indimitra"
 s3_tags = {
