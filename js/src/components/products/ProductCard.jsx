@@ -16,11 +16,13 @@ import { useTheme } from '@mui/material/styles';
 import useStore from '@/store/useStore';
 import ProductCategoryChip from '../Chip/ProductCategoryChip';
 
+const unavailableColor = 'grey';
+
 const ProductCard = ({ product }) => {
   const theme = useTheme();
   const { cart, addToCart, removeFromCart } = useStore();
-  const { id, name, price, description, image, categoryName } = product;
-  const quantity = cart[id]?.quantity || 0;
+  const { id, name, price, description, image, categoryName, quantity } = product;
+  const cartQuantity = cart[id]?.quantity || 0;
 
   const productImage =
     image || (categoryName ? getRandomGroceryImage(categoryName) : PLACEHOLDER_IMAGE);
@@ -37,6 +39,10 @@ const ProductCard = ({ product }) => {
         position: 'relative',
         border: '1px solid',
         borderColor: 'divider',
+        ...(quantity === 0 && {
+          opacity: 0.5,
+          pointerEvents: 'none',
+        }),
       }}
     >
       <ProductCategoryChip categoryName={categoryName} />
@@ -56,7 +62,25 @@ const ProductCard = ({ product }) => {
         }}
       />
 
-      <CardContent sx={{ 
+       {quantity === 0 && (
+        <Box
+          sx={{
+            position: 'absolute',
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            bgcolor: 'rgba(0, 0, 0, 0.6)',
+            color: 'white',
+            px: 2,
+            py: 1,
+            borderRadius: '4px',
+            zIndex: 1,
+          }}
+        >
+          <Typography variant="body1">Unavailable</Typography>
+        </Box>
+      )}
+      <CardContent sx={{
         flexGrow: 1, 
         p: 2.5,
         pb: 0,
@@ -123,7 +147,7 @@ const ProductCard = ({ product }) => {
           px: 2.5,
         }}
       >
-        {quantity > 0 ? (
+        {cartQuantity > 0 ? (
           <Box
             sx={{
               display: 'flex',
@@ -172,7 +196,7 @@ const ProductCard = ({ product }) => {
                 fontSize: '1.1rem',
               }}
             >
-              {quantity}
+              {cartQuantity}
             </Typography>
 
             {/* Plus Button */}
@@ -200,13 +224,14 @@ const ProductCard = ({ product }) => {
               width: '100%',
               height: '48px',
               background: 'transparent',
-              color: '#FF6B6B',
+              color: quantity === 0 ? unavailableColor: '#FF6B6B',
               borderRadius: '8px',
               fontWeight: 600,
               fontSize: '0.95rem',
               textTransform: 'none',
               position: 'relative',
               overflow: 'hidden',
+              border: `2px solid ${quantity === 0 ? unavailableColor : '#FF6B6B'}`,
               transition: 'all 0.2s ease',
               border: '2px solid #FF6B6B',
               '&:hover': {
@@ -222,8 +247,9 @@ const ProductCard = ({ product }) => {
             }}
             startIcon={<ShoppingCart sx={{ fontSize: '1.1rem' }} />}
             onClick={() => addToCart(product)}
+            disabled={quantity === 0}
           >
-            Add to Cart
+            {quantity === 0 ? 'Unavailable' : 'Add to Cart'}
           </Button>
         )}
       </CardActions>
