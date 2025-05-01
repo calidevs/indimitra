@@ -40,12 +40,24 @@ class StoreMutation:
         self,
         name: str,
         address: str,
+        email: str,
         manager_user_id: int,
-        radius: Optional[float] = None
+        radius: Optional[float] = None,
+        mobile: Optional[str] = None
     ) -> Store:
-        """Create a new store"""
+        """
+        Create a new store
+        
+        Args:
+            name: Store name
+            address: Store address
+            email: Store email (must be unique)
+            manager_user_id: ID of the user who manages this store
+            radius: Optional delivery radius for the store
+            mobile: Optional store phone number (must be unique if provided)
+        """
         try:
-            return create_store(name, address, manager_user_id, radius)
+            return create_store(name, address, manager_user_id, email, radius, mobile)
         except ValueError as e:
             raise Exception(str(e))
     
@@ -55,12 +67,25 @@ class StoreMutation:
         store_id: int,
         name: Optional[str] = None,
         address: Optional[str] = None,
+        email: Optional[str] = None,
+        mobile: Optional[str] = None,
         manager_user_id: Optional[int] = None,
         radius: Optional[float] = None
     ) -> Optional[Store]:
-        """Update an existing store"""
+        """
+        Update an existing store
+        
+        Args:
+            store_id: ID of the store to update
+            name: Optional new store name
+            address: Optional new store address
+            email: Optional new store email (must be unique)
+            mobile: Optional new store phone number (must be unique if provided)
+            manager_user_id: Optional new manager user ID
+            radius: Optional new delivery radius
+        """
         try:
-            store = update_store(store_id, name, address, manager_user_id, radius)
+            store = update_store(store_id, name, address, email, mobile, manager_user_id, radius)
             if not store:
                 raise Exception(f"Store with ID {store_id} not found")
             return store
