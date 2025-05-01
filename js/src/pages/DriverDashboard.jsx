@@ -137,7 +137,13 @@ const DriverDashboard = () => {
 
   // Mutation to update order status
   const updateStatusMutation = useMutation({
-    mutationFn: (variables) => fetchGraphQL(UPDATE_ORDER_STATUS, variables),
+    mutationFn: (variables) =>
+      fetchGraphQL(UPDATE_ORDER_STATUS, {
+        input: {
+          orderId: variables.orderId,
+          status: variables.status,
+        },
+      }),
     onSuccess: () => {
       refetch(); // Refresh the deliveries after updating status
       setModalOpen(false);
@@ -205,8 +211,6 @@ const DriverDashboard = () => {
       updateStatusMutation.mutate({
         orderId: selectedDelivery.orderId,
         status: selectedStatus,
-        driverId: effectiveProfile?.id,
-        scheduleTime: orderScheduleTime,
       });
     }
   };
@@ -738,7 +742,6 @@ const DriverDashboard = () => {
               {/* Update Order Status Dropdown */}
               <FormControl fullWidth sx={{ mb: 2 }}>
                 <Select value={selectedStatus} onChange={handleStatusChange} size="small">
-                  <MenuItem value="READY_FOR_DELIVERY">Ready for Delivery</MenuItem>
                   <MenuItem value="PICKED_UP">Picked Up</MenuItem>
                   <MenuItem value="DELIVERED">Delivered</MenuItem>
                   <MenuItem value="CANCELLED">Cancelled</MenuItem>
