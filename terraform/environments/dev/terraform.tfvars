@@ -7,7 +7,7 @@ region = "us-east-1"
 
 #db variables
 identifier = "dev-cognito"
-allocated_storage = "5"
+allocated_storage = "20"
 engine_version = "16.3"
 engine = "postgres"
 instance_class = "db.t3.micro"

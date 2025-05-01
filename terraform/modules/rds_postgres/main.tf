@@ -27,7 +27,7 @@ resource "aws_db_instance" "rds_postgres" {
   db_name               = var.db_name
   username              = var.username
   password              = var.password
-  storage_encrypted     = true
+  storage_encrypted     = false
   skip_final_snapshot   = true 
   publicly_accessible = true
   vpc_security_group_ids  = var.vpc_security_group_ids
