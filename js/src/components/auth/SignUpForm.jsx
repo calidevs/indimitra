@@ -158,21 +158,37 @@ const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
       />
 
       {/* Phone Number (Optional) */}
-      <TextField
-        label="Phone Number"
-        variant="outlined"
-        fullWidth
-        value={phone}
-        onChange={(e) => setPhone(e.target.value)}
-        sx={{ mb: 2 }}
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <PhoneIcon sx={{ color: '#FF6B6B' }} />
-            </InputAdornment>
-          ),
-        }}
-      />
+      <Box sx={{ display: 'flex', gap: 1, mb: 2 }}>
+        <TextField
+          label="Country Code"
+          variant="outlined"
+          value="+1"
+          disabled
+          sx={{ width: '120px' }}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <PhoneIcon sx={{ color: '#FF6B6B' }} />
+              </InputAdornment>
+            ),
+          }}
+        />
+        <TextField
+          label="Phone Number"
+          variant="outlined"
+          fullWidth
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          required
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <PhoneIcon sx={{ color: '#FF6B6B' }} />
+              </InputAdornment>
+            ),
+          }}
+        />
+      </Box>
 
       {/* Referral Code (Editable if no URL param) */}
       <TextField
@@ -214,14 +230,6 @@ const SignUpForm = ({ referredBy = '', onOtpStep, onSuccess, onError }) => {
       >
         {loading ? 'Processing...' : 'Sign Up'}
       </Button>
-
-      {/* Login Link */}
-      <Typography variant="body2" sx={{ textAlign: 'center' }}>
-        Already have an account?{' '}
-        <Link to="/login" style={{ textDecoration: 'underline', color: '#FF6B6B' }}>
-          Login
-        </Link>
-      </Typography>
     </form>
   );
 };

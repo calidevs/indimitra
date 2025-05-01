@@ -21,7 +21,7 @@ const OtpVerificationForm = ({ email, onComplete, onSuccess }) => {
 
       setSuccess('Account verified successfully! Redirecting to login...');
       setTimeout(() => {
-        navigate('/login'); // Redirect to login after OTP verification
+        navigate('/'); // Redirect to login after OTP verification
       }, 2000);
 
       if (onSuccess) onSuccess();
