@@ -96,12 +96,11 @@ module "rds_postgres" {
   instance_class      = var.instance_class
   username            = var.username
   password            = var.password
-  storage_encrypted   = true
+  storage_encrypted   = false
   skip_final_snapshot = true
   tags                = var.tags
   vpc_security_group_ids = [module.rds_sg_dev.security_group_id]
   env                 = "dev"
-
 }
 
 module "ecs_sg_dev" {
