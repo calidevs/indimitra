@@ -8,13 +8,14 @@ import StoreSelectorTitle from './StoreSelectorTitle';
 import NoStoresMessage from './NoStoresMessage';
 
 const StoreSelector = ({ open, onClose }) => {
-  const { selectedStore, setSelectedStore, availableStores } = useStore();
+  const { selectedStore, setSelectedStore, availableStores, clearCart } = useStore();
 
   // Handle store selection
   const handleStoreSelect = (store) => {
     // Store the selected store in local storage (stringify because localStorage stores strings)
     localStorage.setItem('selectedStore', JSON.stringify(store));
     setSelectedStore(store);
+    clearCart();
     onClose();
   };
 

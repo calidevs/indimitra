@@ -29,6 +29,10 @@ import {
 import { useAuthStore } from '@/store/useStore';
 import Layout from '@/components/StoreManager/Layout';
 import fetchGraphQL from '@/config/graphql/graphqlService';
+import graphqlService from '@/config/graphql/graphqlService';
+import {
+  GET_ORDERS_BY_STORE,
+} from '@/queries/operations';
 
 // Define the GraphQL query for getting drivers by store
 const GET_DRIVERS_BY_STORE = `
@@ -48,19 +52,6 @@ const GET_DRIVERS_BY_STORE = `
   }
 `;
 
-// Define the GraphQL query for getting all orders
-const GET_ALL_ORDERS = `
-  query GetAllOrders {
-    getAllOrders {
-      id
-      status
-      totalAmount
-      deliveryDate
-      storeId
-    }
-  }
-`;
-
 const ORDER_STATUSES = [
   { value: 'PENDING', label: 'Pending' },
   { value: 'PROCESSING', label: 'Processing' },
@@ -73,7 +64,6 @@ const ORDER_STATUSES = [
 const DRIVER_STATUSES = [
   { value: 'ACTIVE', label: 'Active' },
   { value: 'INACTIVE', label: 'Inactive' },
-  { value: 'BUSY', label: 'Busy' },
 ];
 
 const DeliveryPartners = () => {
@@ -139,9 +129,12 @@ const DeliveryPartners = () => {
     error: ordersError,
     refetch: refetchOrders,
   } = useQuery({
-    queryKey: ['allOrders'],
-    queryFn: () => fetchGraphQL(GET_ALL_ORDERS),
-    enabled: shouldFetch,
+    queryKey: ['storeOrders', storeId],
+    queryFn: async () => {
+      const result = await graphqlService(GET_ORDERS_BY_STORE, { storeId });
+      return result.getOrdersByStore || [];
+    },
+    enabled: !!storeId,
   });
 
   const handleFilterChange = (field, value) => {
@@ -175,7 +168,7 @@ const DeliveryPartners = () => {
   const filterOrders = (orders, driverId) => {
     if (!orders) return [];
 
-    let filtered = orders.filter((order) => order.driverId === driverId);
+    let filtered = orders.filter((order) => order?.delivery?.driverId === driverId);
 
     if (filters.orderStatus) {
       filtered = filtered.filter((order) => order.status === filters.orderStatus);
@@ -333,7 +326,7 @@ const DeliveryPartners = () => {
                 </TableHead>
                 <TableBody>
                   {filterDrivers(driversData?.getStoreDrivers || []).map((driver) => (
-                    <React.Fragment key={driver.id}>
+                    <React.Fragment key={driver?.userId}>
                       <TableRow>
                         <TableCell>{driver?.userId}</TableCell>
                         <TableCell>{driver.name}</TableCell>
@@ -347,20 +340,20 @@ const DeliveryPartners = () => {
                           />
                         </TableCell>
                         <TableCell>
-                          {filterOrders(ordersData?.getAllOrders || [], driver.id).length}
+                          {filterOrders(ordersData || [], driver?.userId).length}
                         </TableCell>
                         <TableCell>
                           <IconButton
                             size="small"
                             onClick={() =>
-                              setExpandedDriver(expandedDriver === driver.id ? null : driver.id)
+                              setExpandedDriver(expandedDriver === driver?.userId ? null : driver?.userId)
                             }
                           >
-                            {expandedDriver === driver.id ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                            {expandedDriver === driver?.userId ? <ExpandLessIcon /> : <ExpandMoreIcon />}
                           </IconButton>
                         </TableCell>
                       </TableRow>
-                      {expandedDriver === driver.id && (
+                      {expandedDriver === driver?.userId && (
                         <TableRow>
                           <TableCell colSpan={7}>
                             <Box sx={{ p: 2 }}>
@@ -378,9 +371,9 @@ const DeliveryPartners = () => {
                                   </TableRow>
                                 </TableHead>
                                 <TableBody>
-                                  {filterOrders(ordersData?.getAllOrders || [], driver.id).length >
+                                  {filterOrders(ordersData || [], driver?.userId).length >
                                   0 ? (
-                                    filterOrders(ordersData?.getAllOrders || [], driver.id).map(
+                                    filterOrders(ordersData || [], driver?.userId).map(
                                       (order) => (
                                         <TableRow key={order.id}>
                                           <TableCell>{order.id}</TableCell>
