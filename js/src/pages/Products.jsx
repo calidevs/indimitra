@@ -8,7 +8,7 @@ import {
   InputAdornment,
   CircularProgress,
   Box,
-    Button,
+  Button,
   TablePagination,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
@@ -17,7 +17,25 @@ import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_STORE_PRODUCTS } from '@/queries/operations';
 import useStore from '@/store/useStore';
 import { ProductGrid } from '@components';
+import banginapalli from '@/assets/images/products/banginapalli.jpg';
+import himayat from '@/assets/images/products/himayat.jpg';
+import kesar from '@/assets/images/products/kesar.jpg';
+import chinnaRasalu from '@/assets/images/products/chinna-rasalu.png';
+import alphonso from '@/assets/images/products/alphonso.png';
+import malgova from '@/assets/images/products/malgova.jpg';
 
+// Store-specific product images mapping
+const STORE_PRODUCT_IMAGES = {
+  1: {
+    // Store ID 1
+    2: banginapalli, // Banginapalli
+    3: himayat, // Himayat / Imam Pasand
+    4: kesar, // Kesar
+    5: chinnaRasalu, // Chinna Rasalu
+    6: alphonso, // Alphonso
+    7: malgova, // Malgova
+  },
+};
 
 function useDebounce(value, delay) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -35,7 +53,7 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-const Products = ({setStoreModalOpen}) => {
+const Products = ({ setStoreModalOpen }) => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(12); // Default rows per page
@@ -63,21 +81,27 @@ const Products = ({setStoreModalOpen}) => {
   // Process inventory data to create a products array for the ProductGrid
   const products = useMemo(() => {
     return (
-      inventoryData?.store?.inventory?.edges?.map(({ node }) => ({
-        id: node.product.id,
-        name: node.product.name,
-        image: node.product.image,
-        price: node.price,
-        description: node.product.description,
-        categoryId: node.product.category.id,
-        categoryName: node.product.category.name,
-        inventoryId: node.id,
-        quantity: node.quantity,
-        measurement: node.measurement,
-        unit: node.unit,
-      })) || []
+      inventoryData?.store?.inventory?.edges?.map(({ node }) => {
+        const storeId = selectedStore?.id;
+        const productId = node.product.id;
+        const storeImages = STORE_PRODUCT_IMAGES[storeId] || {};
+
+        return {
+          id: node.product.id,
+          name: node.product.name,
+          image: storeImages[productId] || 'https://picsum.photos/200',
+          price: node.price,
+          description: node.product.description,
+          categoryId: node.product.category.id,
+          categoryName: node.product.category.name,
+          inventoryId: node.id,
+          quantity: node.quantity,
+          measurement: node.measurement,
+          unit: node.unit,
+        };
+      }) || []
     );
-  }, [inventoryData]);
+  }, [inventoryData, selectedStore?.id]);
 
   // Memoize the filtered products with debounced search (no min character check)
   const filteredProducts = useMemo(() => {
@@ -96,20 +120,17 @@ const Products = ({setStoreModalOpen}) => {
   };
 
   const visibleRows = useMemo(() => {
-    return filteredProducts.slice(
-      page * rowsPerPage,
-      page * rowsPerPage + rowsPerPage
-    );
+    return filteredProducts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
   }, [filteredProducts, page, rowsPerPage]);
 
-  console.log({visibleRows})
+  console.log({ visibleRows });
 
   if (inventoryError)
     return <Typography>Error fetching products: {inventoryError.message}</Typography>;
 
   return (
     <Container>
-       {/* Store Selection */}
+      {/* Store Selection */}
       {/* Store Selection */}
       {selectedStore && (
         <Box
@@ -132,7 +153,7 @@ const Products = ({setStoreModalOpen}) => {
           </Box>
           <Button
             variant="outlined"
-            startIcon={<StoreIcon  />}
+            startIcon={<StoreIcon />}
             onClick={() => setStoreModalOpen(true)}
           >
             Change Store
