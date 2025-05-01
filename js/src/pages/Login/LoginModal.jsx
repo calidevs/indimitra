@@ -1,25 +1,30 @@
 import React, { useState } from 'react';
-import {
-  Modal,
-  Box,
-  Paper,
-  Typography,
-  useTheme,
-  Button,
-} from '@mui/material';
+import { Modal, Box, Paper, Typography, useTheme, Button, Alert } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LoginForm from '../../components/auth/LoginForm';
 import SignUpForm from '../../components/auth/SignUpForm';
 import ForgotPassword from '../ForgotPassword';
-
-
+import OtpVerificationForm from '../../components/auth/OtpVerificationForm';
 
 const LoginModal = ({ open, onClose, initialForm = 'login' }) => {
   const [currentForm, setCurrentForm] = useState(initialForm);
+  const [email, setEmail] = useState('');
+  const [verificationSuccess, setVerificationSuccess] = useState(false);
   const theme = useTheme();
 
   const switchForm = (formType) => {
     setCurrentForm(formType);
+    setVerificationSuccess(false);
+  };
+
+  const handleSignUpSuccess = (userEmail) => {
+    setEmail(userEmail);
+    setCurrentForm('otp');
+  };
+
+  const handleOtpSuccess = () => {
+    setVerificationSuccess(true);
+    setCurrentForm('login');
   };
 
   return (
@@ -77,8 +82,10 @@ const LoginModal = ({ open, onClose, initialForm = 'login' }) => {
             {currentForm === 'login'
               ? 'Welcome Back'
               : currentForm === 'signup'
-              ? 'Create Account'
-              : ''}
+                ? 'Create Account'
+                : currentForm === 'otp'
+                  ? 'Verify Email'
+                  : ''}
           </Typography>
           <Typography
             variant="body2"
@@ -91,15 +98,25 @@ const LoginModal = ({ open, onClose, initialForm = 'login' }) => {
             {currentForm === 'login'
               ? 'Sign in to continue your journey with us'
               : currentForm === 'signup'
-              ? 'Join us and start your adventure'
-              : ''}
+                ? 'Join us and start your adventure'
+                : currentForm === 'otp'
+                  ? 'Enter the OTP sent to your email'
+                  : ''}
           </Typography>
         </Box>
+
+        {verificationSuccess && currentForm === 'login' && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            Email verified successfully! Please login to continue.
+          </Alert>
+        )}
 
         {currentForm === 'login' ? (
           <LoginForm />
         ) : currentForm === 'signup' ? (
-          <SignUpForm />
+          <SignUpForm onSuccess={handleSignUpSuccess} />
+        ) : currentForm === 'otp' ? (
+          <OtpVerificationForm email={email} onSuccess={handleOtpSuccess} />
         ) : (
           <ForgotPassword />
         )}
@@ -121,20 +138,22 @@ const LoginModal = ({ open, onClose, initialForm = 'login' }) => {
               Forgot Password?
             </Button>
           )}
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            {currentForm === 'login'
-              ? "Don't have an account?"
-              : currentForm === 'signup'
-              ? 'Already have an account?'
-              : 'Remember your password?'}
-            <Button
-              color="primary"
-              onClick={() => switchForm(currentForm === 'login' ? 'signup' : 'login')}
-              sx={{ textTransform: 'none' }}
-            >
-              {currentForm === 'login' ? 'Sign Up' : 'Login' }
-            </Button>
-          </Typography>
+          {currentForm !== 'otp' && (
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              {currentForm === 'login'
+                ? "Don't have an account?"
+                : currentForm === 'signup'
+                  ? 'Already have an account?'
+                  : 'Remember your password?'}
+              <Button
+                color="primary"
+                onClick={() => switchForm(currentForm === 'login' ? 'signup' : 'login')}
+                sx={{ textTransform: 'none' }}
+              >
+                {currentForm === 'login' ? 'Sign Up' : 'Login'}
+              </Button>
+            </Typography>
+          )}
         </Box>
       </Box>
     </Modal>
