@@ -47,7 +47,7 @@ const ProtectedRoute = ({ children, role }) => {
   }, [user, setUser, setAbility]);
 
   if (loading) return <LoadingSpinner />;
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/" replace />;
 
   if (location.pathname === ROUTES.PROFILE) return <Layout>{children}</Layout>;
 

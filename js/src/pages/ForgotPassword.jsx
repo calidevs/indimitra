@@ -43,7 +43,7 @@ const ForgotPassword = () => {
         newPassword,
       });
       setSuccess('Password reset successfully! Redirecting to login...');
-      setTimeout(() => navigate('/login'), 2000);
+      setTimeout(() => navigate('/'), 2000);
     } catch (err) {
       setError(err.message || 'Failed to reset password. Try again.');
     } finally {
@@ -68,9 +68,10 @@ const ForgotPassword = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'linear-gradient(135deg, rgba(255,107,107,0.1) 0%, rgba(255,107,107,0.05) 100%)',
+          background:
+            'linear-gradient(135deg, rgba(255,107,107,0.1) 0%, rgba(255,107,107,0.05) 100%)',
           zIndex: 0,
-        }
+        },
       }}
     >
       <Paper

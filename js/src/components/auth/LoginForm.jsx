@@ -84,7 +84,7 @@ const LoginForm = ({ onSuccess, onError }) => {
       {isOtpStep ? (
         <OtpVerificationForm
           email={email}
-          onSuccess={() => navigate('/login')} // Redirect after successful verification
+          onSuccess={() => navigate('/')} // Redirect after successful verification
           onComplete={() => setIsOtpStep(false)}
         />
       ) : (

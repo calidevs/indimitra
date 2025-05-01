@@ -50,8 +50,8 @@ import { GET_STORES } from '@/queries/operations';
 
 // Define the GraphQL mutation for creating a store
 const CREATE_STORE = `
-  mutation CreateStore($name: String!, $address: String!, $managerUserId: Int!, $radius: Float!) {
-    createStore(name: $name, address: $address, managerUserId: $managerUserId, radius: $radius) {
+  mutation CreateStore($name: String!, $address: String!, $managerUserId: Int!, $radius: Float!, $email: String!, $mobile: String!) {
+    createStore(name: $name, address: $address, managerUserId: $managerUserId, radius: $radius, email: $email, mobile: $mobile) {
       address
       managerUserId
       name
@@ -104,6 +104,8 @@ const StoreManagement = () => {
     address: '',
     managerUserId: '',
     radius: '',
+    email: '',
+    mobile: '',
     // Dummy data for additional steps
     inventory: [],
     drivers: [],
@@ -135,6 +137,8 @@ const StoreManagement = () => {
         address: data.address,
         managerUserId: parseInt(data.managerUserId, 10),
         radius: parseFloat(data.radius),
+        email: data.email,
+        mobile: data.mobile,
       });
     },
     onSuccess: () => {
@@ -146,6 +150,8 @@ const StoreManagement = () => {
         address: '',
         managerUserId: '',
         radius: '',
+        email: '',
+        mobile: '',
         inventory: [],
         drivers: [],
         storeManagers: [],
@@ -282,6 +288,8 @@ const StoreManagement = () => {
       address: formData.address,
       managerUserId: formData.managerUserId,
       radius: formData.radius,
+      email: formData.email,
+      mobile: formData.mobile,
     };
 
     // Make the actual API call
@@ -371,6 +379,31 @@ const StoreManagement = () => {
                 onChange={handleChange}
                 error={!!validationErrors.address}
                 helperText={validationErrors.address}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                required
+                fullWidth
+                label="Manager Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                error={!!validationErrors.email}
+                helperText={validationErrors.email}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                required
+                fullWidth
+                label="Manager Mobile"
+                name="mobile"
+                value={formData.mobile}
+                onChange={handleChange}
+                error={!!validationErrors.mobile}
+                helperText={validationErrors.mobile}
               />
             </Grid>
             <Grid item xs={12} md={6}>

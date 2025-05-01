@@ -251,7 +251,7 @@ locals {
       },
       {
         name  = "POSTGRES_DB"
-        value = "IndiMart"
+        value = "dev_userpool_db"
       },
       {
         name  = "POSTGRES_USER"

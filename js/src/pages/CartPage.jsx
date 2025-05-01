@@ -9,16 +9,14 @@ import {
   FormControl,
   LoadingSpinner,
   Alert,
-  Divider
+  Divider,
 } from '@components';
 import { FormControlLabel, Checkbox, Collapse, Stack, TextField } from '@mui/material';
 import { Remove, Add, LocationOn, ExpandMore, ExpandLess } from '@mui/icons-material';
 import useStore, { useAuthStore, useAddressStore } from './../store/useStore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import fetchGraphQL from '../config/graphql/graphqlService';
-import {
-  CREATE_ORDER_MUTATION,
-} from '../queries/operations';
+import { CREATE_ORDER_MUTATION } from '../queries/operations';
 import { DELIVERY_FEE, TAX_RATE } from '../config/constants/constants';
 import { useNavigate, Link } from 'react-router-dom';
 import LoginModal from './Login/LoginModal'; // Import the LoginModal
@@ -29,7 +27,8 @@ const CartPage = () => {
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
   const [error, setError] = useState('');
-  const { userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm } = useAuthStore();
+  const { userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm } =
+    useAuthStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -50,8 +49,17 @@ const CartPage = () => {
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [isValidAddress, setIsValidAddress] = useState(false);
   const subtotal = cartTotal() || 0;
-  const tax = subtotal * TAX_RATE;
-  const deliveryFee = subtotal > 0 ? DELIVERY_FEE : 0;
+  const tax = 0;
+
+  const calculateDeliveryFee = (boxCount) => {
+    if (boxCount === 0) return 0;
+    if (boxCount === 1) return 5;
+    return 10; // For 2 or more boxes
+  };
+
+  const boxCount = Object.values(cart).reduce((acc, item) => acc + (item.quantity || 0), 0);
+  const deliveryFee = calculateDeliveryFee(boxCount);
+
   const orderTotal = subtotal + tax + deliveryFee;
 
   // Fetch user profile when modal opens
@@ -154,9 +162,7 @@ const CartPage = () => {
       </Typography>
 
       {isOrderPlaced ? (
-        <Alert severity="success">
-          Order placed successfully!
-        </Alert>
+        <Alert severity="success">Order placed successfully!</Alert>
       ) : (
         <>
           {error && (
@@ -201,7 +207,7 @@ const CartPage = () => {
             <Typography>${subtotal.toFixed(2)}</Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-            <Typography>Tax (8%):</Typography>
+            <Typography>Tax:</Typography>
             <Typography>${tax.toFixed(2)}</Typography>
           </Box>
           <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
@@ -215,95 +221,107 @@ const CartPage = () => {
 
           <Divider sx={{ my: 2 }} />
 
-          {userProfile && <TextField
-            label="Delivery Instructions"
-            fullWidth
-            multiline
-            rows={2}
-            value={deliveryInstructions}
-            onChange={(e) => setDeliveryInstructions(e.target.value)}
-            sx={{ mb: 2 }}
-          />}
-
-          {userProfile && (isProfileLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-              <LoadingSpinner size={24} />
-              <Typography sx={{ ml: 2 }}>Loading user profile...</Typography>
-            </Box>
-          ) : (
-            <Box sx={{ mb: 2 }}>
-              <FormControl fullWidth sx={{ mb: 1 }}>
-                <InputLabel>Select Address</InputLabel>
-                {isLoadingAddresses ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                    <LoadingSpinner size={24} />
-                  </Box>
-                ) : (
-                  <Select
-                    value={selectedAddressId || ''}
-                    onChange={(e) => setSelectedAddressId(e.target.value)}
-                  >
-                    {addresses && addresses.length > 0 ? (
-                      addresses.map((addr) => (
-                        <MenuItem key={addr.id} value={addr.id}>
-                          {addr.address} {addr.isPrimary ? '(Primary)' : ''}
-                        </MenuItem>
-                      ))
-                    ) : (
-                      <MenuItem disabled>No addresses available</MenuItem>
-                    )}
-                  </Select>
-                )}
-              </FormControl>
-
-              {/* Toggle button for address form */}
-            <Button
+          {userProfile && (
+            <TextField
+              label="Delivery Instructions"
               fullWidth
-              variant="outlined"
-              startIcon={showAddressForm ? <ExpandLess /> : <ExpandMore />}
-              onClick={() => setShowAddressForm(!showAddressForm)}
-              sx={{ mt: 1 }}
-            >
-              {showAddressForm ? 'Cancel Adding Address' : 'Add New Address'}
-            </Button>
+              multiline
+              rows={2}
+              value={deliveryInstructions}
+              onChange={(e) => setDeliveryInstructions(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+          )}
 
-              {/* Inline address form */}
-              {userProfile && <Collapse in={showAddressForm}>
-                <Box
-                  sx={{
-                    mt: 2,
-                    p: 2,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                  }}
+          {userProfile &&
+            (isProfileLoading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                <LoadingSpinner size={24} />
+                <Typography sx={{ ml: 2 }}>Loading user profile...</Typography>
+              </Box>
+            ) : (
+              <Box sx={{ mb: 2 }}>
+                <FormControl fullWidth sx={{ mb: 1 }}>
+                  <InputLabel>Select Address</InputLabel>
+                  {isLoadingAddresses ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                      <LoadingSpinner size={24} />
+                    </Box>
+                  ) : (
+                    <Select
+                      value={selectedAddressId || ''}
+                      onChange={(e) => setSelectedAddressId(e.target.value)}
+                    >
+                      {addresses && addresses.length > 0 ? (
+                        addresses.map((addr) => (
+                          <MenuItem key={addr.id} value={addr.id}>
+                            {addr.address} {addr.isPrimary ? '(Primary)' : ''}
+                          </MenuItem>
+                        ))
+                      ) : (
+                        <MenuItem disabled>No addresses available</MenuItem>
+                      )}
+                    </Select>
+                  )}
+                </FormControl>
+
+                {/* Toggle button for address form */}
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  startIcon={showAddressForm ? <ExpandLess /> : <ExpandMore />}
+                  onClick={() => setShowAddressForm(!showAddressForm)}
+                  sx={{ mt: 1 }}
                 >
-                  <Typography variant="subtitle2" gutterBottom>
-                    Add New Delivery Address
-                  </Typography>
-                  <Stack spacing={2}>
-                    <AddressAutocomplete
-                      value={newAddress}
-                      onChange={setNewAddress}
-                      onValidAddress={setIsValidAddress}
-                    />
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={isPrimary}
-                          onChange={(e) => setIsPrimary(e.target.checked)}
+                  {showAddressForm ? 'Cancel Adding Address' : 'Add New Address'}
+                </Button>
+
+                {/* Inline address form */}
+                {userProfile && (
+                  <Collapse in={showAddressForm}>
+                    <Box
+                      sx={{
+                        mt: 2,
+                        p: 2,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 1,
+                      }}
+                    >
+                      <Typography variant="subtitle2" gutterBottom>
+                        Add New Delivery Address
+                      </Typography>
+                      <Stack spacing={2}>
+                        <AddressAutocomplete
+                          value={newAddress}
+                          onChange={setNewAddress}
+                          onValidAddress={setIsValidAddress}
                         />
-                      }
-                      label="Set as Primary Address"
-                    />
-                    <Button variant="contained" onClick={handleAddAddress} disabled={!newAddress.trim() || isAddingAddress || !isValidAddress} startIcon={isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />}>
-                      {isAddingAddress ? 'Adding...' : 'Add Address'}
-                    </Button>
-                  </Stack>
-                </Box>
-              </Collapse>}
-            </Box>
-          ))}
+                        <FormControlLabel
+                          control={
+                            <Checkbox
+                              checked={isPrimary}
+                              onChange={(e) => setIsPrimary(e.target.checked)}
+                            />
+                          }
+                          label="Set as Primary Address"
+                        />
+                        <Button
+                          variant="contained"
+                          onClick={handleAddAddress}
+                          disabled={!newAddress.trim() || isAddingAddress || !isValidAddress}
+                          startIcon={
+                            isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />
+                          }
+                        >
+                          {isAddingAddress ? 'Adding...' : 'Add Address'}
+                        </Button>
+                      </Stack>
+                    </Box>
+                  </Collapse>
+                )}
+              </Box>
+            ))}
 
           {userProfile ? (
             <Button
@@ -312,9 +330,20 @@ const CartPage = () => {
               color="primary"
               sx={{ mt: 2 }}
               onClick={handleOrderPlacement}
-              disabled={Object.values(cart).length === 0 || isPending || !selectedAddressId || isProfileLoading}
+              disabled={
+                Object.values(cart).length === 0 ||
+                isPending ||
+                !selectedAddressId ||
+                isProfileLoading
+              }
             >
-              {isPending ? <><LoadingSpinner size={20} sx={{ color: 'white' }} /> Placing Order...</> : 'Place Order'}
+              {isPending ? (
+                <>
+                  <LoadingSpinner size={20} sx={{ color: 'white' }} /> Placing Order...
+                </>
+              ) : (
+                'Place Order'
+              )}
             </Button>
           ) : (
             <Button
@@ -322,7 +351,11 @@ const CartPage = () => {
               variant="contained"
               color="primary"
               sx={{ mt: 2 }}
-              onClick={() => { setModalOpen(true); setCurrentForm('login'); }}            >
+              onClick={() => {
+                setModalOpen(true);
+                setCurrentForm('login');
+              }}
+            >
               Login
             </Button>
           )}
