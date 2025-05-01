@@ -106,6 +106,8 @@ const Header = () => {
     try {
       await signOut();
       logout();
+      setCognitoId(null);
+      setUserRole(null)
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
