@@ -671,6 +671,7 @@ const InventoryManagement = () => {
                 value={productSearchInput}
                 onChange={handleProductSearchChange}
                 onFocus={() => setDropdownOpen(true)}
+                onClick={() => setDropdownOpen(true)}
                 fullWidth
                 InputProps={{
                   endAdornment: isLoadingProducts ? (
