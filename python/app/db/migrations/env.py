@@ -7,11 +7,15 @@ from alembic import context
 
 import os
 import sys
+from dotenv import load_dotenv
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
 
 from app.db.base import Base
 from app.db.models import *  # noqa
 from sqlalchemy.engine import URL
+
+# .env needs to be in the 
+load_dotenv()
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
