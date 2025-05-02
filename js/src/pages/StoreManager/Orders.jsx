@@ -474,7 +474,17 @@ const StoreOrders = () => {
                     {expandedOrder === order.id && (
                       <TableRow>
                         <TableCell colSpan={6}>
-                          <Box sx={{ p: 2 }}>
+                         <Box sx={{ p: 2 }}>
+                            <Grid container spacing={2} alignItems="center">
+                            <Grid item xs={6}>
+                                  <Typography> Email: {order?.creator?.email}</Typography>
+                                </Grid>
+                                <Grid item xs={6}>
+                                  <Typography>
+                                      Phone: {order?.creator?.mobile}
+                                  </Typography>
+                                </Grid>
+                                <Grid item xs={12} sx={{ marginTop: 2 }}>
                             <Typography variant="subtitle2" gutterBottom>
                               Order Items:
                             </Typography>
@@ -491,11 +501,13 @@ const StoreOrders = () => {
                                   <TableRow key={item.id}>
                                     <TableCell>{item.product.name}</TableCell>
                                     <TableCell>{item.quantity}</TableCell>
-                                    <TableCell>₹{item.orderAmount}</TableCell>
+                                    <TableCell>${item.orderAmount}</TableCell>
                                   </TableRow>
                                 ))}
                               </TableBody>
                             </Table>
+                                </Grid>
+                            </Grid>
                           </Box>
                         </TableCell>
                       </TableRow>
