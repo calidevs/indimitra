@@ -475,6 +475,12 @@ const StoreOrders = () => {
                       <TableRow>
                         <TableCell colSpan={6}>
                           <Box sx={{ p: 2 }}>
+                          <Typography variant="subtitle2" gutterBottom>
+                              Phone: {order?.creator?.mobile}
+                            </Typography>
+                            <Typography variant="subtitle2" gutterBottom>
+                              Email: {order?.creator?.email}
+                            </Typography>
                             <Typography variant="subtitle2" gutterBottom>
                               Order Items:
                             </Typography>
@@ -491,7 +497,7 @@ const StoreOrders = () => {
                                   <TableRow key={item.id}>
                                     <TableCell>{item.product.name}</TableCell>
                                     <TableCell>{item.quantity}</TableCell>
-                                    <TableCell>₹{item.orderAmount}</TableCell>
+                                    <TableCell>${item.orderAmount}</TableCell>
                                   </TableRow>
                                 ))}
                               </TableBody>
