@@ -977,7 +977,7 @@ const StoreManagement = () => {
               />
               <TextField
                 name="radius"
-                label="Radius (km)"
+                label="Radius (mi)"
                 type="number"
                 defaultValue={editStore?.radius}
                 required

@@ -77,7 +77,7 @@ const ProductCard = ({ product }) => {
             zIndex: 1,
           }}
         >
-          <Typography variant="body1">Unavailable</Typography>
+          <Typography variant="body1">Sold out</Typography>
         </Box>
       )}
       <CardContent sx={{

@@ -373,7 +373,7 @@ const StoreManagerDashboard = () => {
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle1">
                 <strong>Delivery Radius:</strong> {store.radius || 'Not set'}{' '}
-                {store.radius ? 'km' : ''}
+                {store.radius ? 'mi' : ''}
               </Typography>
             </Grid>
             <Grid item xs={12} md={6}>
