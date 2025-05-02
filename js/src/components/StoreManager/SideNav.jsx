@@ -105,7 +105,7 @@ const SideNav = () => {
             >
               {item.icon}
             </ListItemIcon>
-            <ListItemText primary={item.text} sx={{ opacity: open ? 1 : 0 }} />
+            <ListItemText primary={item.text} sx={{ opacity: open ? 0 : 0 }} />
           </ListItem>
         ))}
       </List>

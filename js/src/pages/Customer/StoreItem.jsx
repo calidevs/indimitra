@@ -68,7 +68,7 @@ const StoreItem = ({ store, isSelected, onSelect }) => {
                 <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                   <Chip
                     icon={<MyLocation fontSize="small" />}
-                    label={`${store.radius} km radius`}
+                    label={`${store.radius} mi radius`}
                     size="small"
                     variant="outlined"
                     color={isSelected ? 'primary' : 'default'}
