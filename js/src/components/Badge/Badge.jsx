@@ -6,7 +6,7 @@ const Badge = (props) => {
       {...props}
       sx={{
         '& .MuiBadge-badge': {
-          backgroundColor: '#FF6B6B',
+          backgroundColor: '#E53935',
           color: 'white',
           minWidth: '20px',
           height: '20px',
