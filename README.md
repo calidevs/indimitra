@@ -158,15 +158,7 @@ This is needed to establish connection with DB and Cognito
 
 You can choose to spin up backend in docker or in your local
 
-#### 1. Spinning up in docker
-
-This is easy! Run the below command and you should be good to go.
-
-```
-docker-compose up --build db api
-```
-
-#### 2. Spinning up in local (For backend development)
+#### 1. Spinning up in local (For backend development)
 
 install postgresql before installing the packages in requirements.txt as it is a pre-req for psycopg2-binary
 
@@ -177,10 +169,26 @@ cd python
 ```
 create a venv
 ```
-python3 -m venv .venv    
-source .venv/bin/activate    
+python3 -m venv .venv    # You only need to run this the very first time, post that you can just run the below command
+source .venv/bin/activate # For mac
+
+OR
+
+source .venv/Scripts/activate # For windows   
 ```
 install packages
+
+For Windows
+
+```
+remove psycopg2-binary from requirements.txt
+
+run - pip install psycopg2-binary==2.9.9
+
+then run - pip install -r requirements.txt
+```
+
+For mac below should work
 ```
 pip install -r requirements.txt
 ```
@@ -192,6 +200,16 @@ uvicorn app.main:app --reload
 ```
 
 You can access GraphQl interface at `localhost:8000/graphql` 
+---
+
+#### 2. Spinning up in docker
+
+This is easy! Run the below command and you should be good to go.
+
+```
+docker-compose up --build db api
+```
+
 ---
 
 ### Spinning up db in docker
