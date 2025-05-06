@@ -139,14 +139,20 @@ Key commands:
 #### Create `.env` file at `python/`
 
 ```
-POSTGRES_USER=indimitra
-POSTGRES_PASSWORD=indimitra123
-#POSTGRES_HOST=localhost # uncomment this, if spinning up backend in local
-POSTGRES_HOST=db # comment this, if spinning up backend in local
+# PostGres Config for dev
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=NotAllowed123
+POSTGRES_HOST=dummy-db.ci528kc2ig6e.us-east-1.rds.amazonaws.com
 POSTGRES_PORT=5432
-POSTGRES_DB=indimitra
+POSTGRES_DB=IndiMart
+
+# AWS Configuration for dev
+AWS_REGION=us-east-1
+COGNITO_USER_POOL_ID=us-east-1_ehhI7OmUk
+COGNITO_USER_POOL_CLIENT_ID=1okaltgd288h6sjgc5cedlth45
+
 ```
-This is needed to establish connection with DB
+This is needed to establish connection with DB and Cognito
 
 ---
 
@@ -161,7 +167,6 @@ docker-compose up --build db api
 ```
 
 #### 2. Spinning up in local (For backend development)
-You can skip this if you just want to spin up backend 
 
 install postgresql before installing the packages in requirements.txt as it is a pre-req for psycopg2-binary
 
@@ -180,23 +185,22 @@ install packages
 pip install -r requirements.txt
 ```
 
-From root `/indimart` spin up db first as api refers db for data
-
-```
-docker-compose up --build db
-```
-
-Update the db url in `.env` (refer comments)
-
 start api server
 
 ```
 uvicorn app.main:app --reload
 ```
 
-----
-
 You can access GraphQl interface at `localhost:8000/graphql` 
+---
+
+### Spinning up db in docker
+
+From root `/indimart` spin up db
+
+```
+docker-compose up --build db
+```
 
 And psql using - `psql -h localhost -p 5432 -U indimitra -W`
 
