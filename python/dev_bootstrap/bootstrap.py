@@ -12,15 +12,15 @@ def create_data():
     db = SessionLocal()
     
     # User 1 - Regular USER
-    user1 = db.query(UserModel).filter_by(cognitoId="5458d4f8-d0b1-70cb-b8b1-ecf9784e8956").first()
+    user1 = db.query(UserModel).filter_by(cognitoId="f4f8d4e8-a061-703a-bb00-48a1ee4ccfa8").first()
     if not user1:
         user1 = UserModel(
             email="abhishekgattineni@gmail.com",
             mobile="1234567890",
             active=True,
             type=UserType.USER,
-            referralId="STxU6bVp",
-            cognitoId="5458d4f8-d0b1-70cb-b8b1-ecf9784e8956"
+            referralId="",
+            cognitoId="f4f8d4e8-a061-703a-bb00-48a1ee4ccfa8"
         )
         db.add(user1)
         db.commit()
@@ -36,15 +36,15 @@ def create_data():
         db.commit()
     
     # User 2 - ADMIN
-    user2 = db.query(UserModel).filter_by(cognitoId="e42824a8-20d1-70b9-b91e-fa25d7c0d578").first()
+    user2 = db.query(UserModel).filter_by(cognitoId="2458b428-10b1-702f-3110-1f45a3bc6bcd").first()
     if not user2:
         user2 = UserModel(
             email="anddhenconsulting@gmail.com",
             mobile="2345678901",
             active=True,
             type=UserType.ADMIN,
-            referralId="69LUnvbJ",
-            cognitoId="e42824a8-20d1-70b9-b91e-fa25d7c0d578"
+            referralId="",
+            cognitoId="2458b428-10b1-702f-3110-1f45a3bc6bcd"
         )
         db.add(user2)
         db.commit()
@@ -60,15 +60,15 @@ def create_data():
         db.commit()
     
     # User 3 - DELIVERY_AGENT
-    user3 = db.query(UserModel).filter_by(cognitoId="c4a8c458-40f1-70da-ba05-5b14764b3a31").first()
+    user3 = db.query(UserModel).filter_by(cognitoId="7488a458-0091-70f0-00a5-8d056011d692").first()
     if not user3:
         user3 = UserModel(
             email="anddhensoftware@gmail.com",
             mobile="3456789012",
             active=True,
             type=UserType.DELIVERY,
-            referralId="3BbvYjWE",
-            cognitoId="c4a8c458-40f1-70da-ba05-5b14764b3a31"
+            referralId="",
+            cognitoId="7488a458-0091-70f0-00a5-8d056011d692"
         )
         db.add(user3)
         db.commit()
@@ -84,15 +84,15 @@ def create_data():
         db.commit()
     
     # User 4 - STORE_MANAGER
-    user4 = db.query(UserModel).filter_by(cognitoId="f4b83478-d011-70ca-88fa-816ed25ac9cf").first()
+    user4 = db.query(UserModel).filter_by(cognitoId="f478f488-50b1-70f1-9a20-f22dd6dd63df").first()
     if not user4:
         user4 = UserModel(
-            email="jakkustephen@gmail.com",
+            email="anddhendevs@gmail.com",
             mobile="4567890123",
             active=True,
             type=UserType.STORE_MANAGER,
-            referralId="iWeqt8pu",
-            cognitoId="f4b83478-d011-70ca-88fa-816ed25ac9cf"
+            referralId="",
+            cognitoId="f478f488-50b1-70f1-9a20-f22dd6dd63df"
         )
         db.add(user4)
         db.commit()
@@ -114,7 +114,9 @@ def create_data():
             name="Main Store",
             address="123 Store St, Store City, SC 12345",
             radius=10.0,
-            managerUserId=user4.id  # Using the STORE_MANAGER user
+            managerUserId=user4.id,  # Using the STORE_MANAGER user
+            email="mainstore@indimitra.com",  # Added required email field
+            mobile="123456989"  # Added mobile field which is nullable but should be included
         )
         db.add(store)
         db.commit()
