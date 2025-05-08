@@ -4,7 +4,7 @@ import WhatsAppIcon from '@mui/icons-material/WhatsApp';
 
 const WhatsAppButton = () => {
   const handleWhatsAppClick = () => {
-    const phoneNumber = '+15625427985'; // Replace with your WhatsApp number
+    const phoneNumber = '+15627872535'; // Replace with your WhatsApp number
     const message = 'Hello! I have a question about your services.';
     const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
