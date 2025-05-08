@@ -151,6 +151,9 @@ AWS_REGION=us-east-1
 COGNITO_USER_POOL_ID=us-east-1_ehhI7OmUk
 COGNITO_USER_POOL_CLIENT_ID=1okaltgd288h6sjgc5cedlth45
 
+# Graphql Playground setup
+ENABLE_GRAPHQL_PLAYGROUND=true
+
 ```
 This is needed to establish connection with DB and Cognito
 
