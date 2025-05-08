@@ -484,6 +484,11 @@ const StoreOrders = () => {
                                       Phone: {order?.creator?.mobile}
                                   </Typography>
                                 </Grid>
+                                <Grid item xs={12}>
+                                  <Typography>
+                                      Delivery Address: {order?.address?.address}
+                                  </Typography>
+                                </Grid>
                                 <Grid item xs={12} sx={{ marginTop: 2 }}>
                             <Typography variant="subtitle2" gutterBottom>
                               Order Items:
