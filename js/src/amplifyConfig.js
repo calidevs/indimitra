@@ -1,9 +1,19 @@
+const url = window.location.href?.includes('http://localhost');
+let userPoolId = 'us-east-1_6NtAulnkj';
+let userPoolClientId = '1361ghg1fpt2grmchv7ttf8bbj';
+if (url) {
+  userPoolId = 'us-east-1_ehhI7OmUk';
+  userPoolClientId = '1okaltgd288h6sjgc5cedlth45'
+}
+
+console.log();
+
 const amplifyConfig = {
   Auth: {
     Cognito: {
       region: 'us-east-1',
-      userPoolId: 'us-east-1_6NtAulnkj',
-      userPoolClientId: '1361ghg1fpt2grmchv7ttf8bbj',
+      userPoolId: userPoolId,
+      userPoolClientId: userPoolClientId,
       loginWith: {
         email: true,
       },
