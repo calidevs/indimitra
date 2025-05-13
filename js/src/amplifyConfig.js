@@ -6,8 +6,6 @@ if (url) {
   userPoolClientId = '1okaltgd288h6sjgc5cedlth45'
 }
 
-console.log();
-
 const amplifyConfig = {
   Auth: {
     Cognito: {

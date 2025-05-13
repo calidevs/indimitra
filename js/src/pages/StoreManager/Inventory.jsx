@@ -670,7 +670,7 @@ const Inventory = () => {
     } else {
       setCategories([]);
     }
-  }, [inventoryItems]);
+  }, [storeData]);
 
   // Mutation for updating inventory
   const updateMutation = useMutation({
@@ -815,7 +815,7 @@ const Inventory = () => {
                 }}
               />
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} md={3} sx={{marginBottom:'1.8rem'}}>
               <label htmlFor="category-select" style={labelStyles}>
                 Category
               </label>
@@ -833,7 +833,7 @@ const Inventory = () => {
                 ))}
               </select>
             </Grid>
-            <Grid item xs={12} md={3}>
+            <Grid item xs={12} md={3} sx={{marginBottom:'1.8rem'}}>
               <label htmlFor="stock-filter-select" style={labelStyles}>
                 Stock Filter
               </label>
@@ -928,7 +928,7 @@ const Inventory = () => {
               startIcon={<Add />}
               onClick={() => setAddModalOpen(true)}
             >
-              Add Product
+              Add Inventory
             </Button>
           </Box>
 
@@ -943,7 +943,7 @@ const Inventory = () => {
                   <TableHead>
                     <TableRow>
                       <TableCell />
-                      <TableCell>Product</TableCell>
+                      <TableCell>Inventory </TableCell>
                       <TableCell>Category</TableCell>
                       <TableCell>Price</TableCell>
                       <TableCell>Quantity</TableCell>
@@ -987,7 +987,7 @@ const Inventory = () => {
                             <TableCell>${item.price.toFixed(2)}</TableCell>
                             <TableCell>
                               {item.quantity}{' '}
-                              {item.measurement ? getMeasurementUnitLabel(item.measurement) : ''}
+                              {/* {item.measurement ? getMeasurementUnitLabel(item.measurement) : ''} */}
                             </TableCell>
                             <TableCell>
                               {isLowStock ? (
