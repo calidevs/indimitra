@@ -79,6 +79,7 @@ const GET_STORE_WITH_INVENTORY = `
             quantity
             price
             measurement
+            unit
             updatedAt
             product {
               id
@@ -1037,8 +1038,8 @@ const Inventory = () => {
                                       <Typography variant="subtitle2" gutterBottom>
                                         <strong>Measurement:</strong>{' '}
                                         {item.measurement
-                                          ? `${item.measurement} ${getMeasurementUnitLabel(
-                                              item.measurement
+                                          ? `${item.measurement}  ${getMeasurementUnitLabel(
+                                              item.unit
                                             )}`
                                           : 'N/A'}
                                       </Typography>
