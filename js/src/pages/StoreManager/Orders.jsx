@@ -30,6 +30,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  Snackbar,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -39,6 +40,8 @@ import {
   Search as SearchIcon,
   FilterList as FilterIcon,
   Sort as SortIcon,
+  Upload as UploadIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/useStore';
 import { useStore } from '@/store/useStore';
@@ -88,6 +91,7 @@ const StoreOrders = () => {
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [driverId, setDriverId] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
   // Fetch Cognito ID on component mount
   useEffect(() => {
@@ -228,6 +232,148 @@ const StoreOrders = () => {
       setSelectedOrder(null);
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const handleUpload = async (order) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '*/*'; // Accept any file type
+    input.onchange = async () => {
+      try {
+        const file = input.files[0];
+        if (!file) return;
+
+        // Get upload URL for PUT operation
+        const baseUrl = window.location.href?.includes('http://localhost')
+          ? 'http://127.0.0.1:8000'
+          : 'https://indimitra.com';
+
+        // Log the original filename for debugging
+        console.log('Original filename:', file.name);
+
+        const res = await fetch(
+          `${baseUrl}/s3/generate-upload-url?file_name=${encodeURIComponent(file.name)}&order_id=${order.id}`
+        );
+        if (!res.ok) {
+          throw new Error('Failed to get upload URL');
+        }
+        const { upload_url, content_type, file_name } = await res.json();
+
+        // Log the generated filename for debugging
+        console.log('Generated filename:', file_name);
+
+        // Upload file to S3 using PUT with exact same Content-Type
+        const uploadRes = await fetch(upload_url, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': content_type,
+          },
+          body: file,
+        });
+
+        if (!uploadRes.ok) {
+          const errorText = await uploadRes.text();
+          console.error('Upload failed:', errorText);
+          throw new Error('Failed to upload file');
+        }
+
+        // Store the filename in the order data
+        order.uploadedFileName = file_name;
+
+        // After successful upload, try to get the view URL
+        const viewRes = await fetch(
+          `${baseUrl}/s3/generate-view-url?order_id=${order.id}&file_name=${encodeURIComponent(file_name)}`
+        );
+
+        if (viewRes.ok) {
+          setSnackbar({
+            open: true,
+            message: 'File uploaded and verified successfully!',
+            severity: 'success',
+          });
+        } else {
+          setSnackbar({
+            open: true,
+            message: 'File uploaded but verification failed. Please try viewing the file.',
+            severity: 'warning',
+          });
+        }
+      } catch (err) {
+        console.error('Upload error:', err);
+        setSnackbar({
+          open: true,
+          message: 'Failed to upload file. Please try again.',
+          severity: 'error',
+        });
+      }
+    };
+    input.click();
+  };
+
+  const handleView = async (order) => {
+    try {
+      // Get view URL for GET operation
+      const baseUrl = window.location.href?.includes('http://localhost')
+        ? 'http://127.0.0.1:8000'
+        : 'https://indimitra.com';
+
+      // Use the stored filename if available, otherwise try common extensions
+      let viewUrl = null;
+      let fileName = null;
+
+      if (order.uploadedFileName) {
+        console.log('Using stored filename:', order.uploadedFileName);
+        const res = await fetch(
+          `${baseUrl}/s3/generate-view-url?order_id=${order.id}&file_name=${encodeURIComponent(order.uploadedFileName)}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          viewUrl = data.view_url;
+          fileName = data.file_name;
+        }
+      }
+
+      if (!viewUrl) {
+        console.log('No stored filename found, trying common extensions');
+        // If no stored filename or file not found, try common extensions
+        const commonExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.docx'];
+        for (const ext of commonExtensions) {
+          const res = await fetch(
+            `${baseUrl}/s3/generate-view-url?order_id=${order.id}&file_name=order_receipt${ext}`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            viewUrl = data.view_url;
+            fileName = data.file_name;
+            break;
+          }
+        }
+      }
+
+      if (!viewUrl) {
+        setSnackbar({
+          open: true,
+          message: 'No file found for this order.',
+          severity: 'warning',
+        });
+        return;
+      }
+
+      // Create a temporary link element to handle the download with the correct filename
+      const link = document.createElement('a');
+      link.href = viewUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: 'Failed to view file. Please try again.',
+        severity: 'error',
+      });
     }
   };
 
@@ -459,6 +605,20 @@ const StoreOrders = () => {
                             <CancelIcon />
                           </IconButton>
                         </Tooltip>
+                        <Tooltip title="Upload File">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleUpload(order)}
+                            disabled={order.status === 'CANCELLED' || order.status === 'DELIVERED'}
+                          >
+                            <UploadIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="View File">
+                          <IconButton size="small" onClick={() => handleView(order)}>
+                            <VisibilityIcon />
+                          </IconButton>
+                        </Tooltip>
                       </TableCell>
                       <TableCell>
                         <IconButton
@@ -474,44 +634,40 @@ const StoreOrders = () => {
                     {expandedOrder === order.id && (
                       <TableRow>
                         <TableCell colSpan={6}>
-                         <Box sx={{ p: 2 }}>
+                          <Box sx={{ p: 2 }}>
                             <Grid container spacing={2} alignItems="center">
-                            <Grid item xs={6}>
-                                  <Typography> Email: {order?.creator?.email}</Typography>
-                                </Grid>
-                                <Grid item xs={6}>
-                                  <Typography>
-                                      Phone: {order?.creator?.mobile}
-                                  </Typography>
-                                </Grid>
-                                <Grid item xs={12}>
-                                  <Typography>
-                                      Delivery Address: {order?.address?.address}
-                                  </Typography>
-                                </Grid>
-                                <Grid item xs={12} sx={{ marginTop: 2 }}>
-                            <Typography variant="subtitle2" gutterBottom>
-                              Order Items:
-                            </Typography>
-                            <Table size="small">
-                              <TableHead>
-                                <TableRow>
-                                  <TableCell>Product</TableCell>
-                                  <TableCell>Quantity</TableCell>
-                                  <TableCell>Total</TableCell>
-                                </TableRow>
-                              </TableHead>
-                              <TableBody>
-                                {order.orderItems.edges.map(({ node: item }) => (
-                                  <TableRow key={item.id}>
-                                    <TableCell>{item.product.name}</TableCell>
-                                    <TableCell>{item.quantity}</TableCell>
-                                    <TableCell>${item.orderAmount}</TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                                </Grid>
+                              <Grid item xs={6}>
+                                <Typography> Email: {order?.creator?.email}</Typography>
+                              </Grid>
+                              <Grid item xs={6}>
+                                <Typography>Phone: {order?.creator?.mobile}</Typography>
+                              </Grid>
+                              <Grid item xs={12}>
+                                <Typography>Delivery Address: {order?.address?.address}</Typography>
+                              </Grid>
+                              <Grid item xs={12} sx={{ marginTop: 2 }}>
+                                <Typography variant="subtitle2" gutterBottom>
+                                  Order Items:
+                                </Typography>
+                                <Table size="small">
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell>Product</TableCell>
+                                      <TableCell>Quantity</TableCell>
+                                      <TableCell>Total</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {order.orderItems.edges.map(({ node: item }) => (
+                                      <TableRow key={item.id}>
+                                        <TableCell>{item.product.name}</TableCell>
+                                        <TableCell>{item.quantity}</TableCell>
+                                        <TableCell>${item.orderAmount}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              </Grid>
                             </Grid>
                           </Box>
                         </TableCell>
@@ -646,6 +802,20 @@ const StoreOrders = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: '100%' }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </Layout>
   );
