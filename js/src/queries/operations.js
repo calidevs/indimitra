@@ -596,3 +596,27 @@ export const ASSIGN_DRIVER_TO_STORE = `
     }
   }
 `;
+
+export const GET_ORDER_FILE = `
+  query GetOrderFile($orderId: Int!) {
+    getOrderById(orderId: $orderId) {
+      id
+      status
+      totalAmount
+      deliveryDate
+      orderItems {
+        edges {
+          node {
+            id
+            quantity
+            orderAmount
+            product {
+              name
+              description
+            }
+          }
+        }
+      }
+    }
+  }
+`;

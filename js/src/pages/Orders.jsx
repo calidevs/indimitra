@@ -22,8 +22,9 @@ import {
   DialogContentText,
   DialogTitle,
   TextField,
+  Tooltip,
 } from '@mui/material';
-import { KeyboardArrowDown, KeyboardArrowUp } from '@mui/icons-material';
+import { KeyboardArrowDown, KeyboardArrowUp, Receipt } from '@mui/icons-material';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_USER_ORDERS, CANCEL_ORDER, GET_USER_PROFILE } from '@/queries/operations';
@@ -38,6 +39,7 @@ const Orders = () => {
   const [selectedOrderId, setSelectedOrderId] = useState(null);
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [cancelMessage, setCancelMessage] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Get zustand state and functions
   const { userProfile, setUserProfile } = useAuthStore();
@@ -155,6 +157,50 @@ const Orders = () => {
     setExpandedOrder(expandedOrder === orderId ? null : orderId);
   };
 
+  const handleFileAction = async (orderId) => {
+    if (isLoading) {
+      console.log('Already loading, skipping call');
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      console.log('Starting file fetch for order:', orderId);
+
+      const baseUrl = window.location.href?.includes('http://localhost')
+        ? 'http://127.0.0.1:8000'
+        : 'https://indimitra.com';
+
+      const response = await fetch(
+        `${baseUrl}/s3/generate-view-url?order_id=${orderId}&file_name=order_${orderId}.jpeg`
+      );
+
+      if (response.status === 200) {
+        const data = await response.json();
+        console.log('S3 URL response:', data);
+
+        if (data?.view_url) {
+          console.log('Found file URL, initiating download:', data.view_url);
+          const link = document.createElement('a');
+          link.href = data.view_url;
+          link.download = data.file_name;
+          link.target = '_blank';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          return;
+        }
+      }
+
+      alert('No bill available for this order');
+    } catch (error) {
+      console.error('Error getting file URL:', error);
+      alert('Error downloading the bill. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Show loading while fetching profile or orders
   if (profileLoading || (ordersLoading && effectiveProfile?.id))
     return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />;
@@ -184,6 +230,7 @@ const Orders = () => {
                 <TableCell>Status</TableCell>
                 <TableCell>Total Amount</TableCell>
                 <TableCell>Delivery Date</TableCell>
+                <TableCell>Bill</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
             </TableHead>
@@ -210,6 +257,21 @@ const Orders = () => {
                       {order.deliveryDate
                         ? new Date(order.deliveryDate).toLocaleDateString()
                         : 'N/A'}
+                    </TableCell>
+                    <TableCell>
+                      <Box sx={{ display: 'flex', gap: 1 }}>
+                        <Tooltip title="Download Bill">
+                          <IconButton
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFileAction(order.id);
+                            }}
+                          >
+                            <Receipt />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
                     </TableCell>
                     <TableCell>
                       <Button
@@ -298,7 +360,7 @@ const Orders = () => {
         </TableContainer>
       )}
 
-      {/* Updated Confirmation Modal */}
+      {/* Confirmation Modal */}
       <Dialog open={openModal} onClose={handleCloseModal}>
         <DialogTitle>Cancel Order</DialogTitle>
         <DialogContent>
