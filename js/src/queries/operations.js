@@ -161,10 +161,40 @@ export const GET_DELIVERIES_BY_DRIVER = `
       status
       comments
       order {
+        addressId
+        cancelMessage
+        cancelledAt
+        cancelledByUserId
+        createdByUserId
+        deliveryDate
+        deliveryInstructions
+        id
+        paymentId
+        status
+        storeId
+        totalAmount
         address {
           address
         }
-        cancelMessage
+        orderItems {
+          edges {
+            node {
+              id
+              inventoryId
+              orderAmount
+              orderId
+              productId
+              quantity
+              product {
+                categoryId
+                description
+                id
+                image
+                name
+              }
+            }
+          }
+        }
       }
     }
   }
