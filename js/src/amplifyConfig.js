@@ -6,14 +6,12 @@ if (url) {
   userPoolClientId = '1okaltgd288h6sjgc5cedlth45'
 }
 
-console.log();
-
 const amplifyConfig = {
   Auth: {
     Cognito: {
       region: 'us-east-1',
-      userPoolId: userPoolId,
-      userPoolClientId: userPoolClientId,
+       userPoolId, 
+       userPoolClientId,
       loginWith: {
         email: true,
       },

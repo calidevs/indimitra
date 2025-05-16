@@ -363,6 +363,7 @@ export const GET_STORE_INVENTORY = `
       id
       quantity
       price
+      unit
       updatedAt
       product {
         id
@@ -430,6 +431,7 @@ export const GET_STORE_WITH_INVENTORY = `
             id
             quantity
             price
+            unit
             measurement
             updatedAt
             product {
