@@ -24,6 +24,7 @@ import {
   Tab,
   Alert,
   Badge,
+  Checkbox,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -58,6 +59,8 @@ const DriverDashboard = () => {
   const [cancelReason, setCancelReason] = useState('');
   const [showCancelReason, setShowCancelReason] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+  const [checkedItems, setCheckedItems] = useState({});
+  const [showItemsChecklist, setShowItemsChecklist] = useState(false);
 
   const { userProfile, setUserProfile } = useAuthStore();
   const getLatestProfile = () => useAuthStore.getState().userProfile;
@@ -182,9 +185,30 @@ const DriverDashboard = () => {
     setCancelReason('');
   };
 
+  const handleItemCheck = (itemId) => {
+    setCheckedItems((prev) => ({
+      ...prev,
+      [itemId]: !prev[itemId],
+    }));
+  };
+
+  const areAllItemsChecked = (orderItems) => {
+    if (!orderItems?.edges?.length) return false;
+    return orderItems.edges.every((edge) => checkedItems[edge.node.id]);
+  };
+
   const handleStatusChange = (event) => {
     const newStatus = event.target.value;
     setSelectedStatus(newStatus);
+
+    // Show items checklist if changing from READY_FOR_DELIVERY
+    if (selectedDelivery?.status === 'READY_FOR_DELIVERY' && newStatus !== 'READY_FOR_DELIVERY') {
+      setShowItemsChecklist(true);
+      // Reset checked items when showing checklist
+      setCheckedItems({});
+    } else {
+      setShowItemsChecklist(false);
+    }
 
     // Show cancel reason field if status is changed to CANCELLED
     if (newStatus === 'CANCELLED') {
@@ -197,17 +221,21 @@ const DriverDashboard = () => {
   const handleUpdateStatus = () => {
     if (!selectedDelivery || !selectedStatus) return;
 
-    // Get scheduleTime from the order's deliveryDate
-    const orderScheduleTime = selectedDelivery.schedule;
+    // Check if all items are checked when changing from READY_FOR_DELIVERY
+    if (
+      selectedDelivery.status === 'READY_FOR_DELIVERY' &&
+      selectedStatus !== 'READY_FOR_DELIVERY' &&
+      !areAllItemsChecked(selectedDelivery.order.orderItems)
+    ) {
+      return; // Don't proceed if not all items are checked
+    }
 
     if (selectedStatus === 'CANCELLED') {
-      // Use cancel order mutation for cancellations
       cancelOrderMutation.mutate({
         orderId: selectedDelivery.orderId,
         cancelMessage: cancelReason,
       });
     } else {
-      // Use update status mutation for other status changes
       updateStatusMutation.mutate({
         orderId: selectedDelivery.orderId,
         status: selectedStatus,
@@ -733,6 +761,48 @@ const DriverDashboard = () => {
                 </Box>
               )}
 
+              {showItemsChecklist && selectedDelivery?.order?.orderItems && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                    VERIFY ITEMS TO BE PICKED UP
+                  </Typography>
+                  <Paper sx={{ p: 2, maxHeight: 300, overflow: 'auto' }}>
+                    {selectedDelivery.order.orderItems.edges.map(({ node: item }) => (
+                      <Box
+                        key={item.id}
+                        sx={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          mb: 1,
+                          p: 1,
+                          borderRadius: 1,
+                          bgcolor: 'background.default',
+                        }}
+                      >
+                        <Checkbox
+                          checked={!!checkedItems[item.id]}
+                          onChange={() => handleItemCheck(item.id)}
+                          color="primary"
+                        />
+                        <Box sx={{ ml: 2, flex: 1 }}>
+                          <Typography variant="body2" fontWeight="500">
+                            {item.product.name}
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Quantity: {item.quantity} × ${item.orderAmount.toFixed(2)}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    ))}
+                  </Paper>
+                  {!areAllItemsChecked(selectedDelivery.order.orderItems) && (
+                    <Alert severity="warning" sx={{ mt: 1 }}>
+                      Please verify all items before updating status
+                    </Alert>
+                  )}
+                </Box>
+              )}
+
               <Divider sx={{ my: 2 }} />
 
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
@@ -772,7 +842,8 @@ const DriverDashboard = () => {
                       ? cancelOrderMutation.isLoading
                       : updateStatusMutation.isLoading) ||
                     selectedStatus === selectedDelivery.orderStatus ||
-                    (selectedStatus === 'CANCELLED' && !cancelReason)
+                    (selectedStatus === 'CANCELLED' && !cancelReason) ||
+                    (showItemsChecklist && !areAllItemsChecked(selectedDelivery.order.orderItems))
                   }
                   sx={{ minWidth: 120 }}
                 >

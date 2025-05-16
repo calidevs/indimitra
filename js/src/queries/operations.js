@@ -161,10 +161,40 @@ export const GET_DELIVERIES_BY_DRIVER = `
       status
       comments
       order {
+        addressId
+        cancelMessage
+        cancelledAt
+        cancelledByUserId
+        createdByUserId
+        deliveryDate
+        deliveryInstructions
+        id
+        paymentId
+        status
+        storeId
+        totalAmount
         address {
           address
         }
-        cancelMessage
+        orderItems {
+          edges {
+            node {
+              id
+              inventoryId
+              orderAmount
+              orderId
+              productId
+              quantity
+              product {
+                categoryId
+                description
+                id
+                image
+                name
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -333,6 +363,7 @@ export const GET_STORE_INVENTORY = `
       id
       quantity
       price
+      unit
       updatedAt
       product {
         id
@@ -400,6 +431,7 @@ export const GET_STORE_WITH_INVENTORY = `
             id
             quantity
             price
+            unit
             measurement
             updatedAt
             product {
