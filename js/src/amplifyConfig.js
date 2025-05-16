@@ -10,8 +10,8 @@ const amplifyConfig = {
   Auth: {
     Cognito: {
       region: 'us-east-1',
-      userPoolId: userPoolId,
-      userPoolClientId: userPoolClientId,
+       userPoolId, 
+       userPoolClientId,
       loginWith: {
         email: true,
       },
