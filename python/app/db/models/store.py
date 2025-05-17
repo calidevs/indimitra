@@ -16,6 +16,7 @@ class StoreModel(Base):
     disabled = Column(Boolean, default=False, nullable=False)
     description = Column(String, nullable=True)
     pincodes = Column(ARRAY(String), nullable=True)  # Array of pincode strings
+    tnc = Column(String, nullable=True)  # Terms and conditions as dot-separated values
     
     # Relationships
     manager = relationship("UserModel", back_populates="stores")

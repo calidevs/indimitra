@@ -43,7 +43,8 @@ def create_store(
     email: str, 
     radius: Optional[float] = None, 
     mobile: Optional[str] = None,
-    description: Optional[str] = None
+    description: Optional[str] = None,
+    tnc: Optional[str] = None
 ) -> StoreModel:
     """Create a new store"""
     db = SessionLocal()
@@ -64,6 +65,8 @@ def create_store(
             mobile = mobile.strip()
         if description:
             description = description.strip()
+        if tnc:
+            tnc = tnc.strip()
         
         # Check if a store with the same name already exists
         existing_store = db.query(StoreModel).filter(StoreModel.name == name).first()
@@ -89,7 +92,8 @@ def create_store(
             mobile=mobile,
             managerUserId=manager_user_id,
             radius=radius,
-            description=description
+            description=description,
+            tnc=tnc
         )
         db.add(store)
         db.commit()
@@ -109,7 +113,8 @@ def update_store(
     is_active: Optional[bool] = None,
     disabled: Optional[bool] = None,
     description: Optional[str] = None,
-    pincodes: Optional[List[str]] = None
+    pincodes: Optional[List[str]] = None,
+    tnc: Optional[str] = None
 ) -> Optional[StoreModel]:
     """Update an existing store"""
     db = SessionLocal()
@@ -193,6 +198,8 @@ def update_store(
                 store.pincodes = [p.strip() for p in pincodes if p.strip()]
             else:
                 store.pincodes = None
+        if tnc is not None:
+            store.tnc = tnc.strip() if tnc.strip() else None
         
         db.commit()
         db.refresh(store)
