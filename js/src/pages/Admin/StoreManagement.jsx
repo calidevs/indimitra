@@ -44,6 +44,7 @@ import {
   Refresh as RefreshIcon,
   Add as AddIcon,
   Store as StoreIcon,
+  LocalShipping as LocalShippingIcon,
 } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_STORES } from '@/queries/operations';
@@ -786,118 +787,367 @@ const StoreManagement = () => {
             ) : (
               <Grid container spacing={3}>
                 {filteredStores.map((store) => (
-                  <Grid item xs={12} sm={6} md={4} key={store.id}>
-                    <Card
+                  <Grid item xs={12} key={store.id}>
+                    <Paper
                       sx={{
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        minHeight: isMobile ? 'auto' : 320,
+                        transition: 'all 0.3s ease-in-out',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        '&:hover': {
+                          boxShadow: (theme) => `0 8px 24px ${theme.palette.primary.main}20`,
+                          '& .store-header': {
+                            background: (theme) =>
+                              `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                            '& .store-name': {
+                              color: 'white',
+                            },
+                            '& .store-id': {
+                              color: 'rgba(255, 255, 255, 0.8)',
+                            },
+                          },
+                          '& .action-buttons': {
+                            opacity: 1,
+                          },
+                        },
                       }}
                     >
-                      <CardContent sx={{ flexGrow: 1, pb: 1 }}>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'flex-start',
-                            mb: 2,
-                          }}
-                        >
-                          <Typography
-                            variant="h6"
-                            component="div"
-                            sx={{
-                              wordBreak: 'break-word',
-                              pr: 1,
-                              fontSize: isMobile ? '1rem' : '1.25rem',
-                            }}
-                          >
-                            {store.name}
-                          </Typography>
-                          <Chip
-                            label={`${store.drivers.edges.length} drivers`}
-                            color="primary"
-                            size="small"
-                            sx={{ flexShrink: 0 }}
-                          />
-                        </Box>
+                      {/* Header Section with Gradient */}
+                      <Box
+                        className="store-header"
+                        sx={{
+                          p: 2,
+                          background: (theme) =>
+                            `linear-gradient(45deg, ${theme.palette.primary.light}, ${theme.palette.primary.main})`,
+                          transition: 'all 0.3s ease-in-out',
+                        }}
+                      >
+                        <Grid container alignItems="center" spacing={2}>
+                          <Grid item xs={12} md={6}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <StoreIcon sx={{ mr: 2, color: 'white', fontSize: '2rem' }} />
+                              <Box>
+                                <Typography
+                                  className="store-name"
+                                  variant="h6"
+                                  sx={{
+                                    color: 'white',
+                                    fontWeight: 600,
+                                    transition: 'color 0.3s ease-in-out',
+                                  }}
+                                >
+                                  {store.name}
+                                </Typography>
+                                <Typography
+                                  className="store-id"
+                                  variant="body2"
+                                  sx={{
+                                    color: 'rgba(255, 255, 255, 0.8)',
+                                    transition: 'color 0.3s ease-in-out',
+                                  }}
+                                >
+                                  ID: {store.id}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                justifyContent: { xs: 'flex-start', md: 'flex-end' },
+                                gap: 2,
+                              }}
+                            >
+                              <Chip
+                                label={store.isActive ? 'Active' : 'Inactive'}
+                                color={store.isActive ? 'success' : 'error'}
+                                sx={{
+                                  fontWeight: 600,
+                                  boxShadow: 2,
+                                  '& .MuiChip-label': { px: 1 },
+                                }}
+                              />
+                              <Box
+                                className="action-buttons"
+                                sx={{ display: 'flex', gap: 1, opacity: 0.9 }}
+                              >
+                                <Button
+                                  size="small"
+                                  startIcon={<EditIcon />}
+                                  sx={{
+                                    fontWeight: 600,
+                                    textTransform: 'none',
+                                    color: 'white',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                    },
+                                  }}
+                                  onClick={() => handleEditClick(store)}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  size="small"
+                                  startIcon={<DeleteIcon />}
+                                  sx={{
+                                    fontWeight: 600,
+                                    textTransform: 'none',
+                                    color: 'white',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                    },
+                                  }}
+                                  onClick={() => handleDeleteClick(store)}
+                                >
+                                  Delete
+                                </Button>
+                              </Box>
+                            </Box>
+                          </Grid>
+                        </Grid>
+                      </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
-                          <LocationIcon
-                            sx={{ mr: 1, color: 'text.secondary', mt: 0.3, flexShrink: 0 }}
-                          />
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ wordBreak: 'break-word' }}
-                          >
-                            {store.address}
-                          </Typography>
-                        </Box>
+                      <Box sx={{ p: 3 }}>
+                        <Grid container spacing={3}>
+                          {/* Contact Information */}
+                          <Grid item xs={12} md={4}>
+                            <Box>
+                              <Typography
+                                variant="subtitle2"
+                                sx={{
+                                  mb: 2,
+                                  fontWeight: 600,
+                                  color: 'primary.main',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  '&::before': {
+                                    content: '""',
+                                    display: 'inline-block',
+                                    width: 4,
+                                    height: 16,
+                                    backgroundColor: 'primary.main',
+                                    marginRight: 1,
+                                    borderRadius: 1,
+                                  },
+                                }}
+                              >
+                                Contact Information
+                              </Typography>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <PhoneIcon sx={{ mr: 1, color: 'text.secondary', flexShrink: 0 }} />
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ wordBreak: 'break-word' }}
-                          >
-                            {store.mobile || 'No contact info'}
-                          </Typography>
-                        </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                                <LocationIcon
+                                  sx={{
+                                    mr: 1.5,
+                                    color: 'primary.main',
+                                    mt: 0.3,
+                                    flexShrink: 0,
+                                    fontSize: '1.2rem',
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    wordBreak: 'break-word',
+                                    color: 'text.primary',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  {store.address}
+                                </Typography>
+                              </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <EmailIcon sx={{ mr: 1, color: 'text.secondary', flexShrink: 0 }} />
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{
-                              wordBreak: 'break-word',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              display: '-webkit-box',
-                              WebkitLineClamp: 1,
-                              WebkitBoxOrient: 'vertical',
-                            }}
-                          >
-                            {store.email || 'No email info'}
-                          </Typography>
-                        </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                <PhoneIcon
+                                  sx={{
+                                    mr: 1.5,
+                                    color: 'primary.main',
+                                    flexShrink: 0,
+                                    fontSize: '1.2rem',
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    wordBreak: 'break-word',
+                                    color: 'text.primary',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  {store.mobile || 'No contact info'}
+                                </Typography>
+                              </Box>
 
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            mt: 'auto',
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Active: {store.isActive ? 'Yes' : 'No'}
-                          </Typography>
-                        </Box>
-                      </CardContent>
-                      <CardActions sx={{ justifyContent: 'space-between', px: 2, py: 1 }}>
-                        <Button
-                          size="small"
-                          startIcon={<EditIcon />}
-                          sx={{ flex: 1, mr: 1 }}
-                          onClick={() => handleEditClick(store)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="small"
-                          color="error"
-                          startIcon={<DeleteIcon />}
-                          sx={{ flex: 1 }}
-                          onClick={() => handleDeleteClick(store)}
-                        >
-                          Delete
-                        </Button>
-                      </CardActions>
-                    </Card>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <EmailIcon
+                                  sx={{
+                                    mr: 1.5,
+                                    color: 'primary.main',
+                                    flexShrink: 0,
+                                    fontSize: '1.2rem',
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    wordBreak: 'break-word',
+                                    color: 'text.primary',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  {store.email || 'No email info'}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Grid>
+
+                          {/* Delivery Information */}
+                          <Grid item xs={12} md={4}>
+                            <Box>
+                              <Typography
+                                variant="subtitle2"
+                                sx={{
+                                  mb: 2,
+                                  fontWeight: 600,
+                                  color: 'primary.main',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  '&::before': {
+                                    content: '""',
+                                    display: 'inline-block',
+                                    width: 4,
+                                    height: 16,
+                                    backgroundColor: 'primary.main',
+                                    marginRight: 1,
+                                    borderRadius: 1,
+                                  },
+                                }}
+                              >
+                                Delivery Information
+                              </Typography>
+
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                <LocalShippingIcon
+                                  sx={{
+                                    mr: 1.5,
+                                    color: 'primary.main',
+                                    flexShrink: 0,
+                                    fontSize: '1.2rem',
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: 'text.primary',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  Radius: {store.radius} mi
+                                </Typography>
+                              </Box>
+
+                              {store.pincodes && store.pincodes.length > 0 && (
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.8 }}>
+                                  {store.pincodes.map((pincode) => (
+                                    <Chip
+                                      key={pincode}
+                                      label={pincode}
+                                      size="small"
+                                      sx={{
+                                        backgroundColor: 'primary.light',
+                                        color: 'primary.contrastText',
+                                        fontWeight: 600,
+                                        transition: 'all 0.2s ease-in-out',
+                                        '&:hover': {
+                                          backgroundColor: 'primary.main',
+                                          transform: 'scale(1.05)',
+                                        },
+                                      }}
+                                    />
+                                  ))}
+                                </Box>
+                              )}
+                            </Box>
+                          </Grid>
+
+                          {/* Description & T&C */}
+                          <Grid item xs={12} md={4}>
+                            <Box>
+                              {store.description && (
+                                <Box sx={{ mb: 3 }}>
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{
+                                      mb: 2,
+                                      fontWeight: 600,
+                                      color: 'primary.main',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      '&::before': {
+                                        content: '""',
+                                        display: 'inline-block',
+                                        width: 4,
+                                        height: 16,
+                                        backgroundColor: 'primary.main',
+                                        marginRight: 1,
+                                        borderRadius: 1,
+                                      },
+                                    }}
+                                  >
+                                    Description
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      wordBreak: 'break-word',
+                                      color: 'text.primary',
+                                      fontWeight: 500,
+                                    }}
+                                  >
+                                    {store.description}
+                                  </Typography>
+                                </Box>
+                              )}
+
+                              {store.tnc && (
+                                <Box>
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{
+                                      mb: 2,
+                                      fontWeight: 600,
+                                      color: 'primary.main',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      '&::before': {
+                                        content: '""',
+                                        display: 'inline-block',
+                                        width: 4,
+                                        height: 16,
+                                        backgroundColor: 'primary.main',
+                                        marginRight: 1,
+                                        borderRadius: 1,
+                                      },
+                                    }}
+                                  >
+                                    Terms & Conditions
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      wordBreak: 'break-word',
+                                      color: 'text.primary',
+                                      fontWeight: 500,
+                                    }}
+                                  >
+                                    {store.tnc}
+                                  </Typography>
+                                </Box>
+                              )}
+                            </Box>
+                          </Grid>
+                        </Grid>
+                      </Box>
+                    </Paper>
                   </Grid>
                 ))}
               </Grid>
