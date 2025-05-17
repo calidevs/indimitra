@@ -7,21 +7,46 @@ import {
   MenuItem,
   InputLabel,
   FormControl,
-  LoadingSpinner,
   Alert,
   Divider,
-} from '@components';
-import { FormControlLabel, Checkbox, Collapse, Stack, TextField } from '@mui/material';
-import { Remove, Add, LocationOn, ExpandMore, ExpandLess, Phone } from '@mui/icons-material';
+  Paper,
+  Card,
+  CardContent,
+  Grid,
+  IconButton,
+  Tooltip,
+  FormControlLabel,
+  Checkbox,
+  Collapse,
+  Stack,
+  TextField,
+  CircularProgress,
+} from '@mui/material';
+import {
+  Remove,
+  Add,
+  LocationOn,
+  ExpandMore,
+  ExpandLess,
+  Phone,
+  ShoppingBag,
+  LocalShipping,
+  Payment,
+} from '@mui/icons-material';
 import useStore, { useAuthStore, useAddressStore } from './../store/useStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import fetchGraphQL from '../config/graphql/graphqlService';
 import { CREATE_ORDER_MUTATION, GET_USER_PROFILE } from '../queries/operations';
 import { DELIVERY_FEE, TAX_RATE } from '../config/constants/constants';
 import { useNavigate, Link } from 'react-router-dom';
-import LoginModal from './Login/LoginModal'; // Import the LoginModal
+import LoginModal from './Login/LoginModal';
 import AddressAutocomplete from '@/components/AddressAutocomplete/AddressAutocomplete';
 import { fetchAuthSession } from '@aws-amplify/auth';
+
+// Replace LoadingSpinner with CircularProgress
+const LoadingSpinner = ({ size = 24, sx }) => (
+  <CircularProgress size={size} sx={{ color: 'inherit', ...sx }} />
+);
 
 // Add the UPDATE_SECONDARY_PHONE mutation
 const UPDATE_SECONDARY_PHONE = `
@@ -72,55 +97,113 @@ const SecondaryPhoneInput = ({ userProfile, onPhoneUpdate }) => {
   return (
     <Box sx={{ mb: 3 }}>
       {!showUpdateForm ? (
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography variant="subtitle1">
-            {userProfile.secondaryPhone
-              ? `Secondary Phone: +1 ${userProfile.secondaryPhone}`
-              : 'No secondary phone number available'}
-          </Typography>
-          <Button variant="outlined" startIcon={<Phone />} onClick={() => setShowUpdateForm(true)}>
-            {userProfile.secondaryPhone ? 'Update Number' : 'Add Number'}
-          </Button>
-        </Box>
-      ) : (
-        <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
-          <Typography variant="subtitle2" gutterBottom>
-            {userProfile.secondaryPhone ? 'Update Secondary Phone' : 'Add Secondary Phone'}
-          </Typography>
-          <Stack spacing={2}>
-            <TextField
-              label="Phone Number"
-              value={phoneNumber}
-              onChange={handlePhoneChange}
-              placeholder="Enter 10-digit phone number"
-              error={!!error}
-              helperText={error}
-              InputProps={{
-                startAdornment: <Typography sx={{ mr: 1 }}>+1</Typography>,
-              }}
-            />
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                variant="contained"
-                onClick={handleSubmit}
-                disabled={isPending || phoneNumber.length !== 10}
-                startIcon={isPending ? <LoadingSpinner size={20} /> : <Phone />}
-              >
-                {isPending ? 'Updating...' : 'Save Number'}
-              </Button>
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.5,
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 2,
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Phone color="primary" />
+            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+              Secondary Contact
+            </Typography>
+          </Box>
+
+          {userProfile.secondaryPhone ? (
+            <>
+              <Typography variant="body1">+1 {userProfile.secondaryPhone}</Typography>
+              <Typography variant="body2" color="text.secondary">
+                (Update if you want to change)
+              </Typography>
               <Button
                 variant="outlined"
-                onClick={() => {
-                  setShowUpdateForm(false);
-                  setPhoneNumber('');
-                  setError('');
-                }}
+                size="small"
+                onClick={() => setShowUpdateForm(true)}
+                startIcon={<Phone />}
+                sx={{ alignSelf: 'flex-start' }}
               >
-                Cancel
+                Change Number
               </Button>
-            </Box>
-          </Stack>
-        </Box>
+            </>
+          ) : (
+            <>
+              <Typography variant="body2" color="text.secondary">
+                No secondary number added
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => setShowUpdateForm(true)}
+                startIcon={<Phone />}
+                sx={{ alignSelf: 'flex-start' }}
+              >
+                Add Number
+              </Button>
+            </>
+          )}
+        </Paper>
+      ) : (
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 1.5,
+            border: '1px solid',
+            borderColor: 'divider',
+            borderRadius: 2,
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Phone color="primary" />
+            <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+              {userProfile.secondaryPhone ? 'Update Number' : 'Add Number'}
+            </Typography>
+          </Box>
+
+          <TextField
+            size="small"
+            value={phoneNumber}
+            onChange={handlePhoneChange}
+            placeholder="Enter 10-digit number"
+            error={!!error}
+            helperText={error}
+            InputProps={{
+              startAdornment: <Typography sx={{ mr: 1 }}>+1</Typography>,
+            }}
+          />
+
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <Button
+              variant="contained"
+              size="small"
+              onClick={handleSubmit}
+              disabled={isPending || phoneNumber.length !== 10}
+              startIcon={isPending ? <LoadingSpinner size={20} /> : <Phone />}
+            >
+              {isPending ? 'Saving...' : 'Save'}
+            </Button>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => {
+                setShowUpdateForm(false);
+                setPhoneNumber('');
+                setError('');
+              }}
+            >
+              Cancel
+            </Button>
+          </Box>
+        </Paper>
       )}
     </Box>
   );
@@ -277,217 +360,316 @@ const CartPage = () => {
   };
 
   return (
-    <Box sx={{ padding: 3 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Your Cart
+    <Box sx={{ maxWidth: 1200, margin: '0 auto', padding: 3 }}>
+      <Typography
+        variant="h4"
+        component="h1"
+        gutterBottom
+        sx={{
+          fontWeight: 600,
+          color: 'primary.main',
+          mb: 4,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+        }}
+      >
+        <ShoppingBag /> Your Shopping Cart
       </Typography>
 
       {isOrderPlaced ? (
-        <Alert severity="success">Order placed successfully!</Alert>
+        <Alert severity="success" sx={{ mb: 3 }}>
+          Order placed successfully!
+        </Alert>
       ) : (
-        <>
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
+        <Grid container spacing={3}>
+          {/* Cart Items Section */}
+          <Grid item xs={12} md={8}>
+            <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
+              {error && (
+                <Alert severity="error" sx={{ mb: 2 }}>
+                  {error}
+                </Alert>
+              )}
 
-          {Object.values(cart).length > 0 ? (
-            Object.values(cart).map((item) => (
-              <Box
-                key={item.id}
-                display="flex"
-                alignItems="center"
-                justifyContent="space-between"
-                sx={{ mb: 2, py: 1, borderBottom: '1px solid #ccc' }}
-              >
-                <Typography>{item.name}</Typography>
-                <Typography>${item.price.toFixed(2)}</Typography>
-                <Box display="flex" alignItems="center">
-                  <Button onClick={() => removeFromCart(item.id)}>
-                    <Remove />
-                  </Button>
-                  <Typography sx={{ mx: 1 }}>{item.quantity}</Typography>
-                  <Button onClick={() => addToCart(item)}>
-                    <Add />
+              {Object.values(cart).length > 0 ? (
+                <>
+                  <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>
+                    Cart Items
+                  </Typography>
+                  {Object.values(cart).map((item) => (
+                    <Card key={item.id} sx={{ mb: 2, position: 'relative' }}>
+                      <CardContent>
+                        <Grid container alignItems="center" spacing={2}>
+                          <Grid item xs={12} sm={4}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                              <img
+                                src={item.image}
+                                alt={item.name}
+                                style={{
+                                  width: 60,
+                                  height: 60,
+                                  objectFit: 'cover',
+                                  borderRadius: 8,
+                                }}
+                              />
+                              <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                                {item.name}
+                              </Typography>
+                            </Box>
+                          </Grid>
+                          <Grid item xs={12} sm={3}>
+                            <Typography color="text.secondary">
+                              ${item.price.toFixed(2)} each
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={12} sm={3}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <IconButton
+                                size="small"
+                                onClick={() => removeFromCart(item.id)}
+                                sx={{ border: '1px solid', borderColor: 'divider' }}
+                              >
+                                <Remove fontSize="small" />
+                              </IconButton>
+                              <Typography sx={{ minWidth: 40, textAlign: 'center' }}>
+                                {item.quantity}
+                              </Typography>
+                              <IconButton
+                                size="small"
+                                onClick={() => addToCart(item)}
+                                sx={{ border: '1px solid', borderColor: 'divider' }}
+                              >
+                                <Add fontSize="small" />
+                              </IconButton>
+                            </Box>
+                          </Grid>
+                          <Grid item xs={12} sm={2}>
+                            <Typography
+                              variant="subtitle1"
+                              sx={{ fontWeight: 600, textAlign: 'right' }}
+                            >
+                              ${(item.price * item.quantity).toFixed(2)}
+                            </Typography>
+                          </Grid>
+                        </Grid>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </>
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <ShoppingBag sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
+                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                    Your cart is empty
+                  </Typography>
+                  <Button
+                    variant="contained"
+                    component={Link}
+                    to="/products"
+                    startIcon={<ShoppingBag />}
+                  >
+                    Continue Shopping
                   </Button>
                 </Box>
-                <Typography sx={{ fontWeight: 'bold' }}>
-                  ${(item.price * item.quantity).toFixed(2)}
-                </Typography>
+              )}
+            </Paper>
+          </Grid>
+
+          {/* Order Summary Section */}
+          <Grid item xs={12} md={4}>
+            <Paper elevation={2} sx={{ p: 3, position: 'sticky', top: 24 }}>
+              <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
+                Order Summary
+              </Typography>
+
+              {/* Secondary Phone Section */}
+              {userProfile && (
+                <Box sx={{ mb: 3 }}>
+                  <SecondaryPhoneInput
+                    userProfile={userProfile}
+                    onPhoneUpdate={handlePhoneUpdate}
+                  />
+                </Box>
+              )}
+
+              <Box sx={{ mb: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography color="text.secondary">Subtotal</Typography>
+                  <Typography>${subtotal.toFixed(2)}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                  <Typography color="text.secondary">Tax</Typography>
+                  <Typography>${tax.toFixed(2)}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography color="text.secondary">Delivery Fee</Typography>
+                  <Typography>${deliveryFee.toFixed(2)}</Typography>
+                </Box>
+                <Divider sx={{ my: 2 }} />
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    Total
+                  </Typography>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                    ${orderTotal.toFixed(2)}
+                  </Typography>
+                </Box>
               </Box>
-            ))
-          ) : (
-            <Typography textAlign="center">Your cart is empty!</Typography>
-          )}
 
-          <Divider sx={{ my: 2 }} />
+              {/* Delivery Address Section */}
+              {userProfile && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+                  >
+                    <LocalShipping /> Delivery Address
+                  </Typography>
 
-          {/* Secondary Phone Section */}
-          {userProfile && (
-            <SecondaryPhoneInput userProfile={userProfile} onPhoneUpdate={handlePhoneUpdate} />
-          )}
-
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-            <Typography>Subtotal:</Typography>
-            <Typography>${subtotal.toFixed(2)}</Typography>
-          </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-            <Typography>Tax:</Typography>
-            <Typography>${tax.toFixed(2)}</Typography>
-          </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-            <Typography>Delivery Fee:</Typography>
-            <Typography>${deliveryFee.toFixed(2)}</Typography>
-          </Box>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', mt: 1 }}>
-            <Typography>Order Total:</Typography>
-            <Typography>${orderTotal.toFixed(2)}</Typography>
-          </Box>
-
-          <Divider sx={{ my: 2 }} />
-
-          {userProfile && (
-            <TextField
-              label="Delivery Instructions"
-              fullWidth
-              multiline
-              rows={2}
-              value={deliveryInstructions}
-              onChange={(e) => setDeliveryInstructions(e.target.value)}
-              sx={{ mb: 2 }}
-            />
-          )}
-
-          {userProfile &&
-            (isProfileLoading ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                <LoadingSpinner size={24} />
-                <Typography sx={{ ml: 2 }}>Loading user profile...</Typography>
-              </Box>
-            ) : (
-              <Box sx={{ mb: 2 }}>
-                <FormControl fullWidth sx={{ mb: 1 }}>
-                  <InputLabel>Select Address</InputLabel>
-                  {isLoadingAddresses ? (
+                  {isProfileLoading ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
                       <LoadingSpinner size={24} />
                     </Box>
                   ) : (
-                    <Select
-                      value={selectedAddressId || ''}
-                      onChange={(e) => setSelectedAddressId(e.target.value)}
-                    >
-                      {addresses && addresses.length > 0 ? (
-                        addresses.map((addr) => (
-                          <MenuItem key={addr.id} value={addr.id}>
-                            {addr.address} {addr.isPrimary ? '(Primary)' : ''}
-                          </MenuItem>
-                        ))
-                      ) : (
-                        <MenuItem disabled>No addresses available</MenuItem>
-                      )}
-                    </Select>
-                  )}
-                </FormControl>
+                    <Box>
+                      <FormControl fullWidth sx={{ mb: 2 }}>
+                        <InputLabel>Select Address</InputLabel>
+                        {isLoadingAddresses ? (
+                          <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                            <LoadingSpinner size={24} />
+                          </Box>
+                        ) : (
+                          <Select
+                            value={selectedAddressId || ''}
+                            onChange={(e) => setSelectedAddressId(e.target.value)}
+                          >
+                            {addresses && addresses.length > 0 ? (
+                              addresses.map((addr) => (
+                                <MenuItem key={addr.id} value={addr.id}>
+                                  {addr.address} {addr.isPrimary ? '(Primary)' : ''}
+                                </MenuItem>
+                              ))
+                            ) : (
+                              <MenuItem disabled>No addresses available</MenuItem>
+                            )}
+                          </Select>
+                        )}
+                      </FormControl>
 
-                {/* Toggle button for address form */}
+                      <Button
+                        fullWidth
+                        variant="outlined"
+                        startIcon={showAddressForm ? <ExpandLess /> : <ExpandMore />}
+                        onClick={() => setShowAddressForm(!showAddressForm)}
+                        sx={{ mb: 2 }}
+                      >
+                        {showAddressForm ? 'Cancel' : 'Add New Address'}
+                      </Button>
+
+                      <Collapse in={showAddressForm}>
+                        <Box
+                          sx={{
+                            p: 2,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            borderRadius: 1,
+                          }}
+                        >
+                          <Stack spacing={2}>
+                            <AddressAutocomplete
+                              value={newAddress}
+                              onChange={setNewAddress}
+                              onValidAddress={setIsValidAddress}
+                            />
+                            <FormControlLabel
+                              control={
+                                <Checkbox
+                                  checked={isPrimary}
+                                  onChange={(e) => setIsPrimary(e.target.checked)}
+                                />
+                              }
+                              label="Set as Primary Address"
+                            />
+                            <Button
+                              variant="contained"
+                              onClick={handleAddAddress}
+                              disabled={!newAddress.trim() || isAddingAddress || !isValidAddress}
+                              startIcon={
+                                isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />
+                              }
+                            >
+                              {isAddingAddress ? 'Adding...' : 'Add Address'}
+                            </Button>
+                          </Stack>
+                        </Box>
+                      </Collapse>
+                    </Box>
+                  )}
+                </Box>
+              )}
+
+              {/* Delivery Instructions */}
+              {userProfile && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="subtitle1" sx={{ mb: 2 }}>
+                    Delivery Instructions
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    multiline
+                    rows={2}
+                    value={deliveryInstructions}
+                    onChange={(e) => setDeliveryInstructions(e.target.value)}
+                    placeholder="Add any special instructions for delivery..."
+                  />
+                </Box>
+              )}
+
+              {/* Place Order Button */}
+              {userProfile ? (
                 <Button
                   fullWidth
-                  variant="outlined"
-                  startIcon={showAddressForm ? <ExpandLess /> : <ExpandMore />}
-                  onClick={() => setShowAddressForm(!showAddressForm)}
-                  sx={{ mt: 1 }}
+                  variant="contained"
+                  size="large"
+                  onClick={handleOrderPlacement}
+                  disabled={
+                    Object.values(cart).length === 0 ||
+                    isPending ||
+                    !selectedAddressId ||
+                    isProfileLoading
+                  }
+                  startIcon={isPending ? <LoadingSpinner size={20} /> : <Payment />}
+                  sx={{
+                    py: 1.5,
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                  }}
                 >
-                  {showAddressForm ? 'Cancel Adding Address' : 'Add New Address'}
+                  {isPending ? 'Processing...' : 'Place Order'}
                 </Button>
-
-                {/* Inline address form */}
-                {userProfile && (
-                  <Collapse in={showAddressForm}>
-                    <Box
-                      sx={{
-                        mt: 2,
-                        p: 2,
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        borderRadius: 1,
-                      }}
-                    >
-                      <Typography variant="subtitle2" gutterBottom>
-                        Add New Delivery Address
-                      </Typography>
-                      <Stack spacing={2}>
-                        <AddressAutocomplete
-                          value={newAddress}
-                          onChange={setNewAddress}
-                          onValidAddress={setIsValidAddress}
-                        />
-                        <FormControlLabel
-                          control={
-                            <Checkbox
-                              checked={isPrimary}
-                              onChange={(e) => setIsPrimary(e.target.checked)}
-                            />
-                          }
-                          label="Set as Primary Address"
-                        />
-                        <Button
-                          variant="contained"
-                          onClick={handleAddAddress}
-                          disabled={!newAddress.trim() || isAddingAddress || !isValidAddress}
-                          startIcon={
-                            isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />
-                          }
-                        >
-                          {isAddingAddress ? 'Adding...' : 'Add Address'}
-                        </Button>
-                      </Stack>
-                    </Box>
-                  </Collapse>
-                )}
-              </Box>
-            ))}
-
-          {userProfile ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-              <Button
-                variant="contained"
-                color="primary"
-                sx={{ mt: 2, minWidth: '200px' }}
-                onClick={handleOrderPlacement}
-                disabled={
-                  Object.values(cart).length === 0 ||
-                  isPending ||
-                  !selectedAddressId ||
-                  isProfileLoading
-                }
-              >
-                {isPending ? (
-                  <>
-                    <LoadingSpinner size={20} sx={{ color: 'white' }} /> Placing Order...
-                  </>
-                ) : (
-                  'Place Order'
-                )}
-              </Button>
-            </Box>
-          ) : (
-            <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
-              <Button
-                variant="contained"
-                color="primary"
-                sx={{ mt: 2, minWidth: '200px' }}
-                onClick={() => {
-                  setModalOpen(true);
-                  setCurrentForm('login');
-                }}
-              >
-                Login
-              </Button>
-            </Box>
-          )}
-        </>
+              ) : (
+                <Button
+                  fullWidth
+                  variant="contained"
+                  size="large"
+                  onClick={() => {
+                    setModalOpen(true);
+                    setCurrentForm('login');
+                  }}
+                  startIcon={<ShoppingBag />}
+                  sx={{
+                    py: 1.5,
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  Login to Continue
+                </Button>
+              )}
+            </Paper>
+          </Grid>
+        </Grid>
       )}
     </Box>
   );
