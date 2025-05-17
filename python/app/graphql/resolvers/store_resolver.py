@@ -77,7 +77,8 @@ class StoreMutation:
         radius: Optional[float] = None,
         is_active: Optional[bool] = None,
         disabled: Optional[bool] = None,
-        description: Optional[str] = None
+        description: Optional[str] = None,
+        pincodes: Optional[List[str]] = None
     ) -> Optional[Store]:
         """
         Update an existing store
@@ -93,6 +94,7 @@ class StoreMutation:
             is_active: Optional new active status
             disabled: Optional new disabled status
             description: Optional store description/timings/notes
+            pincodes: Optional list of pincodes
         """
         try:
             store = update_store(
@@ -105,7 +107,8 @@ class StoreMutation:
                 radius,
                 is_active,
                 disabled,
-                description
+                description,
+                pincodes
             )
             if not store:
                 raise Exception(f"Store with ID {store_id} not found")

@@ -108,7 +108,8 @@ def update_store(
     radius: Optional[float] = None,
     is_active: Optional[bool] = None,
     disabled: Optional[bool] = None,
-    description: Optional[str] = None
+    description: Optional[str] = None,
+    pincodes: Optional[List[str]] = None
 ) -> Optional[StoreModel]:
     """Update an existing store"""
     db = SessionLocal()
@@ -185,6 +186,13 @@ def update_store(
             store.disabled = disabled
         if description is not None:
             store.description = description.strip() if description.strip() else None
+        if pincodes is not None:
+            # Validate and normalize pincodes
+            if pincodes:
+                # Remove any empty strings and strip whitespace
+                store.pincodes = [p.strip() for p in pincodes if p.strip()]
+            else:
+                store.pincodes = None
         
         db.commit()
         db.refresh(store)

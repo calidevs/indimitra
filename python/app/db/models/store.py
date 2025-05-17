@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, ARRAY
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
@@ -15,6 +15,7 @@ class StoreModel(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     disabled = Column(Boolean, default=False, nullable=False)
     description = Column(String, nullable=True)
+    pincodes = Column(ARRAY(String), nullable=True)  # Array of pincode strings
     
     # Relationships
     manager = relationship("UserModel", back_populates="stores")
