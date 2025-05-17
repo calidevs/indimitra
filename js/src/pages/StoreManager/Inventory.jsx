@@ -79,6 +79,8 @@ const GET_STORE_WITH_INVENTORY = `
             quantity
             price
             measurement
+            isAvailable
+            isListed
             updatedAt
             product {
               id
@@ -886,7 +888,7 @@ const Inventory = () => {
 
   return (
     <Layout>
-      <Container sx={{ mb: 4 }}>
+      <>
         <Typography variant="h4" gutterBottom>
           Inventory Management
         </Typography>
@@ -947,18 +949,20 @@ const Inventory = () => {
                       <TableCell>Category</TableCell>
                       <TableCell>Price</TableCell>
                       <TableCell>Quantity</TableCell>
-                      <TableCell>Status</TableCell>
+                      <TableCell>Available</TableCell>
+                      <TableCell>Listed</TableCell>
                       <TableCell>Actions</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {paginatedInventory.map((item) => {
-                      const isLowStock = item.quantity <= lowStockThreshold;
                       return (
                         <React.Fragment key={item.id}>
                           <TableRow
                             sx={{
-                              backgroundColor: isLowStock ? 'rgba(255, 0, 0, 0.1)' : 'inherit',
+                              backgroundColor: !item?.isAvailable
+                                ? 'rgba(255, 0, 0, 0.1)'
+                                : 'inherit',
                             }}
                           >
                             <TableCell>
@@ -990,10 +994,17 @@ const Inventory = () => {
                               {item.measurement ? getMeasurementUnitLabel(item.measurement) : ''}
                             </TableCell>
                             <TableCell>
-                              {isLowStock ? (
+                              {!item?.isAvailable ? (
                                 <Chip label="Low Stock" color="error" size="small" />
                               ) : (
                                 <Chip label="In Stock" color="success" size="small" />
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {item?.isListed ? (
+                                <Chip label="Listed" color="success" size="small" />
+                              ) : (
+                                <Chip label="Not Listed" color="error" size="small" />
                               )}
                             </TableCell>
                             <TableCell>
@@ -1155,7 +1166,7 @@ const Inventory = () => {
           isLoading={addMutation.isLoading}
           errorMessage={errorMessage}
         />
-      </Container>
+      </>
     </Layout>
   );
 };
