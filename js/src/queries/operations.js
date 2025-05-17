@@ -423,37 +423,14 @@ export const GET_STORE_WITH_INVENTORY = `
       id
       name
       address
-      radius
-      inventory {
-        edges {
-          node {
-            id
-            quantity
-            price
-            measurement
-            updatedAt
-            product {
-              id
-              name
-              description
-              category {
-                id
-                name
-              }
-              image
-            }
-          }
-        }
-      }
-    }
-    products {
-      id
-      name
       description
-      category {
-        id
-        name
-      }
+      disabled
+      email
+      isActive
+      mobile
+      pincodes
+      radius
+      tnc
     }
   }
 `;
