@@ -12,7 +12,7 @@ import {
   Divider,
 } from '@components';
 import { FormControlLabel, Checkbox, Collapse, Stack, TextField } from '@mui/material';
-import { Remove, Add, LocationOn, ExpandMore, ExpandLess } from '@mui/icons-material';
+import { Remove, Add, LocationOn, ExpandMore, ExpandLess, Phone } from '@mui/icons-material';
 import useStore, { useAuthStore, useAddressStore } from './../store/useStore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import fetchGraphQL from '../config/graphql/graphqlService';
@@ -21,6 +21,109 @@ import { DELIVERY_FEE, TAX_RATE } from '../config/constants/constants';
 import { useNavigate, Link } from 'react-router-dom';
 import LoginModal from './Login/LoginModal'; // Import the LoginModal
 import AddressAutocomplete from '@/components/AddressAutocomplete/AddressAutocomplete';
+
+// Add the UPDATE_SECONDARY_PHONE mutation
+const UPDATE_SECONDARY_PHONE = `
+  mutation UpdateSecondaryPhone($userId: Int!, $secondaryPhone: String) {
+    updateSecondaryPhone(userId: $userId, secondaryPhone: $secondaryPhone) {
+      active
+    }
+  }
+`;
+
+const SecondaryPhoneInput = ({ userProfile, onPhoneUpdate }) => {
+  const [showUpdateForm, setShowUpdateForm] = useState(false);
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [error, setError] = useState('');
+
+  const { mutate: updatePhone, isPending } = useMutation({
+    mutationFn: (variables) => fetchGraphQL(UPDATE_SECONDARY_PHONE, variables),
+    onSuccess: () => {
+      onPhoneUpdate();
+      setShowUpdateForm(false);
+      setPhoneNumber('');
+      setError('');
+    },
+    onError: (error) => {
+      setError('Failed to update phone number. Please try again.');
+    },
+  });
+
+  const handlePhoneChange = (e) => {
+    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setPhoneNumber(value);
+    setError('');
+  };
+
+  const handleSubmit = () => {
+    if (phoneNumber.length !== 10) {
+      setError('Please enter a valid 10-digit phone number');
+      return;
+    }
+    updatePhone({
+      userId: userProfile.id,
+      secondaryPhone: phoneNumber,
+    });
+  };
+
+  if (!userProfile) return null;
+
+  return (
+    <Box sx={{ mb: 3 }}>
+      {!showUpdateForm ? (
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography variant="subtitle1">
+            {userProfile.secondaryPhone
+              ? `Secondary Phone: +1 ${userProfile.secondaryPhone}`
+              : 'No secondary phone number available'}
+          </Typography>
+          <Button variant="outlined" startIcon={<Phone />} onClick={() => setShowUpdateForm(true)}>
+            {userProfile.secondaryPhone ? 'Update Number' : 'Add Number'}
+          </Button>
+        </Box>
+      ) : (
+        <Box sx={{ p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+          <Typography variant="subtitle2" gutterBottom>
+            {userProfile.secondaryPhone ? 'Update Secondary Phone' : 'Add Secondary Phone'}
+          </Typography>
+          <Stack spacing={2}>
+            <TextField
+              label="Phone Number"
+              value={phoneNumber}
+              onChange={handlePhoneChange}
+              placeholder="Enter 10-digit phone number"
+              error={!!error}
+              helperText={error}
+              InputProps={{
+                startAdornment: <Typography sx={{ mr: 1 }}>+1</Typography>,
+              }}
+            />
+            <Box sx={{ display: 'flex', gap: 1 }}>
+              <Button
+                variant="contained"
+                onClick={handleSubmit}
+                disabled={isPending || phoneNumber.length !== 10}
+                startIcon={isPending ? <LoadingSpinner size={20} /> : <Phone />}
+              >
+                {isPending ? 'Updating...' : 'Save Number'}
+              </Button>
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  setShowUpdateForm(false);
+                  setPhoneNumber('');
+                  setError('');
+                }}
+              >
+                Cancel
+              </Button>
+            </Box>
+          </Stack>
+        </Box>
+      )}
+    </Box>
+  );
+};
 
 const CartPage = () => {
   const { cart, removeFromCart, addToCart, cartTotal, clearCart } = useStore();
@@ -155,6 +258,10 @@ const CartPage = () => {
     }
   };
 
+  const handlePhoneUpdate = () => {
+    queryClient.invalidateQueries(['userProfile']);
+  };
+
   return (
     <Box sx={{ padding: 3 }}>
       <Typography variant="h4" component="h1" gutterBottom>
@@ -201,6 +308,11 @@ const CartPage = () => {
           )}
 
           <Divider sx={{ my: 2 }} />
+
+          {/* Secondary Phone Section */}
+          {userProfile && (
+            <SecondaryPhoneInput userProfile={userProfile} onPhoneUpdate={handlePhoneUpdate} />
+          )}
 
           <Box sx={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
             <Typography>Subtotal:</Typography>
