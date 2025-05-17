@@ -156,7 +156,7 @@ const CartPage = () => {
   };
 
   return (
-    <Box sx={{ padding: 3, maxWidth: 800, margin: 'auto' }}>
+    <Box sx={{ padding: 3 }}>
       <Typography variant="h4" component="h1" gutterBottom>
         Your Cart
       </Typography>
@@ -324,40 +324,42 @@ const CartPage = () => {
             ))}
 
           {userProfile ? (
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              sx={{ mt: 2 }}
-              onClick={handleOrderPlacement}
-              disabled={
-                Object.values(cart).length === 0 ||
-                isPending ||
-                !selectedAddressId ||
-                isProfileLoading
-              }
-            >
-              {isPending ? (
-                <>
-                  <LoadingSpinner size={20} sx={{ color: 'white' }} /> Placing Order...
-                </>
-              ) : (
-                'Place Order'
-              )}
-            </Button>
+            <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+              <Button
+                variant="contained"
+                color="primary"
+                sx={{ mt: 2, minWidth: '200px' }}
+                onClick={handleOrderPlacement}
+                disabled={
+                  Object.values(cart).length === 0 ||
+                  isPending ||
+                  !selectedAddressId ||
+                  isProfileLoading
+                }
+              >
+                {isPending ? (
+                  <>
+                    <LoadingSpinner size={20} sx={{ color: 'white' }} /> Placing Order...
+                  </>
+                ) : (
+                  'Place Order'
+                )}
+              </Button>
+            </Box>
           ) : (
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              sx={{ mt: 2 }}
-              onClick={() => {
-                setModalOpen(true);
-                setCurrentForm('login');
-              }}
-            >
-              Login
-            </Button>
+            <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+              <Button
+                variant="contained"
+                color="primary"
+                sx={{ mt: 2, minWidth: '200px' }}
+                onClick={() => {
+                  setModalOpen(true);
+                  setCurrentForm('login');
+                }}
+              >
+                Login
+              </Button>
+            </Box>
           )}
         </>
       )}

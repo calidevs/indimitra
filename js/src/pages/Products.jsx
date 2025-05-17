@@ -129,8 +129,7 @@ const Products = ({ setStoreModalOpen }) => {
     return <Typography>Error fetching products: {inventoryError.message}</Typography>;
 
   return (
-    <Container>
-      {/* Store Selection */}
+    <>
       {/* Store Selection */}
       {selectedStore && (
         <Box
@@ -160,51 +159,52 @@ const Products = ({ setStoreModalOpen }) => {
           </Button>
         </Box>
       )}
-
-      {/* Search Field */}
-      <TextField
-        label="Search Products"
-        variant="outlined"
-        fullWidth
-        sx={{ mb: 3 }}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search by product name or category..."
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon />
-            </InputAdornment>
-          ),
-        }}
-      />
-
-      {/* Product Grid */}
-      {inventoryLoading ? (
-        <Box display="flex" justifyContent="center" my={4}>
-          <CircularProgress />
-        </Box>
-      ) : products.length === 0 ? (
-        <Typography variant="h6" align="center" sx={{ mt: 4 }}>
-          No products available in this store.
-        </Typography>
-      ) : (
-        <ProductGrid products={visibleRows} />
-        // <div></div>
-      )}
-      {/* Add pagination controls */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-        <TablePagination
-          rowsPerPageOptions={[8, 12, 24]}
-          component="div"
-          count={filteredProducts.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
+      <Container>
+        {/* Search Field */}
+        <TextField
+          label="Search Products"
+          variant="outlined"
+          fullWidth
+          sx={{ mb: 3 }}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by product name or category..."
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
         />
-      </Box>
-    </Container>
+
+        {/* Product Grid */}
+        {inventoryLoading ? (
+          <Box display="flex" justifyContent="center" my={4}>
+            <CircularProgress />
+          </Box>
+        ) : products.length === 0 ? (
+          <Typography variant="h6" align="center" sx={{ mt: 4 }}>
+            No products available in this store.
+          </Typography>
+        ) : (
+          <ProductGrid products={visibleRows} />
+          // <div></div>
+        )}
+        {/* Add pagination controls */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <TablePagination
+            rowsPerPageOptions={[8, 12, 24]}
+            component="div"
+            count={filteredProducts.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </Box>
+      </Container>
+    </>
   );
 };
 
