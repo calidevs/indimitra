@@ -426,7 +426,7 @@ const StoreManagement = () => {
               <TextField
                 required
                 fullWidth
-                label="Delivery Radius (km)"
+                label="Delivery Radius (mi)"
                 name="radius"
                 type="number"
                 value={formData.radius}
@@ -843,9 +843,7 @@ const StoreManagement = () => {
                             color="text.secondary"
                             sx={{ wordBreak: 'break-word' }}
                           >
-                            {store.drivers.edges.length > 0
-                              ? store.drivers.edges[0].node.driver.mobile
-                              : 'No contact info'}
+                            {store.mobile || 'No contact info'}
                           </Typography>
                         </Box>
 
@@ -863,9 +861,7 @@ const StoreManagement = () => {
                               WebkitBoxOrient: 'vertical',
                             }}
                           >
-                            {store.drivers.edges.length > 0
-                              ? store.drivers.edges[0].node.driver.email
-                              : 'No email info'}
+                            {store.email || 'No email info'}
                           </Typography>
                         </Box>
 
@@ -878,11 +874,7 @@ const StoreManagement = () => {
                           }}
                         >
                           <Typography variant="body2" color="text.secondary">
-                            Active:{' '}
-                            {store.drivers.edges.filter(({ node }) => node.driver.active).length}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Total: {store.drivers.edges.length}
+                            Active: {store.isActive ? 'Yes' : 'No'}
                           </Typography>
                         </Box>
                       </CardContent>

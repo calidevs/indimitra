@@ -515,7 +515,15 @@ export const GET_STORES = `
       id
       name
       address
+      description
+      disabled
+      email
+      isActive
       managerUserId
+      mobile
+      pincodes
+      radius
+      tnc
       drivers {
         edges {
           node {
