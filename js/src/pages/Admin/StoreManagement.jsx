@@ -79,13 +79,6 @@ const UPDATE_STORE = `
   }
 `;
 
-// Add the delete mutation
-const DELETE_STORE = `
-  mutation DeleteStore($storeId: Int!) {
-    deleteStore(storeId: $storeId)
-  }
-`;
-
 const steps = ['Store Information', 'Inventory', 'Drivers', 'Store Managers', 'Review'];
 
 const StoreManagement = () => {
@@ -115,9 +108,6 @@ const StoreManagement = () => {
 
   const [editStore, setEditStore] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [deleteStore, setDeleteStore] = useState(null);
-  const [deleteConfirmation, setDeleteConfirmation] = useState('');
-  const [deleteError, setDeleteError] = useState('');
 
   // Fetch stores
   const {
@@ -184,30 +174,6 @@ const StoreManagement = () => {
       setSnackbar({
         open: true,
         message: 'Failed to update store: ' + error.message,
-        severity: 'error',
-      });
-    },
-  });
-
-  // Add the delete mutation hook
-  const deleteStoreMutation = useMutation({
-    mutationFn: (variables) => {
-      return fetchGraphQL(DELETE_STORE, variables);
-    },
-    onSuccess: () => {
-      setSnackbar({
-        open: true,
-        message: 'Store deleted successfully',
-        severity: 'success',
-      });
-      setDeleteStore(null);
-      setDeleteConfirmation('');
-      refetch();
-    },
-    onError: (error) => {
-      setSnackbar({
-        open: true,
-        message: 'Failed to delete store: ' + error.message,
         severity: 'error',
       });
     },
@@ -314,29 +280,6 @@ const StoreManagement = () => {
       managerUserId: parseInt(formData.get('managerUserId')),
       name: formData.get('name'),
       radius: parseFloat(formData.get('radius')),
-    });
-  };
-
-  const handleDeleteClick = (store) => {
-    setDeleteStore(store);
-    setDeleteConfirmation('');
-    setDeleteError('');
-  };
-
-  const handleCloseDelete = () => {
-    setDeleteStore(null);
-    setDeleteConfirmation('');
-    setDeleteError('');
-  };
-
-  const handleDeleteConfirm = () => {
-    if (deleteConfirmation.toLowerCase() !== 'delete') {
-      setDeleteError('Please type "delete" to confirm');
-      return;
-    }
-
-    deleteStoreMutation.mutate({
-      storeId: deleteStore.id,
     });
   };
 
@@ -886,21 +829,6 @@ const StoreManagement = () => {
                                 >
                                   Edit
                                 </Button>
-                                <Button
-                                  size="small"
-                                  startIcon={<DeleteIcon />}
-                                  sx={{
-                                    fontWeight: 600,
-                                    textTransform: 'none',
-                                    color: 'white',
-                                    '&:hover': {
-                                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                                    },
-                                  }}
-                                  onClick={() => handleDeleteClick(store)}
-                                >
-                                  Delete
-                                </Button>
                               </Box>
                             </Box>
                           </Grid>
@@ -1235,45 +1163,6 @@ const StoreManagement = () => {
             </Button>
           </DialogActions>
         </form>
-      </Dialog>
-
-      {/* Delete Store Confirmation Dialog */}
-      <Dialog open={!!deleteStore} onClose={handleCloseDelete} maxWidth="sm" fullWidth>
-        <DialogTitle>Delete Store</DialogTitle>
-        <DialogContent>
-          <Stack spacing={3}>
-            <Typography>
-              Are you sure you want to delete the store "{deleteStore?.name}"? This action cannot be
-              undone.
-            </Typography>
-            <Typography variant="body2" color="error">
-              Please type "delete" to confirm:
-            </Typography>
-            <TextField
-              value={deleteConfirmation}
-              onChange={(e) => {
-                setDeleteConfirmation(e.target.value);
-                setDeleteError('');
-              }}
-              error={!!deleteError}
-              helperText={deleteError}
-              fullWidth
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDelete}>Cancel</Button>
-          <Button
-            onClick={handleDeleteConfirm}
-            variant="contained"
-            color="error"
-            disabled={
-              deleteStoreMutation.isPending || deleteConfirmation.toLowerCase() !== 'delete'
-            }
-          >
-            {deleteStoreMutation.isPending ? 'Deleting...' : 'Delete Store'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Success/Error Snackbar */}
