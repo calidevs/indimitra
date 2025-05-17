@@ -364,6 +364,8 @@ export const GET_STORE_INVENTORY = `
       quantity
       price
       updatedAt
+      isAvailable
+      isListed
       product {
         id
         name
@@ -379,11 +381,29 @@ export const GET_STORE_INVENTORY = `
 `;
 
 export const UPDATE_INVENTORY_ITEM = `
-  mutation UpdateInventoryItem($inventoryId: Int!, $price: Float!, $quantity: Int!) {
-    updateInventoryItem(inventoryId: $inventoryId, price: $price, quantity: $quantity) {
+  mutation UpdateInventoryItem(
+    $inventoryId: Int!
+    $price: Float
+    $quantity: Int
+    $isAvailable: Boolean
+    $isListed: Boolean
+  ) {
+    updateInventoryItem(
+      inventoryId: $inventoryId
+      price: $price
+      quantity: $quantity
+      isAvailable: $isAvailable
+      isListed: $isListed
+    ) {
       id
+      isAvailable
+      isListed
+      measurement
       price
+      productId
       quantity
+      storeId
+      unit
       updatedAt
     }
   }

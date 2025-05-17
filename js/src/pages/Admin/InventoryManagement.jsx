@@ -64,6 +64,8 @@ const InventoryManagement = () => {
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [newQuantity, setNewQuantity] = useState('');
   const [newPrice, setNewPrice] = useState('');
+  const [isAvailable, setIsAvailable] = useState(true);
+  const [isListed, setIsListed] = useState(true);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'grid'
 
@@ -189,6 +191,8 @@ const InventoryManagement = () => {
     setSelectedItem(item);
     setNewQuantity(item.quantity.toString());
     setNewPrice(item.price.toString());
+    setIsAvailable(item.isAvailable);
+    setIsListed(item.isListed);
     setEditModalOpen(true);
   };
 
@@ -204,6 +208,8 @@ const InventoryManagement = () => {
       inventoryId: selectedItem.id,
       price: parseFloat(newPrice),
       quantity: parseInt(newQuantity),
+      isAvailable,
+      isListed,
     });
   };
 
@@ -407,9 +413,9 @@ const InventoryManagement = () => {
                     <TableRow>
                       <TableCell>Product</TableCell>
                       <TableCell>Category</TableCell>
-                      <TableCell>Quantity</TableCell>
+                      <TableCell>Available</TableCell>
+                      <TableCell>Listed</TableCell>
                       <TableCell>Price</TableCell>
-                      <TableCell>Last Updated</TableCell>
                       <TableCell>Actions</TableCell>
                     </TableRow>
                   </TableHead>
@@ -445,13 +451,19 @@ const InventoryManagement = () => {
                           <TableCell>{item.product.category?.name || 'N/A'}</TableCell>
                           <TableCell>
                             <Chip
-                              label={item.quantity}
-                              color={item.quantity < 10 ? 'error' : 'success'}
+                              label={item.isAvailable ? 'Available' : 'Not Available'}
+                              color={item.isAvailable ? 'success' : 'error'}
                               size="small"
                             />
                           </TableCell>
-                          <TableCell>₹{item.price.toFixed(2)}</TableCell>
-                          <TableCell>{formatDate(item.updatedAt)}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={item.isListed ? 'Listed' : 'Not Listed'}
+                              color={item.isListed ? 'success' : 'error'}
+                              size="small"
+                            />
+                          </TableCell>
+                          <TableCell>${item.price.toFixed(2)}</TableCell>
                           <TableCell>
                             <IconButton
                               size="small"
@@ -590,6 +602,30 @@ const InventoryManagement = () => {
                 onChange={(e) => setNewPrice(e.target.value)}
                 sx={{ mb: 2 }}
               />
+
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Availability</InputLabel>
+                <Select
+                  value={isAvailable}
+                  onChange={(e) => setIsAvailable(e.target.value)}
+                  label="Availability"
+                >
+                  <MenuItem value={true}>Available</MenuItem>
+                  <MenuItem value={false}>Not Available</MenuItem>
+                </Select>
+              </FormControl>
+
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Listing Status</InputLabel>
+                <Select
+                  value={isListed}
+                  onChange={(e) => setIsListed(e.target.value)}
+                  label="Listing Status"
+                >
+                  <MenuItem value={true}>Listed</MenuItem>
+                  <MenuItem value={false}>Not Listed</MenuItem>
+                </Select>
+              </FormControl>
             </Box>
           )}
         </DialogContent>
