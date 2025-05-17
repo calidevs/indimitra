@@ -68,13 +68,46 @@ const CREATE_STORE = `
 
 // Add the mutation
 const UPDATE_STORE = `
-  mutation UpdateStore($storeId: Int!, $address: String!, $managerUserId: Int!, $name: String!, $radius: Float!) {
-    updateStore(storeId: $storeId, address: $address, managerUserId: $managerUserId, name: $name, radius: $radius) {
-      address
+  mutation UpdateStore(
+    $storeId: Int!
+    $name: String
+    $address: String
+    $email: String
+    $mobile: String
+    $managerUserId: Int
+    $radius: Float
+    $isActive: Boolean
+    $disabled: Boolean
+    $description: String
+    $pincodes: [String!]
+    $tnc: String
+  ) {
+    updateStore(
+      storeId: $storeId
+      name: $name
+      address: $address
+      email: $email
+      mobile: $mobile
+      managerUserId: $managerUserId
+      radius: $radius
+      isActive: $isActive
+      disabled: $disabled
+      description: $description
+      pincodes: $pincodes
+      tnc: $tnc
+    ) {
       id
-      managerUserId
       name
+      address
+      email
+      mobile
+      managerUserId
       radius
+      isActive
+      disabled
+      description
+      pincodes
+      tnc
     }
   }
 `;
@@ -274,13 +307,33 @@ const StoreManagement = () => {
   const handleUpdateStore = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    updateStoreMutation.mutate({
+
+    // Convert pincodes string to array and ensure no empty strings
+    const pincodesString = formData.get('pincodes');
+    const pincodes = pincodesString
+      ? pincodesString
+          .split(',')
+          .map((p) => p.trim())
+          .filter((p) => p.length > 0)
+      : [];
+
+    // Convert string values to appropriate types
+    const updateData = {
       storeId: editStore.id,
-      address: formData.get('address'),
-      managerUserId: parseInt(formData.get('managerUserId')),
       name: formData.get('name'),
+      address: formData.get('address'),
+      email: formData.get('email'),
+      mobile: formData.get('mobile') || null,
+      managerUserId: parseInt(formData.get('managerUserId')),
       radius: parseFloat(formData.get('radius')),
-    });
+      isActive: formData.get('isActive') === 'true',
+      disabled: formData.get('disabled') === 'true',
+      description: formData.get('description') || null,
+      pincodes: pincodes,
+      tnc: formData.get('tnc') || null,
+    };
+
+    updateStoreMutation.mutate(updateData);
   };
 
   // Filter stores based on search term
@@ -1118,47 +1171,176 @@ const StoreManagement = () => {
       </Paper>
 
       {/* Edit Store Modal */}
-      <Dialog open={!!editStore} onClose={handleCloseEdit} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit Store</DialogTitle>
+      <Dialog open={!!editStore} onClose={handleCloseEdit} maxWidth="md" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <StoreIcon />
+            <Typography variant="h6">Edit Store</Typography>
+          </Box>
+        </DialogTitle>
         <form onSubmit={handleUpdateStore}>
           <DialogContent>
-            <Stack spacing={3}>
-              <TextField
-                name="name"
-                label="Store Name"
-                defaultValue={editStore?.name}
-                required
-                fullWidth
-              />
-              <TextField
-                name="address"
-                label="Address"
-                defaultValue={editStore?.address}
-                required
-                fullWidth
-              />
-              <TextField
-                name="managerUserId"
-                label="Manager User ID"
-                type="number"
-                defaultValue={editStore?.managerUserId}
-                required
-                fullWidth
-              />
-              <TextField
-                name="radius"
-                label="Radius (mi)"
-                type="number"
-                defaultValue={editStore?.radius}
-                required
-                fullWidth
-                inputProps={{ step: 0.1 }}
-              />
-            </Stack>
+            <Grid container spacing={3}>
+              {/* Basic Information */}
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" color="primary" sx={{ mb: 2, fontWeight: 600 }}>
+                  Basic Information
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  name="name"
+                  label="Store Name"
+                  defaultValue={editStore?.name}
+                  required
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  name="email"
+                  label="Email"
+                  type="email"
+                  defaultValue={editStore?.email}
+                  required
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  name="mobile"
+                  label="Mobile Number"
+                  defaultValue={editStore?.mobile}
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  name="managerUserId"
+                  label="Manager User ID"
+                  type="number"
+                  defaultValue={editStore?.managerUserId}
+                  required
+                  fullWidth
+                />
+              </Grid>
+
+              {/* Location & Delivery */}
+              <Grid item xs={12}>
+                <Typography
+                  variant="subtitle1"
+                  color="primary"
+                  sx={{ mb: 2, fontWeight: 600, mt: 2 }}
+                >
+                  Location & Delivery
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  name="address"
+                  label="Address"
+                  defaultValue={editStore?.address}
+                  required
+                  fullWidth
+                  multiline
+                  rows={2}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  name="radius"
+                  label="Delivery Radius (mi)"
+                  type="number"
+                  defaultValue={editStore?.radius}
+                  required
+                  fullWidth
+                  inputProps={{ step: 0.1 }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  name="pincodes"
+                  label="Delivery Pincodes"
+                  defaultValue={editStore?.pincodes?.join(', ')}
+                  fullWidth
+                  helperText="Enter pincodes separated by commas"
+                />
+              </Grid>
+
+              {/* Additional Information */}
+              <Grid item xs={12}>
+                <Typography
+                  variant="subtitle1"
+                  color="primary"
+                  sx={{ mb: 2, fontWeight: 600, mt: 2 }}
+                >
+                  Additional Information
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  name="description"
+                  label="Description"
+                  defaultValue={editStore?.description}
+                  fullWidth
+                  multiline
+                  rows={2}
+                  helperText="Store timings and other details"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  name="tnc"
+                  label="Terms & Conditions"
+                  defaultValue={editStore?.tnc}
+                  fullWidth
+                  multiline
+                  rows={3}
+                />
+              </Grid>
+
+              {/* Store Status */}
+              <Grid item xs={12}>
+                <Typography
+                  variant="subtitle1"
+                  color="primary"
+                  sx={{ mb: 2, fontWeight: 600, mt: 2 }}
+                >
+                  Store Status
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Store Status</InputLabel>
+                  <Select name="isActive" label="Store Status" defaultValue={editStore?.isActive}>
+                    <MenuItem value={true}>Active</MenuItem>
+                    <MenuItem value={false}>Inactive</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Disabled Status</InputLabel>
+                  <Select
+                    name="disabled"
+                    label="Disabled Status"
+                    defaultValue={editStore?.disabled}
+                  >
+                    <MenuItem value={true}>Disabled</MenuItem>
+                    <MenuItem value={false}>Enabled</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
           </DialogContent>
-          <DialogActions>
+          <DialogActions sx={{ p: 3, pt: 0 }}>
             <Button onClick={handleCloseEdit}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={updateStoreMutation.isPending}>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={updateStoreMutation.isPending}
+              startIcon={updateStoreMutation.isPending ? <CircularProgress size={20} /> : null}
+            >
               {updateStoreMutation.isPending ? 'Updating...' : 'Update Store'}
             </Button>
           </DialogActions>
