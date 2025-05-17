@@ -45,7 +45,8 @@ class StoreMutation:
         email: str,
         manager_user_id: int,
         radius: Optional[float] = None,
-        mobile: Optional[str] = None
+        mobile: Optional[str] = None,
+        description: Optional[str] = None
     ) -> Store:
         """
         Create a new store
@@ -57,9 +58,10 @@ class StoreMutation:
             manager_user_id: ID of the user who manages this store
             radius: Optional delivery radius for the store
             mobile: Optional store phone number (must be unique if provided)
+            description: Optional store description/timings/notes
         """
         try:
-            return create_store(name, address, manager_user_id, email, radius, mobile)
+            return create_store(name, address, manager_user_id, email, radius, mobile, description)
         except ValueError as e:
             raise Exception(str(e))
     
@@ -74,7 +76,8 @@ class StoreMutation:
         manager_user_id: Optional[int] = None,
         radius: Optional[float] = None,
         is_active: Optional[bool] = None,
-        disabled: Optional[bool] = None
+        disabled: Optional[bool] = None,
+        description: Optional[str] = None
     ) -> Optional[Store]:
         """
         Update an existing store
@@ -89,6 +92,7 @@ class StoreMutation:
             radius: Optional new delivery radius
             is_active: Optional new active status
             disabled: Optional new disabled status
+            description: Optional store description/timings/notes
         """
         try:
             store = update_store(
@@ -100,7 +104,8 @@ class StoreMutation:
                 manager_user_id, 
                 radius,
                 is_active,
-                disabled
+                disabled,
+                description
             )
             if not store:
                 raise Exception(f"Store with ID {store_id} not found")

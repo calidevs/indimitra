@@ -14,6 +14,7 @@ class StoreModel(Base):
     mobile = Column(String, unique=True, nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     disabled = Column(Boolean, default=False, nullable=False)
+    description = Column(String, nullable=True)
     
     # Relationships
     manager = relationship("UserModel", back_populates="stores")

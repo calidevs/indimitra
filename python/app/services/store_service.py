@@ -36,7 +36,15 @@ def get_stores_by_manager(manager_user_id: int) -> List[StoreModel]:
     finally:
         db.close()
 
-def create_store(name: str, address: str, manager_user_id: int, email: str, radius: Optional[float] = None, mobile: Optional[str] = None) -> StoreModel:
+def create_store(
+    name: str, 
+    address: str, 
+    manager_user_id: int, 
+    email: str, 
+    radius: Optional[float] = None, 
+    mobile: Optional[str] = None,
+    description: Optional[str] = None
+) -> StoreModel:
     """Create a new store"""
     db = SessionLocal()
     try:
@@ -54,6 +62,8 @@ def create_store(name: str, address: str, manager_user_id: int, email: str, radi
         email = email.strip()
         if mobile:
             mobile = mobile.strip()
+        if description:
+            description = description.strip()
         
         # Check if a store with the same name already exists
         existing_store = db.query(StoreModel).filter(StoreModel.name == name).first()
@@ -78,7 +88,8 @@ def create_store(name: str, address: str, manager_user_id: int, email: str, radi
             email=email,
             mobile=mobile,
             managerUserId=manager_user_id,
-            radius=radius
+            radius=radius,
+            description=description
         )
         db.add(store)
         db.commit()
@@ -96,7 +107,8 @@ def update_store(
     manager_user_id: Optional[int] = None, 
     radius: Optional[float] = None,
     is_active: Optional[bool] = None,
-    disabled: Optional[bool] = None
+    disabled: Optional[bool] = None,
+    description: Optional[str] = None
 ) -> Optional[StoreModel]:
     """Update an existing store"""
     db = SessionLocal()
@@ -171,6 +183,8 @@ def update_store(
             store.is_active = is_active
         if disabled is not None:
             store.disabled = disabled
+        if description is not None:
+            store.description = description.strip() if description.strip() else None
         
         db.commit()
         db.refresh(store)
