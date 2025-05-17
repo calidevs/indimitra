@@ -360,7 +360,7 @@ const CartPage = () => {
   };
 
   return (
-    <Box sx={{ maxWidth: 1200, margin: '0 auto', padding: 3 }}>
+    <Box sx={{ padding: 3 }}>
       <Typography
         variant="h4"
         component="h1"
@@ -463,12 +463,7 @@ const CartPage = () => {
                   <Typography variant="h6" color="text.secondary" gutterBottom>
                     Your cart is empty
                   </Typography>
-                  <Button
-                    variant="contained"
-                    component={Link}
-                    to="/products"
-                    startIcon={<ShoppingBag />}
-                  >
+                  <Button variant="contained" component={Link} to="/" startIcon={<ShoppingBag />}>
                     Continue Shopping
                   </Button>
                 </Box>
