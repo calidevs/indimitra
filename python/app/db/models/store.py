@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
@@ -12,6 +12,8 @@ class StoreModel(Base):
     managerUserId = Column(Integer, ForeignKey("users.id"), nullable=False)
     email = Column(String, unique=True, nullable=False)
     mobile = Column(String, unique=True, nullable=True)
+    is_active = Column(Boolean, default=True, nullable=False)
+    disabled = Column(Boolean, default=False, nullable=False)
     
     # Relationships
     manager = relationship("UserModel", back_populates="stores")

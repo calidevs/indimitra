@@ -8,15 +8,17 @@ from app.services.store_service import (
     create_store,
     update_store,
     delete_store,
-    get_store_count
+    get_store_count,
+    toggle_store_active,
+    toggle_store_disabled
 )
 
 @strawberry.type
 class StoreQuery:
     @strawberry.field
-    def stores(self) -> List[Store]:
-        """Get all stores"""
-        return get_all_stores()
+    def stores(self, is_active: Optional[bool] = None, disabled: Optional[bool] = None) -> List[Store]:
+        """Get all stores with optional filters"""
+        return get_all_stores(is_active, disabled)
     
     @strawberry.field
     def store(self, store_id: int) -> Optional[Store]:
@@ -70,7 +72,9 @@ class StoreMutation:
         email: Optional[str] = None,
         mobile: Optional[str] = None,
         manager_user_id: Optional[int] = None,
-        radius: Optional[float] = None
+        radius: Optional[float] = None,
+        is_active: Optional[bool] = None,
+        disabled: Optional[bool] = None
     ) -> Optional[Store]:
         """
         Update an existing store
@@ -83,9 +87,21 @@ class StoreMutation:
             mobile: Optional new store phone number (must be unique if provided)
             manager_user_id: Optional new manager user ID
             radius: Optional new delivery radius
+            is_active: Optional new active status
+            disabled: Optional new disabled status
         """
         try:
-            store = update_store(store_id, name, address, email, mobile, manager_user_id, radius)
+            store = update_store(
+                store_id, 
+                name, 
+                address, 
+                email, 
+                mobile, 
+                manager_user_id, 
+                radius,
+                is_active,
+                disabled
+            )
             if not store:
                 raise Exception(f"Store with ID {store_id} not found")
             return store
@@ -101,4 +117,20 @@ class StoreMutation:
                 raise Exception(f"Store with ID {store_id} not found")
             return success
         except ValueError as e:
-            raise Exception(str(e)) 
+            raise Exception(str(e))
+    
+    @strawberry.mutation
+    def toggle_store_active(self, store_id: int) -> Optional[Store]:
+        """Toggle the active status of a store"""
+        store = toggle_store_active(store_id)
+        if not store:
+            raise Exception(f"Store with ID {store_id} not found")
+        return store
+    
+    @strawberry.mutation
+    def toggle_store_disabled(self, store_id: int) -> Optional[Store]:
+        """Toggle the disabled status of a store"""
+        store = toggle_store_disabled(store_id)
+        if not store:
+            raise Exception(f"Store with ID {store_id} not found")
+        return store 

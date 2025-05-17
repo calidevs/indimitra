@@ -2,12 +2,21 @@ from app.db.session import SessionLocal
 from app.db.models.store import StoreModel
 from app.db.models.inventory import InventoryModel
 from typing import List, Optional
+from sqlalchemy import and_
 
-def get_all_stores():
-    """Get all stores in the system"""
+def get_all_stores(is_active: Optional[bool] = None, disabled: Optional[bool] = None):
+    """Get all stores in the system with optional filters"""
     db = SessionLocal()
     try:
-        return db.query(StoreModel).all()
+        query = db.query(StoreModel)
+        
+        # Apply filters if provided
+        if is_active is not None:
+            query = query.filter(StoreModel.is_active == is_active)
+        if disabled is not None:
+            query = query.filter(StoreModel.disabled == disabled)
+            
+        return query.all()
     finally:
         db.close()
 
@@ -85,7 +94,9 @@ def update_store(
     email: Optional[str] = None,
     mobile: Optional[str] = None,
     manager_user_id: Optional[int] = None, 
-    radius: Optional[float] = None
+    radius: Optional[float] = None,
+    is_active: Optional[bool] = None,
+    disabled: Optional[bool] = None
 ) -> Optional[StoreModel]:
     """Update an existing store"""
     db = SessionLocal()
@@ -156,6 +167,10 @@ def update_store(
             store.managerUserId = manager_user_id
         if radius is not None:  # Allow setting radius to 0
             store.radius = radius
+        if is_active is not None:
+            store.is_active = is_active
+        if disabled is not None:
+            store.disabled = disabled
         
         db.commit()
         db.refresh(store)
@@ -177,8 +192,9 @@ def delete_store(store_id: int) -> bool:
         if inventory_count > 0:
             raise ValueError(f"Cannot delete store with ID {store_id} because it has {inventory_count} inventory items")
         
-        # Delete the store
-        db.delete(store)
+        # Instead of deleting, mark as disabled and inactive
+        store.disabled = True
+        store.is_active = False
         db.commit()
         return True
     finally:
@@ -190,4 +206,37 @@ def get_store_count() -> int:
     try:
         return db.query(StoreModel).count()
     finally:
-        db.close() 
+        db.close()
+
+def update_store_status(store_id: int, is_active: Optional[bool] = None, disabled: Optional[bool] = None) -> Optional[StoreModel]:
+    """Update store status fields"""
+    db = SessionLocal()
+    try:
+        store = db.query(StoreModel).filter(StoreModel.id == store_id).first()
+        if not store:
+            return None
+            
+        if is_active is not None:
+            store.is_active = is_active
+        if disabled is not None:
+            store.disabled = disabled
+            
+        db.commit()
+        db.refresh(store)
+        return store
+    finally:
+        db.close()
+
+def toggle_store_active(store_id: int) -> Optional[StoreModel]:
+    """Toggle the is_active status of a store"""
+    store = get_store_by_id(store_id)
+    if not store:
+        return None
+    return update_store_status(store_id, is_active=not store.is_active)
+
+def toggle_store_disabled(store_id: int) -> Optional[StoreModel]:
+    """Toggle the disabled status of a store"""
+    store = get_store_by_id(store_id)
+    if not store:
+        return None
+    return update_store_status(store_id, disabled=not store.disabled) 
