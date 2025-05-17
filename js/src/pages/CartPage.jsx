@@ -14,13 +14,14 @@ import {
 import { FormControlLabel, Checkbox, Collapse, Stack, TextField } from '@mui/material';
 import { Remove, Add, LocationOn, ExpandMore, ExpandLess, Phone } from '@mui/icons-material';
 import useStore, { useAuthStore, useAddressStore } from './../store/useStore';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import fetchGraphQL from '../config/graphql/graphqlService';
-import { CREATE_ORDER_MUTATION } from '../queries/operations';
+import { CREATE_ORDER_MUTATION, GET_USER_PROFILE } from '../queries/operations';
 import { DELIVERY_FEE, TAX_RATE } from '../config/constants/constants';
 import { useNavigate, Link } from 'react-router-dom';
 import LoginModal from './Login/LoginModal'; // Import the LoginModal
 import AddressAutocomplete from '@/components/AddressAutocomplete/AddressAutocomplete';
+import { fetchAuthSession } from '@aws-amplify/auth';
 
 // Add the UPDATE_SECONDARY_PHONE mutation
 const UPDATE_SECONDARY_PHONE = `
@@ -135,6 +136,18 @@ const CartPage = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  // Fetch user profile when component mounts
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const session = await fetchAuthSession();
+      const cognitoId = session?.tokens?.idToken?.payload?.sub;
+      if (cognitoId) {
+        await fetchUserProfile(cognitoId);
+      }
+    };
+    fetchProfile();
+  }, [fetchUserProfile]);
+
   // Use the address store instead of local state
   const {
     addresses,
@@ -164,13 +177,6 @@ const CartPage = () => {
   const deliveryFee = calculateDeliveryFee(boxCount);
 
   const orderTotal = subtotal + tax + deliveryFee;
-
-  // Fetch user profile when modal opens
-  useEffect(() => {
-    if (!userProfile) {
-      fetchUserProfile();
-    }
-  }, [userProfile, fetchUserProfile]);
 
   // Fetch addresses when modal opens and user profile is available
   useEffect(() => {
@@ -259,7 +265,15 @@ const CartPage = () => {
   };
 
   const handlePhoneUpdate = () => {
-    queryClient.invalidateQueries(['userProfile']);
+    // After phone update, refetch the user profile
+    const fetchProfile = async () => {
+      const session = await fetchAuthSession();
+      const cognitoId = session?.tokens?.idToken?.payload?.sub;
+      if (cognitoId) {
+        await fetchUserProfile(cognitoId);
+      }
+    };
+    fetchProfile();
   };
 
   return (
