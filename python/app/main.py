@@ -37,7 +37,7 @@ async def get_context(db: Session = Depends(get_db)):
 graphql_app = GraphQLRouter(
     schema, 
     context_getter=get_context,
-    graphiql=os.getenv("ENABLE_GRAPHQL_PLAYGROUND", "false").lower() == "true"
+    graphiql=True
 )
 app.include_router(graphql_app, prefix="/graphql")
 
