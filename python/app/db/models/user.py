@@ -1,8 +1,9 @@
 import strawberry
 import enum
-from sqlalchemy import Column, Integer, String, Boolean, Enum, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, Enum, ForeignKey, DateTime
 from sqlalchemy.orm import relationship
 from app.db.base import Base
+from datetime import datetime
 
 
 @strawberry.enum
@@ -17,12 +18,15 @@ class UserModel(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, nullable=False)
-    mobile = Column(String, unique=True, nullable=True)
-    active = Column(Boolean, default=True)
+    mobile = Column(String, unique=True, nullable=False)
+    secondary_phone = Column(String, nullable=True)
+    active = Column(Boolean, default=True, nullable=False)
     type = Column(Enum(UserType), nullable=False)
     referredBy = Column(Integer, ForeignKey("users.id"), nullable=True)
     referralId = Column(String, nullable=False)
-    cognitoId = Column(String, nullable=False)
+    cognitoId = Column(String, unique=True, nullable=False)
+    createdAt = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     
     # Relationships
     orders = relationship("OrderModel", foreign_keys="OrderModel.createdByUserId", back_populates="creator")

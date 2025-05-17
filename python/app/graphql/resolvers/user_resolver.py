@@ -1,7 +1,7 @@
 import strawberry
 from typing import List, Optional, Union
 from app.graphql.types import User
-from app.services.user_service import get_all_users, create_user, get_user_profile, update_user_type, update_user_mobile
+from app.services.user_service import get_all_users, create_user, get_user_profile, update_user_type, update_user_mobile, update_secondary_phone
 
 @strawberry.type
 class UserError:
@@ -101,3 +101,20 @@ class UserMutation:
             return UpdateMobileResponse(user=updated_user)
         except ValueError as e:
             return UpdateMobileResponse(error=UserError(message=str(e)))
+
+    @strawberry.mutation
+    def update_secondary_phone(self, user_id: int, secondary_phone: Optional[str] = None) -> Optional[User]:
+        """
+        Update user's secondary phone number
+        
+        Args:
+            user_id: ID of the user to update
+            secondary_phone: Optional secondary phone number (can be empty to remove)
+        """
+        try:
+            user = update_secondary_phone(user_id, secondary_phone)
+            if not user:
+                raise Exception(f"User with ID {user_id} not found")
+            return user
+        except ValueError as e:
+            raise Exception(str(e))

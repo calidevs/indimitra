@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, DateTime, ForeignKey, Float, String
+from sqlalchemy import Column, Integer, DateTime, ForeignKey, Float, String, Boolean
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
@@ -10,9 +10,11 @@ class InventoryModel(Base):
     storeId = Column(Integer, ForeignKey("store.id"), nullable=False)
     productId = Column(Integer, ForeignKey("products.id"), nullable=False)
     price = Column(Float, nullable=True)
+    quantity = Column(Integer, nullable=True)
     measurement = Column(Integer, nullable=True)
     unit = Column(String, nullable=True)
-    quantity = Column(Integer, nullable=True)
+    is_listed = Column(Boolean, default=True, nullable=False)
+    is_available = Column(Boolean, default=True, nullable=False)
     updatedAt = Column(DateTime, default=datetime.utcnow, nullable=True)
     
     # Relationships

@@ -20,7 +20,8 @@ def create_data():
             active=True,
             type=UserType.USER,
             referralId="",
-            cognitoId="f4f8d4e8-a061-703a-bb00-48a1ee4ccfa8"
+            cognitoId="f4f8d4e8-a061-703a-bb00-48a1ee4ccfa8",
+            secondary_phone=None
         )
         db.add(user1)
         db.commit()
@@ -44,7 +45,8 @@ def create_data():
             active=True,
             type=UserType.ADMIN,
             referralId="",
-            cognitoId="2458b428-10b1-702f-3110-1f45a3bc6bcd"
+            cognitoId="2458b428-10b1-702f-3110-1f45a3bc6bcd",
+            secondary_phone=None
         )
         db.add(user2)
         db.commit()
@@ -68,7 +70,8 @@ def create_data():
             active=True,
             type=UserType.DELIVERY,
             referralId="",
-            cognitoId="7488a458-0091-70f0-00a5-8d056011d692"
+            cognitoId="7488a458-0091-70f0-00a5-8d056011d692",
+            secondary_phone=None
         )
         db.add(user3)
         db.commit()
@@ -92,7 +95,8 @@ def create_data():
             active=True,
             type=UserType.STORE_MANAGER,
             referralId="",
-            cognitoId="f478f488-50b1-70f1-9a20-f22dd6dd63df"
+            cognitoId="f478f488-50b1-70f1-9a20-f22dd6dd63df",
+            secondary_phone=None
         )
         db.add(user4)
         db.commit()
@@ -116,7 +120,12 @@ def create_data():
             radius=10.0,
             managerUserId=user4.id,  # Using the STORE_MANAGER user
             email="mainstore@indimitra.com",  # Added required email field
-            mobile="123456989"  # Added mobile field which is nullable but should be included
+            mobile="123456989",  # Added mobile field which is nullable but should be included
+            is_active=True,
+            disabled=False,  # Changed from is_disabled to disabled
+            description="Open 9am-9pm. Delivery available.",
+            pincodes=["12345", "23456", "34567"],
+            tnc="Rule 1. Rule 2. Rule 3."
         )
         db.add(store)
         db.commit()
@@ -234,7 +243,9 @@ def create_data():
             price=price,  # Use the price from the data
             quantity=50,  # Default stock of 50
             measurement=measurement,
-            unit=unit
+            unit=unit,
+            is_listed=True,
+            is_available=True
         )
         db.add(inventory_item)
     

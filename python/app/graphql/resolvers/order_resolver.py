@@ -14,7 +14,8 @@ from app.services.order_service import (
     create_order, 
     cancel_order, 
     update_order_status,
-    get_orders_by_store
+    get_orders_by_store,
+    update_order_bill_url
 )
 from app.services.delivery_service import assign_delivery
 
@@ -130,7 +131,6 @@ class OrderMutation:
         Returns:
             Updated Order object.
         """
-
         db = SessionLocal()
         try:
             # ✅ Check if order exists
@@ -155,7 +155,7 @@ class OrderMutation:
             if delivery and input.status not in delivery_progression_statuses:
                 # Instead of deleting, set the driver to null and update status to FAILED
                 delivery.driverId = None
-                db.commit() 
+                db.commit()
 
             # ✅ Assign Delivery only if status is READY_FOR_DELIVERY
             if input.status == "READY_FOR_DELIVERY":
@@ -192,4 +192,24 @@ class OrderMutation:
 
         finally:
             db.close()
+    
+    @strawberry.mutation
+    def updateOrderBillUrl(self, orderId: int, billUrl: Optional[str] = None) -> Optional[Order]:
+        """
+        Update the bill URL for an order
+        
+        Args:
+            orderId: The ID of the order to update
+            billUrl: The new bill URL (can be None to remove the bill)
+            
+        Returns:
+            The updated order, or None if the order doesn't exist
+        """
+        try:
+            order = update_order_bill_url(order_id=orderId, bill_url=billUrl)
+            if not order:
+                raise Exception(f"Order with ID {orderId} not found")
+            return order
+        except ValueError as e:
+            raise Exception(str(e))
 

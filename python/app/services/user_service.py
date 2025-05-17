@@ -4,6 +4,7 @@ from app.graphql.types import User  # Import the GraphQL User type
 from typing import Optional
 from sqlalchemy.exc import IntegrityError
 from app.services.aws_service import update_cognito_user_role
+from datetime import datetime
 
 def get_all_users():
     db = SessionLocal()
@@ -169,6 +170,30 @@ def update_user_mobile(user_id: str, new_mobile: str) -> Optional[UserModel]:
         db.commit()
         db.refresh(user)
         
+        return user
+    finally:
+        db.close()
+
+def update_secondary_phone(user_id: int, secondary_phone: Optional[str] = None) -> Optional[UserModel]:
+    """Update user's secondary phone number"""
+    db = SessionLocal()
+    try:
+        user = db.query(UserModel).filter(UserModel.id == user_id).first()
+        if not user:
+            return None
+            
+        if secondary_phone is not None:
+            # If empty string is provided, set to None
+            if secondary_phone.strip() == "":
+                secondary_phone = None
+            else:
+                secondary_phone = secondary_phone.strip()
+            
+            user.secondary_phone = secondary_phone
+            user.updatedAt = datetime.utcnow()
+            
+        db.commit()
+        db.refresh(user)
         return user
     finally:
         db.close()
