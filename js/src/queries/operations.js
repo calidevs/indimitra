@@ -460,11 +460,19 @@ export const GET_STORE_WITH_INVENTORY = `
 
 export const GET_ALL_STORES = `
   query GetAllStores {
-    stores {
+    stores(disabled: false) {
       id
       name
       address
+      description
+      disabled
+      email
+      isActive
+      managerUserId
+      mobile
+      pincodes
       radius
+      tnc
     }
   }
 `;

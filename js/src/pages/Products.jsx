@@ -132,32 +132,52 @@ const Products = ({ setStoreModalOpen }) => {
     <>
       {/* Store Selection */}
       {selectedStore && (
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 3,
-            mt: 2,
-            p: 2,
-            backgroundColor: 'rgba(0, 0, 0, 0.03)',
-            borderRadius: 2,
-          }}
-        >
-          <Box>
-            <Typography variant="h6">{selectedStore.name}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {selectedStore.address}
-            </Typography>
-          </Box>
-          <Button
-            variant="outlined"
-            startIcon={<StoreIcon />}
-            onClick={() => setStoreModalOpen(true)}
+        <Container>
+          <Box
+            sx={{
+              alignItems: 'center',
+              mb: 3,
+              mt: 2,
+              p: 2,
+              backgroundColor: 'rgba(0, 0, 0, 0.03)',
+              borderRadius: 2,
+            }}
           >
-            Change Store
-          </Button>
-        </Box>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+              }}
+            >
+              <Box>
+                <Typography variant="h6">{selectedStore.name}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {selectedStore.address}
+                </Typography>
+              </Box>
+              <Button
+                variant="outlined"
+                startIcon={<StoreIcon />}
+                onClick={() => setStoreModalOpen(true)}
+              >
+                Change Store
+              </Button>
+            </Box>
+            <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">
+                {selectedStore.description}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Pincodes Served:{selectedStore.pincodes.map((pincode) => pincode).join(', ')}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {selectedStore.tnc}
+              </Typography>
+            </Box>
+          </Box>
+        </Container>
       )}
       <Container>
         {/* Search Field */}
