@@ -477,29 +477,26 @@ export const GET_ALL_STORES = `
 // Add this to your js/src/queries/operations.js file
 
 export const GET_STORE_PRODUCTS = `
-  query GetStoreProducts($storeId: Int!) {
-    store(storeId: $storeId) {
-      inventory {
-        edges {
-          node {
-            id
-            measurement
-            price
-            productId
-            quantity
-            unit
-            updatedAt
-            product {
-              id
-              name
-              image
-              description
-              category {
-                id
-                name
-              }
-            }
-          }
+  query GetStoreProducts($storeId: Int!, $isListed: Boolean) {
+    getInventoryByStore(storeId: $storeId, isListed: $isListed) {
+      id
+      isAvailable
+      isListed
+      measurement
+      price
+      productId
+      quantity
+      storeId
+      unit
+      updatedAt
+      product {
+        id
+        name
+        image
+        description
+        category {
+          id
+          name
         }
       }
     }

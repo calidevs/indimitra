@@ -72,6 +72,7 @@ const Products = ({ setStoreModalOpen }) => {
     queryFn: async () => {
       const response = await fetchGraphQL(GET_STORE_PRODUCTS, {
         storeId: selectedStore.id,
+        isListed: true, // Only show listed products
       });
       return response;
     },
@@ -81,23 +82,25 @@ const Products = ({ setStoreModalOpen }) => {
   // Process inventory data to create a products array for the ProductGrid
   const products = useMemo(() => {
     return (
-      inventoryData?.store?.inventory?.edges?.map(({ node }) => {
+      inventoryData?.getInventoryByStore?.map((item) => {
         const storeId = selectedStore?.id;
-        const productId = node.product.id;
+        const productId = item.productId;
         const storeImages = STORE_PRODUCT_IMAGES[storeId] || {};
 
         return {
-          id: node.product.id,
-          name: node.product.name,
+          id: item.productId,
+          name: item.product.name,
           image: storeImages[productId] || 'https://picsum.photos/200',
-          price: node.price,
-          description: node.product.description,
-          categoryId: node.product.category.id,
-          categoryName: node.product.category.name,
-          inventoryId: node.id,
-          quantity: node.quantity,
-          measurement: node.measurement,
-          unit: node.unit,
+          price: item.price,
+          description: item.product.description,
+          categoryId: item.product.category.id,
+          categoryName: item.product.category.name,
+          inventoryId: item.id,
+          quantity: item.quantity,
+          measurement: item.measurement,
+          unit: item.unit,
+          isAvailable: item.isAvailable,
+          isListed: item.isListed,
         };
       }) || []
     );

@@ -21,7 +21,7 @@ const unavailableColor = 'grey';
 const ProductCard = ({ product }) => {
   const theme = useTheme();
   const { cart, addToCart, removeFromCart } = useStore();
-  const { id, name, price, description, image, categoryName, quantity } = product;
+  const { id, name, price, description, image, categoryName, isAvailable } = product;
   const cartQuantity = cart[id]?.quantity || 0;
 
   const productImage =
@@ -39,7 +39,7 @@ const ProductCard = ({ product }) => {
         position: 'relative',
         border: '1px solid',
         borderColor: 'divider',
-        ...(quantity === 0 && {
+        ...(!isAvailable && {
           opacity: 0.5,
           pointerEvents: 'none',
         }),
@@ -62,7 +62,7 @@ const ProductCard = ({ product }) => {
         }}
       />
 
-       {quantity === 0 && (
+      {!isAvailable && (
         <Box
           sx={{
             position: 'absolute',
@@ -80,13 +80,15 @@ const ProductCard = ({ product }) => {
           <Typography variant="body1">Sold out</Typography>
         </Box>
       )}
-      <CardContent sx={{
-        flexGrow: 1, 
-        p: 2.5,
-        pb: 0,
-        display: 'flex',
-        flexDirection: 'column',
-      }}>
+      <CardContent
+        sx={{
+          flexGrow: 1,
+          p: 2.5,
+          pb: 0,
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
         <Typography
           gutterBottom
           variant="h6"
@@ -173,7 +175,7 @@ const ProductCard = ({ product }) => {
                 sx={{
                   color: '#FF6B6B',
                   p: 1,
-                  '&:hover': { 
+                  '&:hover': {
                     backgroundColor: 'rgba(255, 107, 107, 0.2)',
                     transform: 'scale(1.1)',
                   },
@@ -206,7 +208,7 @@ const ProductCard = ({ product }) => {
                 sx={{
                   color: '#FF6B6B',
                   p: 1,
-                  '&:hover': { 
+                  '&:hover': {
                     backgroundColor: 'rgba(255, 107, 107, 0.2)',
                     transform: 'scale(1.1)',
                   },
@@ -224,16 +226,15 @@ const ProductCard = ({ product }) => {
               width: '100%',
               height: '48px',
               background: 'transparent',
-              color: quantity === 0 ? unavailableColor: '#FF6B6B',
+              color: !isAvailable ? unavailableColor : '#FF6B6B',
               borderRadius: '8px',
               fontWeight: 600,
               fontSize: '0.95rem',
               textTransform: 'none',
               position: 'relative',
               overflow: 'hidden',
-              border: `2px solid ${quantity === 0 ? unavailableColor : '#FF6B6B'}`,
+              border: `2px solid ${!isAvailable ? unavailableColor : '#FF6B6B'}`,
               transition: 'all 0.2s ease',
-              border: '2px solid #FF6B6B',
               '&:hover': {
                 background: 'transparent',
                 '& .MuiButton-startIcon': {
@@ -247,9 +248,9 @@ const ProductCard = ({ product }) => {
             }}
             startIcon={<ShoppingCart sx={{ fontSize: '1.1rem' }} />}
             onClick={() => addToCart(product)}
-            disabled={quantity === 0}
+            disabled={!isAvailable}
           >
-            {quantity === 0 ? 'Unavailable' : 'Add to Cart'}
+            {!isAvailable ? 'Unavailable' : 'Add to Cart'}
           </Button>
         )}
       </CardActions>
