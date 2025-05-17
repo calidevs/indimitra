@@ -215,4 +215,28 @@ def cancel_order(order_id: int, cancel_message: str, cancelled_by_user_id: int) 
         db.refresh(order)
         return order
     finally:
+        db.close()
+
+def update_order_bill_url(order_id: int, bill_url: Optional[str] = None) -> Optional[OrderModel]:
+    """
+    Update the bill URL for an order
+    
+    Args:
+        order_id: The ID of the order to update
+        bill_url: The new bill URL (can be None to remove the bill)
+        
+    Returns:
+        The updated order, or None if the order doesn't exist
+    """
+    db = SessionLocal()
+    try:
+        order = db.query(OrderModel).filter(OrderModel.id == order_id).first()
+        if not order:
+            return None
+            
+        order.bill_url = bill_url
+        db.commit()
+        db.refresh(order)
+        return order
+    finally:
         db.close() 

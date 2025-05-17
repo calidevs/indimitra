@@ -28,6 +28,7 @@ class OrderModel(Base):
     totalAmount = Column(Float, nullable=False)
     deliveryDate = Column(DateTime, nullable=True)
     deliveryInstructions = Column(String, nullable=True)
+    bill_url = Column(String, nullable=True)  # URL to the order bill in S3
     
     # Cancellation tracking fields
     cancelMessage = Column(String, nullable=True)
