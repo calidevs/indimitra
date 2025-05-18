@@ -68,7 +68,10 @@ def get_orders_by_store(store_id: int) -> List[OrderModel]:
     finally:
         db.close()
 
-def create_order(user_id: int, address_id: int, store_id: int, product_items: List[dict], delivery_instructions: Optional[str] = None) -> OrderModel:
+def create_order(user_id: int, address_id: int, store_id: int, product_items: List[dict], 
+                 total_amount: float, order_total_amount: float, delivery_fee: Optional[float] = None,
+                 tip_amount: Optional[float] = None, tax_amount: Optional[float] = None,
+                 delivery_instructions: Optional[str] = None) -> OrderModel:
     """
     Create a new order with multiple order items
     
@@ -77,6 +80,11 @@ def create_order(user_id: int, address_id: int, store_id: int, product_items: Li
         address_id: The ID of the delivery address
         store_id: The ID of the store the order is being placed from
         product_items: List of product items [{"product_id": int, "quantity": int}, ...]
+        total_amount: The total amount of products (subtotal)
+        order_total_amount: The final total amount including all fees and taxes
+        delivery_fee: Optional delivery fee
+        tip_amount: Optional tip amount
+        tax_amount: Optional tax amount
         delivery_instructions: Optional special instructions for delivery
     
     Returns:
@@ -110,19 +118,17 @@ def create_order(user_id: int, address_id: int, store_id: int, product_items: Li
             if item["product_id"] not in inventory_dict:
                 raise ValueError(f"Product with ID {item['product_id']} not found in store inventory")
         
-        # Calculate total amount using inventory prices
-        total_amount = 0.0
-        for item in product_items:
-            inventory_item = inventory_dict[item["product_id"]]
-            total_amount += inventory_item.price * item["quantity"]
-        
-        # Create the order
+        # Create the order with the provided amounts (no calculation in BE)
         order = OrderModel(
             createdByUserId=user_id,
             addressId=address_id,
             storeId=store_id,
             status=OrderStatus.PENDING,
             totalAmount=total_amount,
+            orderTotalAmount=order_total_amount,
+            deliveryFee=delivery_fee,
+            tipAmount=tip_amount,
+            taxAmount=tax_amount,
             deliveryDate=None,
             deliveryInstructions=delivery_instructions
         )

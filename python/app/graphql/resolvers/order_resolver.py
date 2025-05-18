@@ -73,6 +73,11 @@ class OrderMutation:
         addressId: int,
         storeId: int,
         productItems: List[OrderItemInput],
+        totalAmount: float,
+        orderTotalAmount: float,
+        deliveryFee: Optional[float] = None,
+        tipAmount: Optional[float] = None,
+        taxAmount: Optional[float] = None,
         deliveryInstructions: Optional[str] = None
     ) -> Order:
         """
@@ -83,6 +88,11 @@ class OrderMutation:
             addressId (int): The ID of the delivery address.
             storeId (int): The ID of the store the order is being placed from.
             productItems (List[OrderItemInput]): List of items with product IDs and quantities.
+            totalAmount (float): The subtotal amount of products.
+            orderTotalAmount (float): The final total amount including all fees and taxes.
+            deliveryFee (float, optional): Delivery fee.
+            tipAmount (float, optional): Tip amount.
+            taxAmount (float, optional): Tax amount.
             deliveryInstructions (str, optional): Special instructions for delivery.
         
         Returns:
@@ -95,6 +105,11 @@ class OrderMutation:
             address_id=addressId, 
             store_id=storeId,
             product_items=items,
+            total_amount=totalAmount,
+            order_total_amount=orderTotalAmount,
+            delivery_fee=deliveryFee,
+            tip_amount=tipAmount,
+            tax_amount=taxAmount,
             delivery_instructions=deliveryInstructions
         )
     
