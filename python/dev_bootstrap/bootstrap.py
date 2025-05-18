@@ -87,7 +87,7 @@ def create_data():
         db.commit()
     
     # User 4 - STORE_MANAGER
-    user4 = db.query(UserModel).filter_by(cognitoId="f478f488-50b1-70f1-9a20-f22dd6dd63df").first()
+    user4 = db.query(UserModel).filter_by(cognitoId="d4c85498-7091-701f-255b-816dc7b10d4f").first()
     if not user4:
         user4 = UserModel(
             email="anddhendevs@gmail.com",
@@ -95,7 +95,7 @@ def create_data():
             active=True,
             type=UserType.STORE_MANAGER,
             referralId="",
-            cognitoId="f478f488-50b1-70f1-9a20-f22dd6dd63df",
+            cognitoId="d4c85498-7091-701f-255b-816dc7b10d4f",
             secondary_phone=None
         )
         db.add(user4)

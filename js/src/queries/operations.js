@@ -457,6 +457,8 @@ export const GET_STORE_WITH_INVENTORY = `
       pincodes
       radius
       tnc
+      storeDeliveryFee
+      taxPercentage
     }
   }
 `;
