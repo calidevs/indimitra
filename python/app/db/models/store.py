@@ -17,6 +17,8 @@ class StoreModel(Base):
     description = Column(String, nullable=True)
     pincodes = Column(ARRAY(String), nullable=True)  # Array of pincode strings
     tnc = Column(String, nullable=True)  # Terms and conditions as dot-separated values
+    storeDeliveryFee = Column(Float, nullable=True)  # Store's default delivery fee
+    taxPercentage = Column(Float, nullable=True)  # Store's default tax percentage
     
     # Relationships
     manager = relationship("UserModel", back_populates="stores")

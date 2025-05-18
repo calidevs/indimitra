@@ -10,7 +10,9 @@ from app.services.store_service import (
     delete_store,
     get_store_count,
     toggle_store_active,
-    toggle_store_disabled
+    toggle_store_disabled,
+    update_store_delivery_fee,
+    update_store_tax_percentage
 )
 
 @strawberry.type
@@ -47,7 +49,9 @@ class StoreMutation:
         radius: Optional[float] = None,
         mobile: Optional[str] = None,
         description: Optional[str] = None,
-        tnc: Optional[str] = None
+        tnc: Optional[str] = None,
+        store_delivery_fee: Optional[float] = None,
+        tax_percentage: Optional[float] = None
     ) -> Store:
         """
         Create a new store
@@ -61,9 +65,22 @@ class StoreMutation:
             mobile: Optional store phone number (must be unique if provided)
             description: Optional store description/timings/notes
             tnc: Optional terms and conditions as dot-separated values
+            store_delivery_fee: Optional store delivery fee
+            tax_percentage: Optional store tax percentage
         """
         try:
-            return create_store(name, address, manager_user_id, email, radius, mobile, description, tnc)
+            return create_store(
+                name, 
+                address, 
+                manager_user_id, 
+                email, 
+                radius, 
+                mobile, 
+                description, 
+                tnc,
+                store_delivery_fee,
+                tax_percentage
+            )
         except ValueError as e:
             raise Exception(str(e))
     
@@ -81,7 +98,9 @@ class StoreMutation:
         disabled: Optional[bool] = None,
         description: Optional[str] = None,
         pincodes: Optional[List[str]] = None,
-        tnc: Optional[str] = None
+        tnc: Optional[str] = None,
+        store_delivery_fee: Optional[float] = None,
+        tax_percentage: Optional[float] = None
     ) -> Optional[Store]:
         """
         Update an existing store
@@ -99,6 +118,8 @@ class StoreMutation:
             description: Optional store description/timings/notes
             pincodes: Optional list of pincodes
             tnc: Optional terms and conditions as dot-separated values
+            store_delivery_fee: Optional store delivery fee
+            tax_percentage: Optional tax percentage
         """
         try:
             store = update_store(
@@ -113,7 +134,9 @@ class StoreMutation:
                 disabled,
                 description,
                 pincodes,
-                tnc
+                tnc,
+                store_delivery_fee,
+                tax_percentage
             )
             if not store:
                 raise Exception(f"Store with ID {store_id} not found")
@@ -144,6 +167,40 @@ class StoreMutation:
     def toggle_store_disabled(self, store_id: int) -> Optional[Store]:
         """Toggle the disabled status of a store"""
         store = toggle_store_disabled(store_id)
+        if not store:
+            raise Exception(f"Store with ID {store_id} not found")
+        return store
+
+    @strawberry.mutation
+    def update_store_delivery_fee(self, store_id: int, store_delivery_fee: Optional[float] = None) -> Optional[Store]:
+        """
+        Update a store's delivery fee
+        
+        Args:
+            store_id: ID of the store to update
+            store_delivery_fee: New delivery fee (can be None to remove the fee)
+        
+        Returns:
+            Updated store
+        """
+        store = update_store_delivery_fee(store_id, store_delivery_fee)
+        if not store:
+            raise Exception(f"Store with ID {store_id} not found")
+        return store
+    
+    @strawberry.mutation
+    def update_store_tax_percentage(self, store_id: int, tax_percentage: Optional[float] = None) -> Optional[Store]:
+        """
+        Update a store's tax percentage
+        
+        Args:
+            store_id: ID of the store to update
+            tax_percentage: New tax percentage (can be None to remove the tax)
+        
+        Returns:
+            Updated store
+        """
+        store = update_store_tax_percentage(store_id, tax_percentage)
         if not store:
             raise Exception(f"Store with ID {store_id} not found")
         return store 

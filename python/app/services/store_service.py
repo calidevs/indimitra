@@ -44,7 +44,9 @@ def create_store(
     radius: Optional[float] = None, 
     mobile: Optional[str] = None,
     description: Optional[str] = None,
-    tnc: Optional[str] = None
+    tnc: Optional[str] = None,
+    store_delivery_fee: Optional[float] = None,
+    tax_percentage: Optional[float] = None
 ) -> StoreModel:
     """Create a new store"""
     db = SessionLocal()
@@ -93,7 +95,9 @@ def create_store(
             managerUserId=manager_user_id,
             radius=radius,
             description=description,
-            tnc=tnc
+            tnc=tnc,
+            storeDeliveryFee=store_delivery_fee,
+            taxPercentage=tax_percentage
         )
         db.add(store)
         db.commit()
@@ -114,7 +118,9 @@ def update_store(
     disabled: Optional[bool] = None,
     description: Optional[str] = None,
     pincodes: Optional[List[str]] = None,
-    tnc: Optional[str] = None
+    tnc: Optional[str] = None,
+    store_delivery_fee: Optional[float] = None,
+    tax_percentage: Optional[float] = None
 ) -> Optional[StoreModel]:
     """Update an existing store"""
     db = SessionLocal()
@@ -200,6 +206,10 @@ def update_store(
                 store.pincodes = None
         if tnc is not None:
             store.tnc = tnc.strip() if tnc.strip() else None
+        if store_delivery_fee is not None:
+            store.storeDeliveryFee = store_delivery_fee
+        if tax_percentage is not None:
+            store.taxPercentage = tax_percentage
         
         db.commit()
         db.refresh(store)
@@ -268,4 +278,30 @@ def toggle_store_disabled(store_id: int) -> Optional[StoreModel]:
     store = get_store_by_id(store_id)
     if not store:
         return None
-    return update_store_status(store_id, disabled=not store.disabled) 
+    return update_store_status(store_id, disabled=not store.disabled)
+
+def update_store_delivery_fee(store_id: int, store_delivery_fee: Optional[float] = None) -> Optional[StoreModel]:
+    """
+    Update a store's delivery fee
+    
+    Args:
+        store_id: The ID of the store to update
+        store_delivery_fee: The new delivery fee (can be None to remove the fee)
+    
+    Returns:
+        The updated store, or None if the store doesn't exist
+    """
+    return update_store(store_id, store_delivery_fee=store_delivery_fee)
+
+def update_store_tax_percentage(store_id: int, tax_percentage: Optional[float] = None) -> Optional[StoreModel]:
+    """
+    Update a store's tax percentage
+    
+    Args:
+        store_id: The ID of the store to update
+        tax_percentage: The new tax percentage (can be None to remove the tax)
+    
+    Returns:
+        The updated store, or None if the store doesn't exist
+    """
+    return update_store(store_id, tax_percentage=tax_percentage) 
