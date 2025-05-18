@@ -25,12 +25,21 @@ import {
   Tooltip,
   Grid,
   Divider,
+  Card,
 } from '@mui/material';
-import { KeyboardArrowDown, KeyboardArrowUp, Receipt } from '@mui/icons-material';
+import {
+  KeyboardArrowDown,
+  KeyboardArrowUp,
+  Receipt,
+  ShoppingBag,
+  LocalShipping,
+} from '@mui/icons-material';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_USER_ORDERS, CANCEL_ORDER, GET_USER_PROFILE } from '@/queries/operations';
 import useStore, { useAuthStore } from '@/store/useStore';
+import { useMediaQuery } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 
 const Orders = () => {
   // Force re-render function
@@ -214,24 +223,46 @@ const Orders = () => {
 
   const orders = ordersData?.getOrdersByUser || [];
 
+  const theme = useTheme();
+
   return (
-    <Container sx={{ mt: 4 }}>
-      <Typography variant="h4" gutterBottom>
+    <Container maxWidth="xl" sx={{ mt: 4, px: { xs: 1, sm: 2, md: 3 } }}>
+      <Typography
+        variant="h4"
+        gutterBottom
+        sx={{
+          fontSize: { xs: '1.5rem', sm: '2rem', md: '2.125rem' },
+          mb: { xs: 2, sm: 3 },
+        }}
+      >
         My Orders
       </Typography>
 
       {orders.length === 0 ? (
         <Typography>No orders found!</Typography>
       ) : (
-        <TableContainer component={Paper} sx={{ mt: 2 }}>
+        <TableContainer
+          component={Paper}
+          sx={{
+            mt: 2,
+            overflowX: 'auto',
+            '& .MuiTableCell-root': {
+              px: { xs: 1, sm: 2 },
+              py: { xs: 1.5, sm: 2 },
+              whiteSpace: 'nowrap',
+            },
+          }}
+        >
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Order ID</TableCell>
+                <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Order ID</TableCell>
                 <TableCell>Address</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Total Amount</TableCell>
-                <TableCell>Delivery Date</TableCell>
+                <TableCell>Total</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                  Delivery Date
+                </TableCell>
                 <TableCell>Bill</TableCell>
                 <TableCell>Actions</TableCell>
               </TableRow>
@@ -240,11 +271,23 @@ const Orders = () => {
               {orders.map((order) => (
                 <React.Fragment key={order.id}>
                   <TableRow onClick={() => handleExpandClick(order.id)} sx={{ cursor: 'pointer' }}>
-                    <TableCell>{order.id}</TableCell>
-                    <TableCell>{order.address.address}</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
+                      {order.id}
+                    </TableCell>
+                    <TableCell
+                      sx={{
+                        maxWidth: { xs: '120px', sm: '200px', md: '300px' },
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {order.address.address}
+                    </TableCell>
                     <TableCell>
                       <Chip
                         label={order.status}
+                        size={useMediaQuery(theme.breakpoints.down('sm')) ? 'small' : 'medium'}
                         color={
                           order.status === 'COMPLETE'
                             ? 'success'
@@ -255,7 +298,7 @@ const Orders = () => {
                       />
                     </TableCell>
                     <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
-                    <TableCell>
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                       {order.deliveryDate
                         ? new Date(order.deliveryDate).toLocaleDateString()
                         : 'N/A'}
@@ -276,26 +319,29 @@ const Orders = () => {
                       </Box>
                     </TableCell>
                     <TableCell>
-                      <Button
-                        variant="contained"
-                        color="error"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenModal(order.id);
-                        }}
-                        disabled={!['PENDING', 'ORDER_PLACED'].includes(order.status)}
-                      >
-                        Cancel
-                      </Button>
-                      <IconButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleExpandClick(order.id);
-                        }}
-                        size="small"
-                      >
-                        {expandedOrder === order.id ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
-                      </IconButton>
+                      <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                        <Button
+                          variant="contained"
+                          color="error"
+                          size={useMediaQuery(theme.breakpoints.down('sm')) ? 'small' : 'medium'}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenModal(order.id);
+                          }}
+                          disabled={!['PENDING', 'ORDER_PLACED'].includes(order.status)}
+                        >
+                          Cancel
+                        </Button>
+                        <IconButton
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleExpandClick(order.id);
+                          }}
+                          size="small"
+                        >
+                          {expandedOrder === order.id ? <KeyboardArrowUp /> : <KeyboardArrowDown />}
+                        </IconButton>
+                      </Box>
                     </TableCell>
                   </TableRow>
 
@@ -303,176 +349,356 @@ const Orders = () => {
                   <TableRow>
                     <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
                       <Collapse in={expandedOrder === order.id} timeout="auto" unmountOnExit>
-                        <Box sx={{ margin: 2 }}>
-                          <Grid container spacing={3}>
-                            {/* Order Items Section */}
+                        <Box sx={{ margin: { xs: 1, sm: 2 } }}>
+                          <Grid container spacing={{ xs: 2, sm: 3 }}>
+                            {/* Combined Order Details and Delivery Information Section */}
                             <Grid item xs={12}>
-                              <Typography variant="h6" gutterBottom>
-                                Order Items
-                              </Typography>
-                              <Table size="small">
-                                <TableHead>
-                                  <TableRow>
-                                    <TableCell>Product Name</TableCell>
-                                    <TableCell>Category</TableCell>
-                                    <TableCell>Unit Price</TableCell>
-                                    <TableCell>Quantity</TableCell>
-                                    <TableCell>Total</TableCell>
-                                  </TableRow>
-                                </TableHead>
-                                <TableBody>
-                                  {order.orderItems?.edges?.length > 0 ? (
-                                    order.orderItems.edges.map(({ node }) => {
-                                      const inventoryItem =
-                                        node.product.inventoryItems?.edges[0]?.node;
-                                      return (
-                                        <TableRow key={node.product.id}>
-                                          <TableCell>{node.product.name}</TableCell>
-                                          <TableCell>{node.product.category.name}</TableCell>
-                                          <TableCell>
-                                            ${inventoryItem?.price.toFixed(2)}
-                                            {inventoryItem && (
-                                              <Typography
-                                                variant="caption"
-                                                display="block"
-                                                color="textSecondary"
-                                              >
-                                                ({inventoryItem.measurement} {inventoryItem.unit})
-                                              </Typography>
-                                            )}
-                                          </TableCell>
-                                          <TableCell>{node.quantity}</TableCell>
-                                          <TableCell>${node.orderAmount.toFixed(2)}</TableCell>
-                                        </TableRow>
-                                      );
-                                    })
-                                  ) : (
-                                    <TableRow>
-                                      <TableCell colSpan={5} align="center">
-                                        No items found for this order.
-                                      </TableCell>
-                                    </TableRow>
-                                  )}
-                                </TableBody>
-                              </Table>
-                            </Grid>
-
-                            {/* Order Details Section */}
-                            <Grid item xs={12} md={6}>
-                              <Typography variant="h6" gutterBottom>
-                                Order Details
-                              </Typography>
-                              <Paper sx={{ p: 2 }}>
-                                <Grid container spacing={2}>
-                                  <Grid item xs={12}>
-                                    <Box
+                              <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 3 }}>
+                                <Grid container spacing={{ xs: 2, sm: 3 }}>
+                                  {/* Order Details */}
+                                  <Grid item xs={12} md={6}>
+                                    <Typography
+                                      variant="h6"
+                                      gutterBottom
                                       sx={{
                                         display: 'flex',
-                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        gap: 1,
+                                        color: 'primary.main',
+                                        fontWeight: 600,
                                         mb: 1,
+                                        fontSize: { xs: '1rem', sm: '1.25rem' },
                                       }}
                                     >
-                                      <Typography color="text.secondary">Subtotal</Typography>
-                                      <Typography>${order.totalAmount.toFixed(2)}</Typography>
+                                      <Receipt /> Order Details
+                                    </Typography>
+                                    <Box sx={{ pl: 1 }}>
+                                      <Box
+                                        sx={{
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          mb: 0.5,
+                                        }}
+                                      >
+                                        <Typography
+                                          variant="subtitle2"
+                                          color="text.secondary"
+                                          fontWeight={700}
+                                        >
+                                          Subtotal
+                                        </Typography>
+                                        <Typography fontWeight={500}>
+                                          ${order.totalAmount.toFixed(2)}
+                                        </Typography>
+                                      </Box>
+
+                                      {order.deliveryFee && (
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            mb: 0.5,
+                                          }}
+                                        >
+                                          <Typography
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={700}
+                                          >
+                                            Delivery Fee
+                                          </Typography>
+                                          <Typography fontWeight={500}>
+                                            ${order.deliveryFee.toFixed(2)}
+                                          </Typography>
+                                        </Box>
+                                      )}
+
+                                      {order.taxAmount && (
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            mb: 0.5,
+                                          }}
+                                        >
+                                          <Typography
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={700}
+                                          >
+                                            Tax
+                                          </Typography>
+                                          <Typography fontWeight={500}>
+                                            ${order.taxAmount.toFixed(2)}
+                                          </Typography>
+                                        </Box>
+                                      )}
+
+                                      {order.tipAmount && (
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            mb: 0.5,
+                                          }}
+                                        >
+                                          <Typography
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={700}
+                                          >
+                                            Tip
+                                          </Typography>
+                                          <Typography fontWeight={500}>
+                                            ${order.tipAmount.toFixed(2)}
+                                          </Typography>
+                                        </Box>
+                                      )}
+
+                                      <Divider sx={{ my: 1 }} />
+
+                                      <Box
+                                        sx={{ display: 'flex', justifyContent: 'space-between' }}
+                                      >
+                                        <Typography
+                                          variant="subtitle2"
+                                          color="text.secondary"
+                                          fontWeight={700}
+                                        >
+                                          Total Amount
+                                        </Typography>
+                                        <Typography
+                                          variant="subtitle1"
+                                          color="primary"
+                                          fontWeight={700}
+                                        >
+                                          ${order.orderTotalAmount.toFixed(2)}
+                                        </Typography>
+                                      </Box>
                                     </Box>
                                   </Grid>
-                                  {order.deliveryFee && (
-                                    <Grid item xs={12}>
-                                      <Box
-                                        sx={{
-                                          display: 'flex',
-                                          justifyContent: 'space-between',
-                                          mb: 1,
-                                        }}
-                                      >
-                                        <Typography color="text.secondary">Delivery Fee</Typography>
-                                        <Typography>${order.deliveryFee.toFixed(2)}</Typography>
+
+                                  {/* Delivery Information */}
+                                  <Grid item xs={12} md={6}>
+                                    <Typography
+                                      variant="h6"
+                                      gutterBottom
+                                      sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 1,
+                                        color: 'primary.main',
+                                        fontWeight: 600,
+                                        mb: 1,
+                                        fontSize: { xs: '1rem', sm: '1.25rem' },
+                                      }}
+                                    >
+                                      <LocalShipping /> Delivery Information
+                                    </Typography>
+                                    <Box sx={{ pl: 1 }}>
+                                      <Box sx={{ mb: 1 }}>
+                                        <Typography
+                                          variant="subtitle2"
+                                          color="text.secondary"
+                                          fontWeight={700}
+                                        >
+                                          Delivery Address
+                                        </Typography>
+                                        <Typography variant="body2" fontWeight={500}>
+                                          {order.address.address}
+                                        </Typography>
                                       </Box>
-                                    </Grid>
-                                  )}
-                                  {order.taxAmount && (
-                                    <Grid item xs={12}>
-                                      <Box
-                                        sx={{
-                                          display: 'flex',
-                                          justifyContent: 'space-between',
-                                          mb: 1,
-                                        }}
-                                      >
-                                        <Typography color="text.secondary">Tax</Typography>
-                                        <Typography>${order.taxAmount.toFixed(2)}</Typography>
-                                      </Box>
-                                    </Grid>
-                                  )}
-                                  {order.tipAmount && (
-                                    <Grid item xs={12}>
-                                      <Box
-                                        sx={{
-                                          display: 'flex',
-                                          justifyContent: 'space-between',
-                                          mb: 1,
-                                        }}
-                                      >
-                                        <Typography color="text.secondary">Tip</Typography>
-                                        <Typography>${order.tipAmount.toFixed(2)}</Typography>
-                                      </Box>
-                                    </Grid>
-                                  )}
-                                  <Grid item xs={12}>
-                                    <Divider sx={{ my: 1 }} />
-                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                      <Typography variant="subtitle1" fontWeight="bold">
-                                        Total Amount
-                                      </Typography>
-                                      <Typography variant="subtitle1" fontWeight="bold">
-                                        ${order.orderTotalAmount.toFixed(2)}
-                                      </Typography>
+
+                                      {order.deliveryInstructions && (
+                                        <Box sx={{ mb: 1 }}>
+                                          <Typography
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={700}
+                                          >
+                                            Delivery Instructions
+                                          </Typography>
+                                          <Typography variant="body2" fontWeight={500}>
+                                            {order.deliveryInstructions}
+                                          </Typography>
+                                        </Box>
+                                      )}
+
+                                      {order.deliveryDate && (
+                                        <Box sx={{ mb: 1 }}>
+                                          <Typography
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={600}
+                                          >
+                                            Expected Delivery Date
+                                          </Typography>
+                                          <Typography variant="body2" fontWeight={500}>
+                                            {new Date(order.deliveryDate).toLocaleDateString()}
+                                          </Typography>
+                                        </Box>
+                                      )}
+
+                                      {order.cancelMessage && (
+                                        <Box sx={{ mb: 1 }}>
+                                          <Typography
+                                            variant="subtitle2"
+                                            color="error"
+                                            fontWeight={700}
+                                          >
+                                            Cancellation Reason
+                                          </Typography>
+                                          <Typography
+                                            variant="body2"
+                                            color="error"
+                                            fontWeight={500}
+                                          >
+                                            {order.cancelMessage}
+                                          </Typography>
+                                        </Box>
+                                      )}
                                     </Box>
                                   </Grid>
                                 </Grid>
                               </Paper>
                             </Grid>
 
-                            {/* Delivery Information Section */}
-                            <Grid item xs={12} md={6}>
-                              <Typography variant="h6" gutterBottom>
-                                Delivery Information
+                            {/* Order Items Section */}
+                            <Grid item xs={12}>
+                              <Typography
+                                variant="h6"
+                                gutterBottom
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1,
+                                  color: 'primary.main',
+                                  fontWeight: 600,
+                                  fontSize: { xs: '1rem', sm: '1.25rem' },
+                                }}
+                              >
+                                <ShoppingBag /> Order Items
                               </Typography>
-                              <Paper sx={{ p: 2 }}>
-                                <Grid container spacing={2}>
-                                  <Grid item xs={12}>
-                                    <Typography variant="subtitle2" color="text.secondary">
-                                      Delivery Address
-                                    </Typography>
-                                    <Typography>{order.address.address}</Typography>
+                              <Paper sx={{ p: { xs: 1.5, sm: 2 } }}>
+                                {order.orderItems?.edges?.length > 0 ? (
+                                  <Grid container spacing={{ xs: 1, sm: 2 }}>
+                                    {order.orderItems.edges.map(({ node }) => {
+                                      const inventoryItem =
+                                        node.product.inventoryItems?.edges[0]?.node;
+                                      return (
+                                        <Grid item xs={12} key={node.product.id}>
+                                          <Card
+                                            variant="outlined"
+                                            sx={{
+                                              p: { xs: 1.5, sm: 2 },
+                                              '&:hover': {
+                                                bgcolor: 'grey.50',
+                                              },
+                                            }}
+                                          >
+                                            <Grid
+                                              container
+                                              spacing={{ xs: 1, sm: 2 }}
+                                              alignItems="center"
+                                            >
+                                              <Grid item xs={12} sm={4}>
+                                                <Typography
+                                                  variant="subtitle1"
+                                                  fontWeight={600}
+                                                  sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+                                                >
+                                                  {node.product.name}
+                                                </Typography>
+                                                <Typography
+                                                  variant="body2"
+                                                  color="text.secondary"
+                                                  fontWeight={500}
+                                                >
+                                                  {node.product.category.name}
+                                                </Typography>
+                                              </Grid>
+                                              <Grid item xs={6} sm={2}>
+                                                <Typography
+                                                  variant="body2"
+                                                  color="text.secondary"
+                                                  fontWeight={600}
+                                                >
+                                                  Unit Price
+                                                </Typography>
+                                                <Typography variant="body1" fontWeight={500}>
+                                                  ${inventoryItem?.price.toFixed(2)}
+                                                </Typography>
+                                                {inventoryItem && (
+                                                  <Typography
+                                                    variant="caption"
+                                                    color="text.secondary"
+                                                    fontWeight={500}
+                                                  >
+                                                    {inventoryItem.measurement} {inventoryItem.unit}
+                                                  </Typography>
+                                                )}
+                                              </Grid>
+                                              <Grid item xs={6} sm={2}>
+                                                <Typography
+                                                  variant="body2"
+                                                  color="text.secondary"
+                                                  fontWeight={600}
+                                                >
+                                                  Quantity
+                                                </Typography>
+                                                <Typography variant="body1" fontWeight={500}>
+                                                  {node.quantity}
+                                                </Typography>
+                                              </Grid>
+                                              <Grid item xs={12} sm={4}>
+                                                <Box
+                                                  sx={{
+                                                    display: 'flex',
+                                                    justifyContent: {
+                                                      xs: 'flex-start',
+                                                      sm: 'flex-end',
+                                                    },
+                                                    alignItems: 'center',
+                                                    gap: 1,
+                                                    mt: { xs: 1, sm: 0 },
+                                                  }}
+                                                >
+                                                  <Typography
+                                                    variant="body2"
+                                                    color="text.secondary"
+                                                    fontWeight={600}
+                                                  >
+                                                    Total:
+                                                  </Typography>
+                                                  <Typography
+                                                    variant="h6"
+                                                    color="primary"
+                                                    fontWeight={700}
+                                                    sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+                                                  >
+                                                    ${node.orderAmount.toFixed(2)}
+                                                  </Typography>
+                                                </Box>
+                                              </Grid>
+                                            </Grid>
+                                          </Card>
+                                        </Grid>
+                                      );
+                                    })}
                                   </Grid>
-                                  {order.deliveryInstructions && (
-                                    <Grid item xs={12}>
-                                      <Typography variant="subtitle2" color="text.secondary">
-                                        Delivery Instructions
-                                      </Typography>
-                                      <Typography>{order.deliveryInstructions}</Typography>
-                                    </Grid>
-                                  )}
-                                  {order.deliveryDate && (
-                                    <Grid item xs={12}>
-                                      <Typography variant="subtitle2" color="text.secondary">
-                                        Expected Delivery Date
-                                      </Typography>
-                                      <Typography>
-                                        {new Date(order.deliveryDate).toLocaleDateString()}
-                                      </Typography>
-                                    </Grid>
-                                  )}
-                                  {order.cancelMessage && (
-                                    <Grid item xs={12}>
-                                      <Typography variant="subtitle2" color="text.secondary">
-                                        Cancellation Reason
-                                      </Typography>
-                                      <Typography color="error">{order.cancelMessage}</Typography>
-                                    </Grid>
-                                  )}
-                                </Grid>
+                                ) : (
+                                  <Box
+                                    sx={{
+                                      textAlign: 'center',
+                                      py: 3,
+                                      color: 'text.secondary',
+                                    }}
+                                  >
+                                    <Typography fontWeight={500}>
+                                      No items found for this order.
+                                    </Typography>
+                                  </Box>
+                                )}
                               </Paper>
                             </Grid>
                           </Grid>
@@ -488,7 +714,7 @@ const Orders = () => {
       )}
 
       {/* Confirmation Modal */}
-      <Dialog open={openModal} onClose={handleCloseModal}>
+      <Dialog open={openModal} onClose={handleCloseModal} fullWidth maxWidth="sm">
         <DialogTitle>Cancel Order</DialogTitle>
         <DialogContent>
           <DialogContentText gutterBottom>
