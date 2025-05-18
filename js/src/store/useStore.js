@@ -54,6 +54,44 @@ const useStore = create((set, get) => ({
     ),
 
   clearCart: () => set({ cart: {} }),
+
+  // Calculate cart totals using store's delivery fee and tax
+  getCartTotals: () => {
+    const state = get();
+    const cart = state.cart;
+    const store = state.selectedStore;
+
+    // Calculate subtotal
+    const subtotal = Object.values(cart).reduce(
+      (acc, item) => acc + (item.price * item.quantity || 0),
+      0
+    );
+
+    // Get delivery fee from store or default to 0
+    const deliveryFee = store?.storeDeliveryFee || 0;
+
+    // Calculate tax using store's tax percentage or default to 0
+    const taxPercentage = store?.taxPercentage || 0;
+    const taxAmount = (subtotal * taxPercentage) / 100;
+
+    // Get tip amount (default to 0)
+    const tipAmount = state.tipAmount || 0;
+
+    // Calculate total including tip
+    const total = subtotal + deliveryFee + taxAmount + tipAmount;
+
+    return {
+      subtotal,
+      deliveryFee,
+      taxAmount,
+      taxPercentage,
+      tipAmount,
+      total,
+    };
+  },
+
+  // Add tip amount to the store
+  setTipAmount: (amount) => set({ tipAmount: amount }),
 }));
 
 export const useAuthStore = create((set, get) => ({

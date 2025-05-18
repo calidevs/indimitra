@@ -478,6 +478,8 @@ export const GET_ALL_STORES = `
       pincodes
       radius
       tnc
+      storeDeliveryFee
+      taxPercentage
     }
   }
 `;
