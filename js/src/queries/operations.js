@@ -71,15 +71,28 @@ export const CREATE_ORDER_MUTATION = `
 export const GET_USER_ORDERS = `
   query GetUserOrders($userId: Int!) {
     getOrdersByUser(userId: $userId) {
+      addressId
+      billUrl
+      deliveryDate
+      deliveryFee
+      deliveryInstructions
       id
+      cancelMessage
+      cancelledAt
+      cancelledByUserId
+      createdByUserId
+      orderTotalAmount
+      paymentId
+      status
+      storeId
+      taxAmount
+      tipAmount
+      totalAmount
       address { 
         id
         address
         isPrimary
       }
-      status
-      totalAmount
-      deliveryDate
       orderItems {
         edges {
           node {

@@ -23,6 +23,8 @@ import {
   DialogTitle,
   TextField,
   Tooltip,
+  Grid,
+  Divider,
 } from '@mui/material';
 import { KeyboardArrowDown, KeyboardArrowUp, Receipt } from '@mui/icons-material';
 import { fetchAuthSession } from 'aws-amplify/auth';
@@ -299,56 +301,181 @@ const Orders = () => {
 
                   {/* Expandable Row for Order Items */}
                   <TableRow>
-                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={6}>
+                    <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
                       <Collapse in={expandedOrder === order.id} timeout="auto" unmountOnExit>
                         <Box sx={{ margin: 2 }}>
-                          <Typography variant="h6" gutterBottom>
-                            Order Items
-                          </Typography>
-                          <Table size="small">
-                            <TableHead>
-                              <TableRow>
-                                <TableCell>Product Name</TableCell>
-                                <TableCell>Category</TableCell>
-                                <TableCell>Unit Price</TableCell>
-                                <TableCell>Quantity</TableCell>
-                                <TableCell>Total</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {order.orderItems?.edges?.length > 0 ? (
-                                order.orderItems.edges.map(({ node }) => {
-                                  const inventoryItem = node.product.inventoryItems?.edges[0]?.node;
-                                  return (
-                                    <TableRow key={node.product.id}>
-                                      <TableCell>{node.product.name}</TableCell>
-                                      <TableCell>{node.product.category.name}</TableCell>
-                                      <TableCell>
-                                        ${inventoryItem?.price.toFixed(2)}
-                                        {inventoryItem && (
-                                          <Typography
-                                            variant="caption"
-                                            display="block"
-                                            color="textSecondary"
-                                          >
-                                            ({inventoryItem.measurement} {inventoryItem.unit})
-                                          </Typography>
-                                        )}
+                          <Grid container spacing={3}>
+                            {/* Order Items Section */}
+                            <Grid item xs={12}>
+                              <Typography variant="h6" gutterBottom>
+                                Order Items
+                              </Typography>
+                              <Table size="small">
+                                <TableHead>
+                                  <TableRow>
+                                    <TableCell>Product Name</TableCell>
+                                    <TableCell>Category</TableCell>
+                                    <TableCell>Unit Price</TableCell>
+                                    <TableCell>Quantity</TableCell>
+                                    <TableCell>Total</TableCell>
+                                  </TableRow>
+                                </TableHead>
+                                <TableBody>
+                                  {order.orderItems?.edges?.length > 0 ? (
+                                    order.orderItems.edges.map(({ node }) => {
+                                      const inventoryItem =
+                                        node.product.inventoryItems?.edges[0]?.node;
+                                      return (
+                                        <TableRow key={node.product.id}>
+                                          <TableCell>{node.product.name}</TableCell>
+                                          <TableCell>{node.product.category.name}</TableCell>
+                                          <TableCell>
+                                            ${inventoryItem?.price.toFixed(2)}
+                                            {inventoryItem && (
+                                              <Typography
+                                                variant="caption"
+                                                display="block"
+                                                color="textSecondary"
+                                              >
+                                                ({inventoryItem.measurement} {inventoryItem.unit})
+                                              </Typography>
+                                            )}
+                                          </TableCell>
+                                          <TableCell>{node.quantity}</TableCell>
+                                          <TableCell>${node.orderAmount.toFixed(2)}</TableCell>
+                                        </TableRow>
+                                      );
+                                    })
+                                  ) : (
+                                    <TableRow>
+                                      <TableCell colSpan={5} align="center">
+                                        No items found for this order.
                                       </TableCell>
-                                      <TableCell>{node.quantity}</TableCell>
-                                      <TableCell>${node.orderAmount.toFixed(2)}</TableCell>
                                     </TableRow>
-                                  );
-                                })
-                              ) : (
-                                <TableRow>
-                                  <TableCell colSpan={5} align="center">
-                                    No items found for this order.
-                                  </TableCell>
-                                </TableRow>
-                              )}
-                            </TableBody>
-                          </Table>
+                                  )}
+                                </TableBody>
+                              </Table>
+                            </Grid>
+
+                            {/* Order Details Section */}
+                            <Grid item xs={12} md={6}>
+                              <Typography variant="h6" gutterBottom>
+                                Order Details
+                              </Typography>
+                              <Paper sx={{ p: 2 }}>
+                                <Grid container spacing={2}>
+                                  <Grid item xs={12}>
+                                    <Box
+                                      sx={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        mb: 1,
+                                      }}
+                                    >
+                                      <Typography color="text.secondary">Subtotal</Typography>
+                                      <Typography>${order.totalAmount.toFixed(2)}</Typography>
+                                    </Box>
+                                  </Grid>
+                                  {order.deliveryFee && (
+                                    <Grid item xs={12}>
+                                      <Box
+                                        sx={{
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          mb: 1,
+                                        }}
+                                      >
+                                        <Typography color="text.secondary">Delivery Fee</Typography>
+                                        <Typography>${order.deliveryFee.toFixed(2)}</Typography>
+                                      </Box>
+                                    </Grid>
+                                  )}
+                                  {order.taxAmount && (
+                                    <Grid item xs={12}>
+                                      <Box
+                                        sx={{
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          mb: 1,
+                                        }}
+                                      >
+                                        <Typography color="text.secondary">Tax</Typography>
+                                        <Typography>${order.taxAmount.toFixed(2)}</Typography>
+                                      </Box>
+                                    </Grid>
+                                  )}
+                                  {order.tipAmount && (
+                                    <Grid item xs={12}>
+                                      <Box
+                                        sx={{
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          mb: 1,
+                                        }}
+                                      >
+                                        <Typography color="text.secondary">Tip</Typography>
+                                        <Typography>${order.tipAmount.toFixed(2)}</Typography>
+                                      </Box>
+                                    </Grid>
+                                  )}
+                                  <Grid item xs={12}>
+                                    <Divider sx={{ my: 1 }} />
+                                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                      <Typography variant="subtitle1" fontWeight="bold">
+                                        Total Amount
+                                      </Typography>
+                                      <Typography variant="subtitle1" fontWeight="bold">
+                                        ${order.orderTotalAmount.toFixed(2)}
+                                      </Typography>
+                                    </Box>
+                                  </Grid>
+                                </Grid>
+                              </Paper>
+                            </Grid>
+
+                            {/* Delivery Information Section */}
+                            <Grid item xs={12} md={6}>
+                              <Typography variant="h6" gutterBottom>
+                                Delivery Information
+                              </Typography>
+                              <Paper sx={{ p: 2 }}>
+                                <Grid container spacing={2}>
+                                  <Grid item xs={12}>
+                                    <Typography variant="subtitle2" color="text.secondary">
+                                      Delivery Address
+                                    </Typography>
+                                    <Typography>{order.address.address}</Typography>
+                                  </Grid>
+                                  {order.deliveryInstructions && (
+                                    <Grid item xs={12}>
+                                      <Typography variant="subtitle2" color="text.secondary">
+                                        Delivery Instructions
+                                      </Typography>
+                                      <Typography>{order.deliveryInstructions}</Typography>
+                                    </Grid>
+                                  )}
+                                  {order.deliveryDate && (
+                                    <Grid item xs={12}>
+                                      <Typography variant="subtitle2" color="text.secondary">
+                                        Expected Delivery Date
+                                      </Typography>
+                                      <Typography>
+                                        {new Date(order.deliveryDate).toLocaleDateString()}
+                                      </Typography>
+                                    </Grid>
+                                  )}
+                                  {order.cancelMessage && (
+                                    <Grid item xs={12}>
+                                      <Typography variant="subtitle2" color="text.secondary">
+                                        Cancellation Reason
+                                      </Typography>
+                                      <Typography color="error">{order.cancelMessage}</Typography>
+                                    </Grid>
+                                  )}
+                                </Grid>
+                              </Paper>
+                            </Grid>
+                          </Grid>
                         </Box>
                       </Collapse>
                     </TableCell>
