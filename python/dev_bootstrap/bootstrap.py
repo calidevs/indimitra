@@ -125,7 +125,9 @@ def create_data():
             disabled=False,  # Changed from is_disabled to disabled
             description="Open 9am-9pm. Delivery available.",
             pincodes=["12345", "23456", "34567"],
-            tnc="Rule 1. Rule 2. Rule 3."
+            tnc="Rule 1. Rule 2. Rule 3.",
+            storeDeliveryFee=5.99,  # Default delivery fee (optional field)
+            taxPercentage=10  # Default tax percentage (optional field)
         )
         db.add(store)
         db.commit()
