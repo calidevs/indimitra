@@ -323,10 +323,20 @@ const CartPage = () => {
       quantity: item.quantity,
     }));
 
+    // Get all the totals from the store
+    const { subtotal, deliveryFee, taxAmount, tipAmount, total } = getCartTotals();
+
     mutate({
       userId: userProfile.id,
       addressId: selectedAddressId,
+      storeId: selectedStore.id,
       productItems: orderItems,
+      totalAmount: subtotal,
+      orderTotalAmount: total,
+      deliveryFee: deliveryFee,
+      tipAmount: tipAmount,
+      taxAmount: taxAmount,
+      deliveryInstructions: deliveryInstructions,
     });
   };
 
