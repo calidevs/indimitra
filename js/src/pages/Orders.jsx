@@ -52,6 +52,9 @@ const Orders = () => {
   const [cancelMessage, setCancelMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+
   // Get zustand state and functions
   const { userProfile, setUserProfile } = useAuthStore();
   const getLatestProfile = () => useAuthStore.getState().userProfile;
@@ -223,8 +226,6 @@ const Orders = () => {
 
   const orders = ordersData?.getOrdersByUser || [];
 
-  const theme = useTheme();
-
   return (
     <Container maxWidth="xl" sx={{ mt: 4, px: { xs: 1, sm: 2, md: 3 } }}>
       <Typography
@@ -259,7 +260,7 @@ const Orders = () => {
                 <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Order ID</TableCell>
                 <TableCell>Address</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Total</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Total</TableCell>
                 <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                   Delivery Date
                 </TableCell>
@@ -287,7 +288,7 @@ const Orders = () => {
                     <TableCell>
                       <Chip
                         label={order.status}
-                        size={useMediaQuery(theme.breakpoints.down('sm')) ? 'small' : 'medium'}
+                        size={isMobile ? 'small' : 'medium'}
                         color={
                           order.status === 'COMPLETE'
                             ? 'success'
@@ -297,7 +298,9 @@ const Orders = () => {
                         }
                       />
                     </TableCell>
-                    <TableCell>${order.totalAmount.toFixed(2)}</TableCell>
+                    <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                      ${order.totalAmount.toFixed(2)}
+                    </TableCell>
                     <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                       {order.deliveryDate
                         ? new Date(order.deliveryDate).toLocaleDateString()
@@ -323,7 +326,7 @@ const Orders = () => {
                         <Button
                           variant="contained"
                           color="error"
-                          size={useMediaQuery(theme.breakpoints.down('sm')) ? 'small' : 'medium'}
+                          size={isMobile ? 'small' : 'medium'}
                           onClick={(e) => {
                             e.stopPropagation();
                             handleOpenModal(order.id);
@@ -351,6 +354,144 @@ const Orders = () => {
                       <Collapse in={expandedOrder === order.id} timeout="auto" unmountOnExit>
                         <Box sx={{ margin: { xs: 1, sm: 2 } }}>
                           <Grid container spacing={{ xs: 2, sm: 3 }}>
+                            {/* Order Items Section */}
+                            <Grid item xs={12}>
+                              <Typography
+                                variant="h6"
+                                gutterBottom
+                                sx={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: 1,
+                                  color: 'primary.main',
+                                  fontWeight: 600,
+                                  fontSize: { xs: '1rem', sm: '1.25rem' },
+                                }}
+                              >
+                                <ShoppingBag /> Order Items
+                              </Typography>
+                              <Paper sx={{ p: { xs: 1.5, sm: 2 } }}>
+                                {order.orderItems?.edges?.length > 0 ? (
+                                  <Grid container spacing={{ xs: 1, sm: 2 }}>
+                                    {order.orderItems.edges.map(({ node }) => {
+                                      const inventoryItem =
+                                        node.product.inventoryItems?.edges[0]?.node;
+                                      return (
+                                        <Grid item xs={12} key={node.product.id}>
+                                          <Card
+                                            variant="outlined"
+                                            sx={{
+                                              p: { xs: 1.5, sm: 2 },
+                                              '&:hover': {
+                                                bgcolor: 'grey.50',
+                                              },
+                                            }}
+                                          >
+                                            <Grid
+                                              container
+                                              spacing={{ xs: 1, sm: 2 }}
+                                              alignItems="center"
+                                            >
+                                              <Grid item xs={12} sm={4}>
+                                                <Typography
+                                                  variant="subtitle1"
+                                                  fontWeight={600}
+                                                  sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
+                                                >
+                                                  {node.product.name}
+                                                </Typography>
+                                                <Typography
+                                                  variant="body2"
+                                                  color="text.secondary"
+                                                  fontWeight={500}
+                                                >
+                                                  {node.product.category.name}
+                                                </Typography>
+                                              </Grid>
+                                              <Grid item xs={6} sm={2}>
+                                                <Typography
+                                                  variant="body2"
+                                                  color="text.secondary"
+                                                  fontWeight={600}
+                                                >
+                                                  Unit Price
+                                                </Typography>
+                                                <Typography variant="body1" fontWeight={500}>
+                                                  ${inventoryItem?.price.toFixed(2)}
+                                                </Typography>
+                                                {inventoryItem && (
+                                                  <Typography
+                                                    variant="caption"
+                                                    color="text.secondary"
+                                                    fontWeight={500}
+                                                  >
+                                                    {inventoryItem.measurement} {inventoryItem.unit}
+                                                  </Typography>
+                                                )}
+                                              </Grid>
+                                              <Grid item xs={6} sm={2}>
+                                                <Typography
+                                                  variant="body2"
+                                                  color="text.secondary"
+                                                  fontWeight={600}
+                                                >
+                                                  Quantity
+                                                </Typography>
+                                                <Typography variant="body1" fontWeight={500}>
+                                                  {node.quantity}
+                                                </Typography>
+                                              </Grid>
+                                              <Grid item xs={12} sm={4}>
+                                                <Box
+                                                  sx={{
+                                                    display: 'flex',
+                                                    justifyContent: {
+                                                      xs: 'flex-start',
+                                                      sm: 'flex-end',
+                                                    },
+                                                    alignItems: 'center',
+                                                    gap: 1,
+                                                    mt: { xs: 1, sm: 0 },
+                                                  }}
+                                                >
+                                                  <Typography
+                                                    variant="body2"
+                                                    color="text.secondary"
+                                                    fontWeight={600}
+                                                  >
+                                                    Total:
+                                                  </Typography>
+                                                  <Typography
+                                                    variant="h6"
+                                                    color="primary"
+                                                    fontWeight={700}
+                                                    sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+                                                  >
+                                                    ${node.orderAmount.toFixed(2)}
+                                                  </Typography>
+                                                </Box>
+                                              </Grid>
+                                            </Grid>
+                                          </Card>
+                                        </Grid>
+                                      );
+                                    })}
+                                  </Grid>
+                                ) : (
+                                  <Box
+                                    sx={{
+                                      textAlign: 'center',
+                                      py: 3,
+                                      color: 'text.secondary',
+                                    }}
+                                  >
+                                    <Typography fontWeight={500}>
+                                      No items found for this order.
+                                    </Typography>
+                                  </Box>
+                                )}
+                              </Paper>
+                            </Grid>
                             {/* Combined Order Details and Delivery Information Section */}
                             <Grid item xs={12}>
                               <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 3 }}>
@@ -560,145 +701,6 @@ const Orders = () => {
                                     </Box>
                                   </Grid>
                                 </Grid>
-                              </Paper>
-                            </Grid>
-
-                            {/* Order Items Section */}
-                            <Grid item xs={12}>
-                              <Typography
-                                variant="h6"
-                                gutterBottom
-                                sx={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: 1,
-                                  color: 'primary.main',
-                                  fontWeight: 600,
-                                  fontSize: { xs: '1rem', sm: '1.25rem' },
-                                }}
-                              >
-                                <ShoppingBag /> Order Items
-                              </Typography>
-                              <Paper sx={{ p: { xs: 1.5, sm: 2 } }}>
-                                {order.orderItems?.edges?.length > 0 ? (
-                                  <Grid container spacing={{ xs: 1, sm: 2 }}>
-                                    {order.orderItems.edges.map(({ node }) => {
-                                      const inventoryItem =
-                                        node.product.inventoryItems?.edges[0]?.node;
-                                      return (
-                                        <Grid item xs={12} key={node.product.id}>
-                                          <Card
-                                            variant="outlined"
-                                            sx={{
-                                              p: { xs: 1.5, sm: 2 },
-                                              '&:hover': {
-                                                bgcolor: 'grey.50',
-                                              },
-                                            }}
-                                          >
-                                            <Grid
-                                              container
-                                              spacing={{ xs: 1, sm: 2 }}
-                                              alignItems="center"
-                                            >
-                                              <Grid item xs={12} sm={4}>
-                                                <Typography
-                                                  variant="subtitle1"
-                                                  fontWeight={600}
-                                                  sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
-                                                >
-                                                  {node.product.name}
-                                                </Typography>
-                                                <Typography
-                                                  variant="body2"
-                                                  color="text.secondary"
-                                                  fontWeight={500}
-                                                >
-                                                  {node.product.category.name}
-                                                </Typography>
-                                              </Grid>
-                                              <Grid item xs={6} sm={2}>
-                                                <Typography
-                                                  variant="body2"
-                                                  color="text.secondary"
-                                                  fontWeight={600}
-                                                >
-                                                  Unit Price
-                                                </Typography>
-                                                <Typography variant="body1" fontWeight={500}>
-                                                  ${inventoryItem?.price.toFixed(2)}
-                                                </Typography>
-                                                {inventoryItem && (
-                                                  <Typography
-                                                    variant="caption"
-                                                    color="text.secondary"
-                                                    fontWeight={500}
-                                                  >
-                                                    {inventoryItem.measurement} {inventoryItem.unit}
-                                                  </Typography>
-                                                )}
-                                              </Grid>
-                                              <Grid item xs={6} sm={2}>
-                                                <Typography
-                                                  variant="body2"
-                                                  color="text.secondary"
-                                                  fontWeight={600}
-                                                >
-                                                  Quantity
-                                                </Typography>
-                                                <Typography variant="body1" fontWeight={500}>
-                                                  {node.quantity}
-                                                </Typography>
-                                              </Grid>
-                                              <Grid item xs={12} sm={4}>
-                                                <Box
-                                                  sx={{
-                                                    display: 'flex',
-                                                    justifyContent: {
-                                                      xs: 'flex-start',
-                                                      sm: 'flex-end',
-                                                    },
-                                                    alignItems: 'center',
-                                                    gap: 1,
-                                                    mt: { xs: 1, sm: 0 },
-                                                  }}
-                                                >
-                                                  <Typography
-                                                    variant="body2"
-                                                    color="text.secondary"
-                                                    fontWeight={600}
-                                                  >
-                                                    Total:
-                                                  </Typography>
-                                                  <Typography
-                                                    variant="h6"
-                                                    color="primary"
-                                                    fontWeight={700}
-                                                    sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
-                                                  >
-                                                    ${node.orderAmount.toFixed(2)}
-                                                  </Typography>
-                                                </Box>
-                                              </Grid>
-                                            </Grid>
-                                          </Card>
-                                        </Grid>
-                                      );
-                                    })}
-                                  </Grid>
-                                ) : (
-                                  <Box
-                                    sx={{
-                                      textAlign: 'center',
-                                      py: 3,
-                                      color: 'text.secondary',
-                                    }}
-                                  >
-                                    <Typography fontWeight={500}>
-                                      No items found for this order.
-                                    </Typography>
-                                  </Box>
-                                )}
                               </Paper>
                             </Grid>
                           </Grid>
