@@ -245,4 +245,139 @@ def update_order_bill_url(order_id: int, bill_url: Optional[str] = None) -> Opti
         db.refresh(order)
         return order
     finally:
+        db.close()
+
+def update_order_items(
+    order_id: int, 
+    order_item_updates: List[dict], 
+    total_amount: float, 
+    tax_amount: Optional[float] = None,
+    order_total_amount: float = None
+) -> Optional[OrderModel]:
+    """
+    Update order items and recalculate totals for an order
+    
+    Args:
+        order_id: The ID of the order to update
+        order_item_updates: List of order item updates [{"order_item_id": int, "quantity_change": int}, ...]
+                           A negative quantity_change means reduce quantity, positive means increase
+                           A quantity_change of None means delete the item
+        total_amount: The updated total amount for products
+        tax_amount: The updated tax amount for the order
+        order_total_amount: The updated final total amount for the order
+    
+    Returns:
+        The updated order, or None if the order doesn't exist
+    """
+    db = SessionLocal()
+    try:
+        # Get the order
+        order = db.query(OrderModel).filter(OrderModel.id == order_id).first()
+        if not order:
+            return None
+        
+        # Only allow updating orders in PENDING state
+        if order.status != OrderStatus.PENDING:
+            raise ValueError(f"Cannot update items for order with status {order.status}. Only PENDING orders can be updated.")
+        
+        # Update order amounts
+        order.totalAmount = total_amount
+        
+        if tax_amount is not None:
+            order.taxAmount = tax_amount
+            
+        if order_total_amount is not None:
+            order.orderTotalAmount = order_total_amount
+        
+        # Process each order item update
+        for update in order_item_updates:
+            order_item_id = update.get("order_item_id")
+            quantity_change = update.get("quantity_change")
+            
+            # Get the order item
+            order_item = db.query(OrderItemModel).filter(
+                OrderItemModel.id == order_item_id,
+                OrderItemModel.orderId == order_id
+            ).first()
+            
+            if not order_item:
+                continue  # Skip if order item not found
+            
+            # Check if this is the original item or an already updated one
+            if order_item.updatedOrderitemsId is not None:
+                # This is already updated once, we need to find the latest revision
+                latest_item = order_item
+                while latest_item.updated_order_item is not None:
+                    latest_item = latest_item.updated_order_item
+                
+                # Update or delete the latest revision
+                if quantity_change is None:
+                    # Delete the item (mark as zero quantity)
+                    new_order_item = OrderItemModel(
+                        productId=latest_item.productId,
+                        quantity=0,  # Set to zero to indicate deletion
+                        orderId=order_id,
+                        orderAmount=0,
+                        inventoryId=latest_item.inventoryId
+                    )
+                    db.add(new_order_item)
+                    db.flush()  # Get the ID
+                    
+                    # Link to the original item
+                    latest_item.updatedOrderitemsId = new_order_item.id
+                else:
+                    # Calculate new quantity (can't be negative)
+                    new_quantity = max(0, latest_item.quantity + quantity_change)
+                    
+                    # Create a new order item with updated quantity
+                    new_order_item = OrderItemModel(
+                        productId=latest_item.productId,
+                        quantity=new_quantity,
+                        orderId=order_id,
+                        orderAmount=latest_item.orderAmount / latest_item.quantity * new_quantity if latest_item.quantity > 0 else 0,
+                        inventoryId=latest_item.inventoryId
+                    )
+                    db.add(new_order_item)
+                    db.flush()  # Get the ID
+                    
+                    # Link to the original item
+                    latest_item.updatedOrderitemsId = new_order_item.id
+            else:
+                # This is the original item, create a new revision
+                if quantity_change is None:
+                    # Delete the item (mark as zero quantity)
+                    new_order_item = OrderItemModel(
+                        productId=order_item.productId,
+                        quantity=0,  # Set to zero to indicate deletion
+                        orderId=order_id,
+                        orderAmount=0,
+                        inventoryId=order_item.inventoryId
+                    )
+                    db.add(new_order_item)
+                    db.flush()  # Get the ID
+                    
+                    # Link to the original item
+                    order_item.updatedOrderitemsId = new_order_item.id
+                else:
+                    # Calculate new quantity (can't be negative)
+                    new_quantity = max(0, order_item.quantity + quantity_change)
+                    
+                    # Create a new order item with updated quantity
+                    new_order_item = OrderItemModel(
+                        productId=order_item.productId,
+                        quantity=new_quantity,
+                        orderId=order_id,
+                        orderAmount=order_item.orderAmount / order_item.quantity * new_quantity if order_item.quantity > 0 else 0,
+                        inventoryId=order_item.inventoryId
+                    )
+                    db.add(new_order_item)
+                    db.flush()  # Get the ID
+                    
+                    # Link to the original item
+                    order_item.updatedOrderitemsId = new_order_item.id
+        
+        db.commit()
+        db.refresh(order)
+        return order
+    finally:
         db.close() 

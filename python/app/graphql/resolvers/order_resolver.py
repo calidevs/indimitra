@@ -15,7 +15,8 @@ from app.services.order_service import (
     cancel_order, 
     update_order_status,
     get_orders_by_store,
-    update_order_bill_url
+    update_order_bill_url,
+    update_order_items
 )
 from app.services.delivery_service import assign_delivery
 
@@ -50,6 +51,14 @@ class OrderItemInput:
     """Defines input format for creating order items"""
     productId: int
     quantity: int
+
+
+# ✅ Input Type for Updating Order Items
+@strawberry.input
+class OrderItemUpdateInput:
+    """Defines input format for updating order items"""
+    orderItemId: int
+    quantityChange: Optional[int] = None  # None means delete, positive/negative means increase/decrease
 
 
 # ✅ Input Type for Updating Order Status
@@ -224,6 +233,54 @@ class OrderMutation:
             order = update_order_bill_url(order_id=orderId, bill_url=billUrl)
             if not order:
                 raise Exception(f"Order with ID {orderId} not found")
+            return order
+        except ValueError as e:
+            raise Exception(str(e))
+            
+    @strawberry.mutation
+    def updateOrderItems(
+        self,
+        orderId: int,
+        orderItemUpdates: List[OrderItemUpdateInput],
+        totalAmount: float,
+        orderTotalAmount: float,
+        taxAmount: Optional[float] = None
+    ) -> Optional[Order]:
+        """
+        Update order items with the store manager's changes
+        
+        Args:
+            orderId: The ID of the order to update
+            orderItemUpdates: List of order item updates including ID and quantity change
+                              A None quantityChange means delete the item
+            totalAmount: The updated total amount for products
+            orderTotalAmount: The updated final total amount for the order
+            taxAmount: The updated tax amount for the order
+        
+        Returns:
+            The updated order, or None if the order doesn't exist
+        """
+        try:
+            # Convert input to dictionary format expected by service
+            updates = [
+                {
+                    "order_item_id": item.orderItemId,
+                    "quantity_change": item.quantityChange
+                }
+                for item in orderItemUpdates
+            ]
+            
+            order = update_order_items(
+                order_id=orderId,
+                order_item_updates=updates,
+                total_amount=totalAmount,
+                tax_amount=taxAmount,
+                order_total_amount=orderTotalAmount
+            )
+            
+            if not order:
+                raise Exception(f"Order with ID {orderId} not found")
+                
             return order
         except ValueError as e:
             raise Exception(str(e))
