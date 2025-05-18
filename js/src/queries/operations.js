@@ -524,6 +524,8 @@ export const GET_STORES = `
       pincodes
       radius
       tnc
+      storeDeliveryFee
+      taxPercentage
       drivers {
         edges {
           node {

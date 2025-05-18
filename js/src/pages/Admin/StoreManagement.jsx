@@ -45,6 +45,8 @@ import {
   Add as AddIcon,
   Store as StoreIcon,
   LocalShipping as LocalShippingIcon,
+  AttachMoney as AttachMoneyIcon,
+  Percent as PercentIcon,
 } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_STORES } from '@/queries/operations';
@@ -1023,6 +1025,46 @@ const StoreManagement = () => {
                                   }}
                                 >
                                   Radius: {store.radius} mi
+                                </Typography>
+                              </Box>
+
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                <AttachMoneyIcon
+                                  sx={{
+                                    mr: 1.5,
+                                    color: 'primary.main',
+                                    flexShrink: 0,
+                                    fontSize: '1.2rem',
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: 'text.primary',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  Delivery Fee: ${store.storeDeliveryFee?.toFixed(2) || '0.00'}
+                                </Typography>
+                              </Box>
+
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                <PercentIcon
+                                  sx={{
+                                    mr: 1.5,
+                                    color: 'primary.main',
+                                    flexShrink: 0,
+                                    fontSize: '1.2rem',
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: 'text.primary',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  Tax Rate: {store.taxPercentage?.toFixed(1) || '0.0'}%
                                 </Typography>
                               </Box>
 
