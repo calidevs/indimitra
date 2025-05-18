@@ -106,21 +106,27 @@ class OrderMutation:
         
         Returns:
             Order: The newly created order.
+            
+        Raises:
+            Exception: If address validation fails, including if delivery to that pincode is not supported.
         """
-        # Convert OrderItemInput to dictionary
-        items = [{"product_id": item.productId, "quantity": item.quantity} for item in productItems]
-        return create_order(
-            user_id=userId, 
-            address_id=addressId, 
-            store_id=storeId,
-            product_items=items,
-            total_amount=totalAmount,
-            order_total_amount=orderTotalAmount,
-            delivery_fee=deliveryFee,
-            tip_amount=tipAmount,
-            tax_amount=taxAmount,
-            delivery_instructions=deliveryInstructions
-        )
+        try:
+            # Convert OrderItemInput to dictionary
+            items = [{"product_id": item.productId, "quantity": item.quantity} for item in productItems]
+            return create_order(
+                user_id=userId, 
+                address_id=addressId, 
+                store_id=storeId,
+                product_items=items,
+                total_amount=totalAmount,
+                order_total_amount=orderTotalAmount,
+                delivery_fee=deliveryFee,
+                tip_amount=tipAmount,
+                tax_amount=taxAmount,
+                delivery_instructions=deliveryInstructions
+            )
+        except ValueError as e:
+            raise Exception(str(e))
     
     @strawberry.mutation
     def cancelOrderById(self, orderId: int, cancelMessage: str, cancelledByUserId: int) -> Optional[Order]:

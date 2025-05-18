@@ -7,6 +7,7 @@ from app.db.models.order_item import OrderItemModel
 from app.db.models.product import ProductModel
 from app.db.models.address import AddressModel
 from app.db.models.inventory import InventoryModel
+from app.services.validation_service import validate_delivery_pincode
 
 def get_order_by_id(order_id: int) -> Optional[OrderModel]:
     """Get an order by its ID"""
@@ -100,6 +101,9 @@ def create_order(user_id: int, address_id: int, store_id: int, product_items: Li
         
         if not address:
             raise ValueError(f"Address with ID {address_id} not found or does not belong to user {user_id}")
+        
+        # Validate delivery pincode is serviced by the store
+        validate_delivery_pincode(address_id, store_id)
         
         # Extract all product IDs from the items
         product_ids = [item["product_id"] for item in product_items]
