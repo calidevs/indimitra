@@ -46,7 +46,10 @@ def create_store(
     description: Optional[str] = None,
     tnc: Optional[str] = None,
     store_delivery_fee: Optional[float] = None,
-    tax_percentage: Optional[float] = None
+    tax_percentage: Optional[float] = None,
+    pincodes: Optional[List[str]] = None,
+    is_active: Optional[bool] = True,
+    disabled: Optional[bool] = False
 ) -> StoreModel:
     """Create a new store"""
     db = SessionLocal()
@@ -97,7 +100,10 @@ def create_store(
             description=description,
             tnc=tnc,
             storeDeliveryFee=store_delivery_fee,
-            taxPercentage=tax_percentage
+            taxPercentage=tax_percentage,
+            pincodes=pincodes,
+            is_active=is_active,
+            disabled=disabled
         )
         db.add(store)
         db.commit()
