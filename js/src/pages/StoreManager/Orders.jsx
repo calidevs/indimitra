@@ -250,10 +250,6 @@ const StoreOrders = () => {
   const updateOrderItemMutation = useMutation({
     mutationFn: async (variables) => {
       const { orderId, itemId, quantity, price } = variables;
-      const orderAmount = quantity * price;
-
-      // Calculate the quantity change from the current quantity
-      const quantityChange = quantity - selectedItem.quantity;
 
       // Get the current order to access existing fees
       const currentOrder = ordersData.find((order) => order.id === orderId);
@@ -265,19 +261,37 @@ const StoreOrders = () => {
       const storeTaxPercentage =
         profileData?.getUserProfile?.stores?.edges?.[0]?.node?.taxPercentage || 0;
 
-      // Calculate tax based on the store's tax percentage
-      const taxAmount = (orderAmount * storeTaxPercentage) / 100;
+      // Get the latest active items for each product
+      const latestItems = new Map();
+      currentOrder.orderItems.edges.forEach(({ node }) => {
+        const productId = node.productId;
+        if (!latestItems.has(productId) || node.id > latestItems.get(productId).id) {
+          latestItems.set(productId, node);
+        }
+      });
 
-      // If quantity is 0, set all amounts to 0
+      // Calculate total amount from latest active items
+      let totalAmount = 0;
+      latestItems.forEach((node) => {
+        // If this is the item being updated, use the new quantity
+        if (node.id === parseInt(itemId)) {
+          totalAmount += quantity * price;
+        } else {
+          // For other items, use their current quantity and price
+          const itemPrice = node.product?.inventoryItems?.edges[0]?.node?.price || 0;
+          totalAmount += node.quantity * itemPrice;
+        }
+      });
+
+      // Calculate tax based on the total amount
+      const taxAmount = (totalAmount * storeTaxPercentage) / 100;
+
+      // Calculate the final total including all fees
       const finalTotal =
-        quantity === 0
-          ? 0
-          : orderAmount +
-            taxAmount +
-            (currentOrder.deliveryFee || 0) +
-            (currentOrder.tipAmount || 0);
-      const finalTaxAmount = quantity === 0 ? 0 : taxAmount;
-      const finalOrderAmount = quantity === 0 ? 0 : orderAmount;
+        totalAmount + taxAmount + (currentOrder.deliveryFee || 0) + (currentOrder.tipAmount || 0);
+
+      // Calculate the quantity change for the updated item
+      const quantityChange = quantity - selectedItem.quantity;
 
       return await graphqlService(UPDATE_ORDER_ITEMS, {
         orderId: parseInt(orderId),
@@ -287,9 +301,9 @@ const StoreOrders = () => {
             quantityChange: quantityChange,
           },
         ],
-        totalAmount: finalOrderAmount,
+        totalAmount: totalAmount,
         orderTotalAmount: finalTotal,
-        taxAmount: finalTaxAmount,
+        taxAmount: taxAmount,
       });
     },
     onSuccess: () => {
