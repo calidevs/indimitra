@@ -33,10 +33,19 @@ import {
   Receipt,
   ShoppingBag,
   LocalShipping,
+  Add as AddIcon,
+  Remove as RemoveIcon,
+  Delete as DeleteIcon,
+  History as HistoryIcon,
 } from '@mui/icons-material';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import fetchGraphQL from '@/config/graphql/graphqlService';
-import { GET_USER_ORDERS, CANCEL_ORDER, GET_USER_PROFILE } from '@/queries/operations';
+import {
+  GET_USER_ORDERS,
+  CANCEL_ORDER,
+  GET_USER_PROFILE,
+  UPDATE_ORDER_ITEMS,
+} from '@/queries/operations';
 import useStore, { useAuthStore } from '@/store/useStore';
 import { useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -148,6 +157,20 @@ const Orders = () => {
     },
   });
 
+  const updateOrderItemsMutation = useMutation({
+    mutationFn: (variables) =>
+      fetchGraphQL(UPDATE_ORDER_ITEMS, {
+        orderId: variables.orderId,
+        orderItemUpdates: variables.orderItemUpdates,
+        totalAmount: variables.totalAmount,
+        orderTotalAmount: variables.orderTotalAmount,
+        taxAmount: variables.taxAmount,
+      }),
+    onSuccess: () => {
+      refetch();
+    },
+  });
+
   const handleOpenModal = (orderId) => {
     setSelectedOrderId(orderId);
     setOpenModal(true);
@@ -213,6 +236,124 @@ const Orders = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleQuantityUpdate = (order, item, newQuantity) => {
+    console.log('handleQuantityUpdate called with:', {
+      order,
+      item,
+      newQuantity,
+    });
+
+    if (!item || !item.id) {
+      console.error('Invalid item or missing item ID:', item);
+      return;
+    }
+
+    const currentQuantity = item.quantity;
+    const price = item.product.inventoryItems?.edges[0]?.node?.price || 0;
+    const quantityChange = newQuantity - currentQuantity;
+
+    // Calculate new totals
+    const itemAmountChange = price * quantityChange;
+    const newTotalAmount = order.totalAmount + itemAmountChange;
+    const newOrderTotalAmount = order.orderTotalAmount + itemAmountChange;
+    const newTaxAmount = order.taxAmount ? order.taxAmount + itemAmountChange * 0.1 : 0;
+
+    const mutationVariables = {
+      orderId: parseInt(order.id, 10),
+      orderItemUpdates: [
+        {
+          orderItemId: parseInt(item.id, 10),
+          quantityChange: quantityChange,
+        },
+      ],
+      totalAmount: newTotalAmount,
+      orderTotalAmount: newOrderTotalAmount,
+      taxAmount: newTaxAmount,
+    };
+
+    console.log('Sending mutation with variables:', mutationVariables);
+
+    updateOrderItemsMutation.mutate(mutationVariables);
+  };
+
+  const handleRemoveItem = (order, item) => {
+    console.log('handleRemoveItem called with:', {
+      order,
+      item,
+    });
+
+    if (!item || !item.id) {
+      console.error('Invalid item or missing item ID:', item);
+      return;
+    }
+
+    const price = item.product.inventoryItems?.edges[0]?.node?.price || 0;
+    const itemAmount = price * item.quantity;
+
+    // Calculate new totals
+    const newTotalAmount = order.totalAmount - itemAmount;
+    const newOrderTotalAmount = order.orderTotalAmount - itemAmount;
+    const newTaxAmount = order.taxAmount ? order.taxAmount - itemAmount * 0.1 : 0;
+
+    const mutationVariables = {
+      orderId: parseInt(order.id, 10),
+      orderItemUpdates: [
+        {
+          orderItemId: parseInt(item.id, 10),
+          quantityChange: -item.quantity,
+        },
+      ],
+      totalAmount: newTotalAmount,
+      orderTotalAmount: newOrderTotalAmount,
+      taxAmount: newTaxAmount,
+    };
+
+    console.log('Sending mutation with variables:', mutationVariables);
+
+    updateOrderItemsMutation.mutate(mutationVariables);
+  };
+
+  // Update the helper function to get the latest version of an order item
+  const getLatestOrderItem = (orderItems) => {
+    if (!orderItems?.edges?.length) return null;
+
+    // Create a map of all items
+    const itemMap = new Map();
+    orderItems.edges.forEach(({ node }) => {
+      itemMap.set(node.id, node);
+    });
+
+    // Find items that are not referenced by any other item's updatedOrderitemsId
+    const latestItems = orderItems.edges
+      .map(({ node }) => node)
+      .filter(
+        (item) =>
+          !Array.from(itemMap.values()).some(
+            (otherItem) => otherItem.updatedOrderitemsId === item.id
+          )
+      );
+
+    console.log('Latest items:', latestItems);
+    return latestItems;
+  };
+
+  // Add a helper function to build item history
+  const buildItemHistory = (currentItem, allItems) => {
+    const history = [];
+    let item = currentItem;
+    const itemMap = new Map(allItems.map(({ node }) => [node.id, node]));
+
+    // Follow the chain of updatedOrderitemsId
+    while (item) {
+      console.log('Processing item in history:', item);
+      history.unshift(item);
+      item = item.updatedOrderitemsId ? itemMap.get(item.updatedOrderitemsId) : null;
+    }
+
+    console.log('Built history:', history);
+    return history;
   };
 
   // Show loading while fetching profile or orders
@@ -373,11 +514,20 @@ const Orders = () => {
                               <Paper sx={{ p: { xs: 1.5, sm: 2 } }}>
                                 {order.orderItems?.edges?.length > 0 ? (
                                   <Grid container spacing={{ xs: 1, sm: 2 }}>
-                                    {order.orderItems.edges.map(({ node }) => {
+                                    {getLatestOrderItem(order.orderItems).map((node) => {
+                                      console.log('Processing latest item:', node);
                                       const inventoryItem =
                                         node.product.inventoryItems?.edges[0]?.node;
+
+                                      // Build the history for this item
+                                      const itemHistory = buildItemHistory(
+                                        node,
+                                        order.orderItems.edges
+                                      );
+                                      console.log('Item history for', node.id, ':', itemHistory);
+
                                       return (
-                                        <Grid item xs={12} key={node.product.id}>
+                                        <Grid item xs={12} key={node.id}>
                                           <Card
                                             variant="outlined"
                                             sx={{
@@ -387,6 +537,7 @@ const Orders = () => {
                                               },
                                             }}
                                           >
+                                            {/* Current Item */}
                                             <Grid
                                               container
                                               spacing={{ xs: 1, sm: 2 }}
@@ -407,6 +558,16 @@ const Orders = () => {
                                                 >
                                                   {node.product.category.name}
                                                 </Typography>
+                                                {itemHistory.length > 1 && (
+                                                  <Typography
+                                                    variant="caption"
+                                                    color="primary"
+                                                    sx={{ display: 'block', mt: 0.5 }}
+                                                  >
+                                                    {itemHistory.length - 1} previous version
+                                                    {itemHistory.length > 2 ? 's' : ''}
+                                                  </Typography>
+                                                )}
                                               </Grid>
                                               <Grid item xs={6} sm={2}>
                                                 <Typography
@@ -437,9 +598,55 @@ const Orders = () => {
                                                 >
                                                   Quantity
                                                 </Typography>
-                                                <Typography variant="body1" fontWeight={500}>
-                                                  {node.quantity}
-                                                </Typography>
+                                                <Box
+                                                  sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 1,
+                                                  }}
+                                                >
+                                                  <IconButton
+                                                    size="small"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      if (node.quantity > 1) {
+                                                        handleQuantityUpdate(
+                                                          order,
+                                                          node,
+                                                          node.quantity - 1
+                                                        );
+                                                      }
+                                                    }}
+                                                    disabled={
+                                                      !['PENDING', 'ORDER_PLACED'].includes(
+                                                        order.status
+                                                      )
+                                                    }
+                                                  >
+                                                    <RemoveIcon fontSize="small" />
+                                                  </IconButton>
+                                                  <Typography variant="body1" fontWeight={500}>
+                                                    {node.quantity}
+                                                  </Typography>
+                                                  <IconButton
+                                                    size="small"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      handleQuantityUpdate(
+                                                        order,
+                                                        node,
+                                                        node.quantity + 1
+                                                      );
+                                                    }}
+                                                    disabled={
+                                                      !['PENDING', 'ORDER_PLACED'].includes(
+                                                        order.status
+                                                      )
+                                                    }
+                                                  >
+                                                    <AddIcon fontSize="small" />
+                                                  </IconButton>
+                                                </Box>
                                               </Grid>
                                               <Grid item xs={12} sm={4}>
                                                 <Box
@@ -469,9 +676,99 @@ const Orders = () => {
                                                   >
                                                     ${node.orderAmount.toFixed(2)}
                                                   </Typography>
+                                                  {['PENDING', 'ORDER_PLACED'].includes(
+                                                    order.status
+                                                  ) && (
+                                                    <IconButton
+                                                      size="small"
+                                                      color="error"
+                                                      onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRemoveItem(order, node);
+                                                      }}
+                                                    >
+                                                      <DeleteIcon fontSize="small" />
+                                                    </IconButton>
+                                                  )}
                                                 </Box>
                                               </Grid>
                                             </Grid>
+
+                                            {/* Edit History Section */}
+                                            {itemHistory.length > 1 && (
+                                              <Box
+                                                sx={{
+                                                  mt: 2,
+                                                  pt: 2,
+                                                  borderTop: '1px solid',
+                                                  borderColor: 'divider',
+                                                }}
+                                              >
+                                                <Typography
+                                                  variant="subtitle2"
+                                                  color="text.secondary"
+                                                  fontWeight={600}
+                                                  gutterBottom
+                                                  sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 1,
+                                                  }}
+                                                >
+                                                  <HistoryIcon fontSize="small" />
+                                                  Previous Versions
+                                                </Typography>
+                                                <Box sx={{ pl: 2 }}>
+                                                  {itemHistory.slice(0, -1).map((item, index) => (
+                                                    <Box
+                                                      key={item.id}
+                                                      sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 2,
+                                                        color: 'text.secondary',
+                                                        bgcolor: 'grey.50',
+                                                        p: 1.5,
+                                                        borderRadius: 1,
+                                                        mb: 1,
+                                                      }}
+                                                    >
+                                                      <Typography
+                                                        variant="body2"
+                                                        sx={{
+                                                          textDecoration: 'line-through',
+                                                          color: 'text.secondary',
+                                                          minWidth: '120px',
+                                                          fontWeight: 500,
+                                                        }}
+                                                      >
+                                                        Version {itemHistory.length - index - 1}
+                                                      </Typography>
+                                                      <Box sx={{ display: 'flex', gap: 3 }}>
+                                                        <Typography
+                                                          variant="body2"
+                                                          sx={{
+                                                            textDecoration: 'line-through',
+                                                            color: 'text.secondary',
+                                                          }}
+                                                        >
+                                                          Quantity: {item.quantity}
+                                                        </Typography>
+                                                        <Typography
+                                                          variant="body2"
+                                                          sx={{
+                                                            textDecoration: 'line-through',
+                                                            color: 'text.secondary',
+                                                          }}
+                                                        >
+                                                          Amount: ${item.orderAmount.toFixed(2)}
+                                                        </Typography>
+                                                      </Box>
+                                                    </Box>
+                                                  ))}
+                                                </Box>
+                                              </Box>
+                                            )}
                                           </Card>
                                         </Grid>
                                       );

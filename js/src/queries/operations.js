@@ -96,8 +96,10 @@ export const GET_USER_ORDERS = `
       orderItems {
         edges {
           node {
+            id
             orderAmount
             quantity
+            updatedOrderitemsId
             product {
               id
               name
@@ -668,6 +670,54 @@ export const GET_ORDER_FILE = `
             product {
               name
               description
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const UPDATE_ORDER_ITEMS = `
+  mutation UpdateOrderItems(
+    $orderId: Int!
+    $orderItemUpdates: [OrderItemUpdateInput!]!
+    $totalAmount: Float!
+    $orderTotalAmount: Float!
+    $taxAmount: Float
+  ) {
+    updateOrderItems(
+      orderId: $orderId
+      orderItemUpdates: $orderItemUpdates
+      totalAmount: $totalAmount
+      orderTotalAmount: $orderTotalAmount
+      taxAmount: $taxAmount
+    ) {
+      id
+      totalAmount
+      orderTotalAmount
+      taxAmount
+      orderItems {
+        edges {
+          node {
+            id
+            quantity
+            orderAmount
+            product {
+              id
+              name
+              category {
+                name
+              }
+              inventoryItems {
+                edges {
+                  node {
+                    price
+                    measurement
+                    unit
+                  }
+                }
+              }
             }
           }
         }
