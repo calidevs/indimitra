@@ -106,7 +106,15 @@ const ProductManagement = () => {
 
   // Create product mutation
   const createProductMutation = useMutation({
-    mutationFn: (data) => fetchGraphQL(CREATE_PRODUCT, data),
+    mutationFn: (data) => {
+      console.log('Executing mutation with data:', data); // Add logging
+      return fetchGraphQL(CREATE_PRODUCT, {
+        name: data.name,
+        description: data.description,
+        categoryId: data.categoryId,
+        image: data.image,
+      });
+    },
     onSuccess: () => {
       refetch();
       handleCloseDialog();
@@ -189,11 +197,14 @@ const ProductManagement = () => {
     if (editingProduct) {
       updateProductMutation.mutate({ id: editingProduct.id, data: formData });
     } else {
-      // Convert categoryId to integer
+      // Convert categoryId to integer and ensure image is included
       const mutationData = {
-        ...formData,
+        name: formData.name,
+        description: formData.description,
         categoryId: parseInt(formData.categoryId, 10),
+        image: formData.image || null, // Ensure image is passed even if null
       };
+      console.log('Submitting product with data:', mutationData); // Add logging
       createProductMutation.mutate(mutationData);
     }
   };
@@ -336,10 +347,22 @@ const ProductManagement = () => {
         throw new Error('Failed to upload image');
       }
 
-      // Update form data with the S3 key
+      // Get view URL for the uploaded image
+      const viewUrlRes = await fetch(
+        `${baseUrl}/s3/generate-view-url?key=${encodeURIComponent(key)}`
+      );
+
+      if (!viewUrlRes.ok) {
+        throw new Error('Failed to get view URL');
+      }
+
+      const { view_url } = await viewUrlRes.json();
+
+      // Update form data with the S3 key and view URL
       setFormData((prev) => ({
         ...prev,
         image: key,
+        imageUrl: view_url, // Store the view URL for preview
       }));
 
       setSnackbar({
@@ -567,7 +590,10 @@ const ProductManagement = () => {
                 {formData.image && (
                   <Box sx={{ mt: 1 }}>
                     <img
-                      src={`${baseUrl}/s3/generate-view-url?key=${encodeURIComponent(formData.image)}`}
+                      src={
+                        formData.imageUrl ||
+                        `${baseUrl}/s3/generate-view-url?key=${encodeURIComponent(formData.image)}`
+                      }
                       alt="Product preview"
                       style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'contain' }}
                     />

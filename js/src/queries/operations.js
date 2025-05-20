@@ -602,8 +602,8 @@ export const GET_PRODUCTS = `
 `;
 
 export const CREATE_PRODUCT = `
-  mutation CreateProduct($name: String!, $description: String!, $categoryId: Int!) {
-    createProduct(name: $name, description: $description, categoryId: $categoryId) {
+  mutation CreateProduct($name: String!, $description: String!, $categoryId: Int!, $image: String) {
+    createProduct(name: $name, description: $description, categoryId: $categoryId, image: $image) {
       id
       name
       description

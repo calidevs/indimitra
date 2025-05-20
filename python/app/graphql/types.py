@@ -16,7 +16,10 @@ class User:
 # Generate a GraphQL type for ProductModel
 @mapper.type(models.ProductModel)
 class Product:
-    pass
+    @strawberry.field
+    def image(self) -> Optional[str]:
+        """Get the product image URL"""
+        return self.image if hasattr(self, 'image') else None
 
 # Generate a GraphQL type for CategoryModel
 @mapper.type(models.CategoryModel)

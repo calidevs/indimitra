@@ -16,11 +16,12 @@ class ProductMutation:
         self,
         name: str,
         description: str,
-        category_id: int,
+        categoryId: int,
         image: Optional[str] = None
     ) -> Product:
         """Create a basic product without price (price is set in inventory)"""
-        return create_product(name, description, category_id, image)
+        print(f"Creating product with image: {image}")  # Add logging
+        return create_product(name, description, categoryId, image)
 
     @strawberry.mutation
     def delete_product(self, product_id: int) -> bool:
