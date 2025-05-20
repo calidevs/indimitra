@@ -114,12 +114,13 @@ const calculateOrderTotal = (order) => {
 
 // Update the mutation with the correct OrderItemUpdateInput structure
 const UPDATE_ORDER_ITEMS = `
-  mutation UpdateOrderItems($orderId: Int!, $orderItemUpdates: [OrderItemUpdateInput!]!, $totalAmount: Float!, $orderTotalAmount: Float!) {
+  mutation UpdateOrderItems($orderId: Int!, $orderItemUpdates: [OrderItemUpdateInput!]!, $totalAmount: Float!, $orderTotalAmount: Float!, $taxAmount: Float!) {
     updateOrderItems(
       orderId: $orderId,
       orderItemUpdates: $orderItemUpdates,
       totalAmount: $totalAmount,
-      orderTotalAmount: $orderTotalAmount
+      orderTotalAmount: $orderTotalAmount,
+      taxAmount: $taxAmount
     ) {
       id
       orderItems {
@@ -135,6 +136,7 @@ const UPDATE_ORDER_ITEMS = `
       }
       totalAmount
       orderTotalAmount
+      taxAmount
     }
   }
 `;
@@ -260,7 +262,7 @@ const StoreOrders = () => {
     },
   });
 
-  // Update the mutation function with the correct field name
+  // Update the mutation function to include taxAmount
   const updateOrderItemMutation = useMutation({
     mutationFn: async (variables) => {
       const { orderId, itemId, quantity, price } = variables;
@@ -268,6 +270,23 @@ const StoreOrders = () => {
 
       // Calculate the quantity change from the current quantity
       const quantityChange = quantity - selectedItem.quantity;
+
+      // Get the current order to access existing fees
+      const currentOrder = ordersData.find((order) => order.id === orderId);
+      if (!currentOrder) {
+        throw new Error('Order not found');
+      }
+
+      // Get store's tax percentage from user profile
+      const storeTaxPercentage =
+        profileData?.getUserProfile?.stores?.edges?.[0]?.node?.taxPercentage || 0;
+
+      // Calculate tax based on the store's tax percentage
+      const taxAmount = (orderAmount * storeTaxPercentage) / 100;
+
+      // Calculate the final total including all fees
+      const finalTotal =
+        orderAmount + taxAmount + (currentOrder.deliveryFee || 0) + (currentOrder.tipAmount || 0);
 
       return await graphqlService(UPDATE_ORDER_ITEMS, {
         orderId: parseInt(orderId),
@@ -278,7 +297,8 @@ const StoreOrders = () => {
           },
         ],
         totalAmount: orderAmount,
-        orderTotalAmount: orderAmount,
+        orderTotalAmount: finalTotal,
+        taxAmount: taxAmount,
       });
     },
     onSuccess: () => {
@@ -645,12 +665,11 @@ const StoreOrders = () => {
 
   const handleUpdateItem = async () => {
     try {
-      const price = selectedItem.product?.inventoryItems?.edges[0]?.node?.price || 0;
       await updateOrderItemMutation.mutateAsync({
         orderId: selectedItem.orderId,
         itemId: selectedItem.id,
         quantity: newQuantity,
-        price: price,
+        price: selectedItem.product?.inventoryItems?.edges[0]?.node?.price || 0,
       });
     } catch (err) {
       setError(err.message);
@@ -1044,7 +1063,7 @@ const StoreOrders = () => {
                                 <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1 }}>
                                   <Grid container spacing={1}>
                                     <Grid item xs={6}>
-                                      <Typography>Total Amount:</Typography>
+                                      <Typography>Subtotal:</Typography>
                                     </Grid>
                                     <Grid item xs={6} sx={{ textAlign: 'right' }}>
                                       <Typography>{formatCurrency(order.totalAmount)}</Typography>
@@ -1076,7 +1095,9 @@ const StoreOrders = () => {
                                     </Grid>
 
                                     <Grid item xs={6}>
-                                      <Typography sx={{ fontWeight: 'bold' }}>Subtotal:</Typography>
+                                      <Typography sx={{ fontWeight: 'bold' }}>
+                                        Total Amount:
+                                      </Typography>
                                     </Grid>
                                     <Grid item xs={6} sx={{ textAlign: 'right' }}>
                                       <Typography sx={{ fontWeight: 'bold' }}>

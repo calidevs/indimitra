@@ -252,6 +252,7 @@ export const GET_USER_PROFILE = `
           node {
             id
             name
+            taxPercentage
           }
         }
       }
