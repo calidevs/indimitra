@@ -42,6 +42,7 @@ import {
   Sort as SortIcon,
   Upload as UploadIcon,
   Visibility as VisibilityIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/useStore';
 import { useStore } from '@/store/useStore';
@@ -72,6 +73,87 @@ const ORDER_STATUSES = [
   { value: 'CANCELLED', label: 'Cancelled', color: 'error' },
 ];
 
+const calculateOrderTotal = (order) => {
+  console.log('Calculating total for order:', order);
+
+  if (!order) {
+    console.log('No order data provided');
+    return 0;
+  }
+
+  // Log all the relevant amounts
+  console.log('Order amounts:', {
+    orderTotalAmount: order.orderTotalAmount,
+    totalAmount: order.totalAmount,
+    deliveryFee: order.deliveryFee,
+    tipAmount: order.tipAmount,
+    taxAmount: order.taxAmount,
+  });
+
+  // First try to use totalAmount if it exists
+  if (order.totalAmount) {
+    console.log('Using totalAmount:', order.totalAmount);
+    return order.totalAmount;
+  }
+
+  // If totalAmount is not available, calculate from order items
+  if (order.orderItems?.edges?.length > 0) {
+    const itemsTotal = order.orderItems.edges.reduce((sum, { node }) => {
+      const amount = node.orderAmount || 0;
+      console.log('Adding item amount:', amount);
+      return sum + amount;
+    }, 0);
+
+    console.log('Calculated total from items:', itemsTotal);
+    return itemsTotal;
+  }
+
+  console.log('No valid total found, returning 0');
+  return 0;
+};
+
+// Update the mutation with the correct OrderItemUpdateInput structure
+const UPDATE_ORDER_ITEMS = `
+  mutation UpdateOrderItems($orderId: Int!, $orderItemUpdates: [OrderItemUpdateInput!]!, $totalAmount: Float!, $orderTotalAmount: Float!) {
+    updateOrderItems(
+      orderId: $orderId,
+      orderItemUpdates: $orderItemUpdates,
+      totalAmount: $totalAmount,
+      orderTotalAmount: $orderTotalAmount
+    ) {
+      id
+      orderItems {
+        edges {
+          node {
+            id
+            quantity
+            orderAmount
+            productId
+            updatedOrderitemsId
+          }
+        }
+      }
+      totalAmount
+      orderTotalAmount
+    }
+  }
+`;
+
+const DELETE_ORDER_ITEMS = `
+  mutation DeleteOrderItems($orderId: Int!, $orderItemId: Int!) {
+    deleteOrderItems(orderId: $orderId, orderItemId: $orderItemId) {
+      id
+      orderItems {
+        edges {
+          node {
+            id
+          }
+        }
+      }
+    }
+  }
+`;
+
 const StoreOrders = () => {
   const { userProfile } = useAuthStore();
   const [cognitoId, setCognitoId] = useState('');
@@ -92,6 +174,10 @@ const StoreOrders = () => {
   const [driverId, setDriverId] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  const [editItemDialogOpen, setEditItemDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [newQuantity, setNewQuantity] = useState(1);
+  const [deleteItemDialogOpen, setDeleteItemDialogOpen] = useState(false);
 
   // Fetch Cognito ID on component mount
   useEffect(() => {
@@ -168,6 +254,56 @@ const StoreOrders = () => {
       setDeliveryInstructions('');
       setDriverId('');
       setScheduleTime('');
+    },
+    onError: (error) => {
+      setError(error.message);
+    },
+  });
+
+  // Update the mutation function with the correct field name
+  const updateOrderItemMutation = useMutation({
+    mutationFn: async (variables) => {
+      const { orderId, itemId, quantity, price } = variables;
+      const orderAmount = quantity * price;
+
+      // Calculate the quantity change from the current quantity
+      const quantityChange = quantity - selectedItem.quantity;
+
+      return await graphqlService(UPDATE_ORDER_ITEMS, {
+        orderId: parseInt(orderId),
+        orderItemUpdates: [
+          {
+            orderItemId: parseInt(itemId),
+            quantityChange: quantityChange,
+          },
+        ],
+        totalAmount: orderAmount,
+        orderTotalAmount: orderAmount,
+      });
+    },
+    onSuccess: () => {
+      refetchOrders();
+      setEditItemDialogOpen(false);
+      setSelectedItem(null);
+      setNewQuantity(1);
+    },
+    onError: (error) => {
+      setError(error.message);
+    },
+  });
+
+  const deleteOrderItemMutation = useMutation({
+    mutationFn: async (variables) => {
+      const { orderId, itemId } = variables;
+      return await graphqlService(DELETE_ORDER_ITEMS, {
+        orderId: parseInt(orderId),
+        orderItemId: parseInt(itemId),
+      });
+    },
+    onSuccess: () => {
+      refetchOrders();
+      setDeleteItemDialogOpen(false);
+      setSelectedItem(null);
     },
     onError: (error) => {
       setError(error.message);
@@ -446,6 +582,92 @@ const StoreOrders = () => {
     return filteredOrders.slice(start, start + rowsPerPage);
   }, [filteredOrders, page, rowsPerPage]);
 
+  // Update the getLatestOrderItem function to handle the current data structure
+  const getLatestOrderItem = (orderItems) => {
+    console.log('getLatestOrderItem input:', orderItems);
+
+    if (!orderItems?.edges?.length) {
+      console.log('No order items found');
+      return null;
+    }
+
+    // Group items by product ID and get the latest quantity for each product
+    const productMap = new Map();
+
+    orderItems.edges.forEach(({ node }) => {
+      const productId = node.productId;
+      if (!productMap.has(productId) || node.id > productMap.get(productId).id) {
+        productMap.set(productId, node);
+      }
+    });
+
+    const latestItems = Array.from(productMap.values());
+    console.log('Latest items found:', latestItems);
+    return latestItems;
+  };
+
+  // Update the buildItemHistory function to show quantity changes
+  const buildItemHistory = (currentItem, allItems) => {
+    console.log('Building history for item:', currentItem);
+    console.log('All available items:', allItems);
+
+    if (!currentItem || !allItems) {
+      console.log('Missing required data for history building');
+      return [currentItem];
+    }
+
+    // Get all items for the same product, sorted by ID (which represents chronological order)
+    const productHistory = allItems
+      .map(({ node }) => node)
+      .filter((item) => item.productId === currentItem.productId)
+      .sort((a, b) => a.id - b.id);
+
+    console.log('Product history:', productHistory);
+    return productHistory;
+  };
+
+  // Add a helper function to check if order is editable
+  const isOrderEditable = (status) => {
+    return ['PENDING', 'ORDER_PLACED', 'ACCEPTED'].includes(status);
+  };
+
+  // Update the handler functions to include order ID
+  const handleEditItem = (item, orderId) => {
+    setSelectedItem({ ...item, orderId });
+    setNewQuantity(item.quantity);
+    setEditItemDialogOpen(true);
+  };
+
+  const handleDeleteItem = (item, orderId) => {
+    setSelectedItem({ ...item, orderId });
+    setDeleteItemDialogOpen(true);
+  };
+
+  const handleUpdateItem = async () => {
+    try {
+      const price = selectedItem.product?.inventoryItems?.edges[0]?.node?.price || 0;
+      await updateOrderItemMutation.mutateAsync({
+        orderId: selectedItem.orderId,
+        itemId: selectedItem.id,
+        quantity: newQuantity,
+        price: price,
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleDeleteItemConfirm = async () => {
+    try {
+      await deleteOrderItemMutation.mutateAsync({
+        orderId: selectedItem.orderId,
+        itemId: selectedItem.id,
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
   if (profileLoading || ordersLoading || driversLoading) {
     return (
       <Layout>
@@ -584,7 +806,7 @@ const StoreOrders = () => {
                     <TableRow>
                       <TableCell>{order.id}</TableCell>
                       <TableCell>{order.deliveryInstructions || 'N/A'}</TableCell>
-                      <TableCell>{formatCurrency(order.totalAmount)}</TableCell>
+                      <TableCell>{formatCurrency(calculateOrderTotal(order))}</TableCell>
                       <TableCell>
                         <Chip
                           label={
@@ -600,7 +822,7 @@ const StoreOrders = () => {
                           <IconButton
                             size="small"
                             onClick={() => handleEditClick(order)}
-                            disabled={order.status === 'CANCELLED' || order.status === 'DELIVERED'}
+                            disabled={!isOrderEditable(order.status)}
                           >
                             <EditIcon />
                           </IconButton>
@@ -609,7 +831,7 @@ const StoreOrders = () => {
                           <IconButton
                             size="small"
                             onClick={() => handleCancelClick(order)}
-                            disabled={order.status === 'CANCELLED' || order.status === 'DELIVERED'}
+                            disabled={!isOrderEditable(order.status)}
                           >
                             <CancelIcon />
                           </IconButton>
@@ -618,7 +840,7 @@ const StoreOrders = () => {
                           <IconButton
                             size="small"
                             onClick={() => handleUpload(order)}
-                            disabled={order.status === 'CANCELLED' || order.status === 'DELIVERED'}
+                            disabled={!isOrderEditable(order.status)}
                           >
                             <UploadIcon />
                           </IconButton>
@@ -644,39 +866,240 @@ const StoreOrders = () => {
                       <TableRow>
                         <TableCell colSpan={6}>
                           <Box sx={{ p: 2 }}>
-                            <Grid container spacing={2} alignItems="center">
-                              <Grid item xs={6}>
-                                <Typography> Email: {order?.creator?.email}</Typography>
-                              </Grid>
-                              <Grid item xs={6}>
-                                <Typography>Phone: {order?.creator?.mobile}</Typography>
-                              </Grid>
+                            <Grid container spacing={2}>
+                              {/* Customer Information */}
                               <Grid item xs={12}>
-                                <Typography>Delivery Address: {order?.address?.address}</Typography>
+                                <Typography
+                                  variant="subtitle1"
+                                  gutterBottom
+                                  sx={{ fontWeight: 'bold' }}
+                                >
+                                  Customer Information
+                                </Typography>
+                                <Grid container spacing={2}>
+                                  <Grid item xs={12} md={6}>
+                                    <Typography>Email: {order?.creator?.email || 'N/A'}</Typography>
+                                  </Grid>
+                                  <Grid item xs={12} md={6}>
+                                    <Typography>
+                                      Phone: {order?.creator?.mobile || 'N/A'}
+                                    </Typography>
+                                  </Grid>
+                                  <Grid item xs={12}>
+                                    <Typography>
+                                      Delivery Address: {order?.address?.address || 'N/A'}
+                                    </Typography>
+                                  </Grid>
+                                </Grid>
                               </Grid>
-                              <Grid item xs={12} sx={{ marginTop: 2 }}>
-                                <Typography variant="subtitle2" gutterBottom>
-                                  Order Items:
+
+                              {/* Order Items */}
+                              <Grid item xs={12}>
+                                <Typography
+                                  variant="subtitle1"
+                                  gutterBottom
+                                  sx={{ fontWeight: 'bold' }}
+                                >
+                                  Order Items
                                 </Typography>
                                 <Table size="small">
                                   <TableHead>
                                     <TableRow>
                                       <TableCell>Product</TableCell>
                                       <TableCell>Quantity</TableCell>
+                                      <TableCell>Price</TableCell>
                                       <TableCell>Total</TableCell>
+                                      <TableCell>Actions</TableCell>
                                     </TableRow>
                                   </TableHead>
                                   <TableBody>
-                                    {order.orderItems.edges.map(({ node: item }) => (
-                                      <TableRow key={item.id}>
-                                        <TableCell>{item.product.name}</TableCell>
-                                        <TableCell>{item.quantity}</TableCell>
-                                        <TableCell>${item.orderAmount}</TableCell>
+                                    {order.orderItems?.edges?.length > 0 ? (
+                                      getLatestOrderItem(order.orderItems)?.map((node) => {
+                                        console.log('Processing order item:', node);
+                                        const itemHistory = buildItemHistory(
+                                          node,
+                                          order.orderItems.edges
+                                        );
+                                        const price =
+                                          node.product?.inventoryItems?.edges[0]?.node?.price || 0;
+
+                                        return (
+                                          <React.Fragment key={node.id}>
+                                            <TableRow>
+                                              <TableCell>{node.product?.name || 'N/A'}</TableCell>
+                                              <TableCell>{node.quantity}</TableCell>
+                                              <TableCell>{formatCurrency(price)}</TableCell>
+                                              <TableCell>
+                                                {formatCurrency(node.orderAmount)}
+                                              </TableCell>
+                                              <TableCell>
+                                                {isOrderEditable(order.status) && (
+                                                  <>
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() => handleEditItem(node, order.id)}
+                                                      sx={{ mr: 1 }}
+                                                    >
+                                                      <EditIcon fontSize="small" />
+                                                    </IconButton>
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() =>
+                                                        handleDeleteItem(node, order.id)
+                                                      }
+                                                      color="error"
+                                                    >
+                                                      <DeleteIcon fontSize="small" />
+                                                    </IconButton>
+                                                  </>
+                                                )}
+                                              </TableCell>
+                                            </TableRow>
+                                            {itemHistory.length > 1 && (
+                                              <TableRow>
+                                                <TableCell colSpan={5}>
+                                                  <Box sx={{ pl: 2, py: 1 }}>
+                                                    <Typography
+                                                      variant="caption"
+                                                      color="text.secondary"
+                                                      sx={{ display: 'block', mb: 1 }}
+                                                    >
+                                                      Order Change History ({itemHistory.length - 1}{' '}
+                                                      changes)
+                                                    </Typography>
+                                                    {itemHistory.slice(0, -1).map((item, index) => (
+                                                      <Box
+                                                        key={item.id}
+                                                        sx={{
+                                                          display: 'flex',
+                                                          alignItems: 'center',
+                                                          gap: 2,
+                                                          color: 'text.secondary',
+                                                          bgcolor: 'grey.50',
+                                                          p: 1,
+                                                          borderRadius: 1,
+                                                          mb: 1,
+                                                        }}
+                                                      >
+                                                        <Typography
+                                                          variant="caption"
+                                                          sx={{
+                                                            textDecoration: 'line-through',
+                                                            color: 'text.secondary',
+                                                            minWidth: '100px',
+                                                          }}
+                                                        >
+                                                          Change {index + 1}
+                                                        </Typography>
+                                                        <Box sx={{ display: 'flex', gap: 3 }}>
+                                                          <Typography
+                                                            variant="caption"
+                                                            sx={{
+                                                              textDecoration: 'line-through',
+                                                              color: 'text.secondary',
+                                                            }}
+                                                          >
+                                                            Quantity: {item.quantity}
+                                                          </Typography>
+                                                          <Typography
+                                                            variant="caption"
+                                                            sx={{
+                                                              textDecoration: 'line-through',
+                                                              color: 'text.secondary',
+                                                            }}
+                                                          >
+                                                            Amount:{' '}
+                                                            {formatCurrency(item.orderAmount)}
+                                                          </Typography>
+                                                        </Box>
+                                                      </Box>
+                                                    ))}
+                                                  </Box>
+                                                </TableCell>
+                                              </TableRow>
+                                            )}
+                                          </React.Fragment>
+                                        );
+                                      })
+                                    ) : (
+                                      <TableRow>
+                                        <TableCell colSpan={5} align="center">
+                                          No items found for this order
+                                        </TableCell>
                                       </TableRow>
-                                    ))}
+                                    )}
                                   </TableBody>
                                 </Table>
                               </Grid>
+
+                              {/* Order Summary */}
+                              <Grid item xs={12}>
+                                <Typography
+                                  variant="subtitle1"
+                                  gutterBottom
+                                  sx={{ fontWeight: 'bold' }}
+                                >
+                                  Order Summary
+                                </Typography>
+                                <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1 }}>
+                                  <Grid container spacing={1}>
+                                    <Grid item xs={6}>
+                                      <Typography>Total Amount:</Typography>
+                                    </Grid>
+                                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
+                                      <Typography>{formatCurrency(order.totalAmount)}</Typography>
+                                    </Grid>
+
+                                    <Grid item xs={6}>
+                                      <Typography>Delivery Fee:</Typography>
+                                    </Grid>
+                                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
+                                      <Typography>{formatCurrency(order.deliveryFee)}</Typography>
+                                    </Grid>
+
+                                    <Grid item xs={6}>
+                                      <Typography>Tax:</Typography>
+                                    </Grid>
+                                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
+                                      <Typography>{formatCurrency(order.taxAmount)}</Typography>
+                                    </Grid>
+
+                                    <Grid item xs={6}>
+                                      <Typography>Tip:</Typography>
+                                    </Grid>
+                                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
+                                      <Typography>{formatCurrency(order.tipAmount)}</Typography>
+                                    </Grid>
+
+                                    <Grid item xs={12}>
+                                      <Divider sx={{ my: 1 }} />
+                                    </Grid>
+
+                                    <Grid item xs={6}>
+                                      <Typography sx={{ fontWeight: 'bold' }}>Subtotal:</Typography>
+                                    </Grid>
+                                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
+                                      <Typography sx={{ fontWeight: 'bold' }}>
+                                        {formatCurrency(order.orderTotalAmount)}
+                                      </Typography>
+                                    </Grid>
+                                  </Grid>
+                                </Box>
+                              </Grid>
+
+                              {/* Delivery Instructions */}
+                              {order.deliveryInstructions && (
+                                <Grid item xs={12}>
+                                  <Typography
+                                    variant="subtitle1"
+                                    gutterBottom
+                                    sx={{ fontWeight: 'bold' }}
+                                  >
+                                    Delivery Instructions
+                                  </Typography>
+                                  <Typography>{order.deliveryInstructions}</Typography>
+                                </Grid>
+                              )}
                             </Grid>
                           </Box>
                         </TableCell>
@@ -808,6 +1231,78 @@ const StoreOrders = () => {
               disabled={!cancelMessage.trim()}
             >
               Yes, Cancel Order
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Edit Item Dialog */}
+        <Dialog
+          open={editItemDialogOpen}
+          onClose={() => setEditItemDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Edit Order Item</DialogTitle>
+          <DialogContent>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1">
+                  Product: {selectedItem?.product?.name || 'N/A'}
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Quantity"
+                  type="number"
+                  value={newQuantity}
+                  onChange={(e) => setNewQuantity(parseInt(e.target.value) || 1)}
+                  inputProps={{ min: 1 }}
+                />
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditItemDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleUpdateItem}
+              variant="contained"
+              color="primary"
+              disabled={updateOrderItemMutation.isLoading}
+            >
+              {updateOrderItemMutation.isLoading ? 'Updating...' : 'Update'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Delete Item Dialog */}
+        <Dialog
+          open={deleteItemDialogOpen}
+          onClose={() => setDeleteItemDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>Delete Order Item</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to delete this item from the order? This action cannot be
+              undone.
+            </Typography>
+            <Typography variant="subtitle1" sx={{ mt: 2 }}>
+              Product: {selectedItem?.product?.name || 'N/A'}
+            </Typography>
+            <Typography>Quantity: {selectedItem?.quantity}</Typography>
+            <Typography>Amount: {formatCurrency(selectedItem?.orderAmount)}</Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDeleteItemDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleDeleteItemConfirm}
+              variant="contained"
+              color="error"
+              disabled={deleteOrderItemMutation.isLoading}
+            >
+              {deleteOrderItemMutation.isLoading ? 'Deleting...' : 'Delete'}
             </Button>
           </DialogActions>
         </Dialog>

@@ -274,6 +274,10 @@ export const GET_ORDERS_BY_STORE = `
       status
       storeId
       totalAmount
+      orderTotalAmount
+      deliveryFee
+      tipAmount
+      taxAmount
       address {
         address
       }
@@ -293,10 +297,20 @@ export const GET_ORDERS_BY_STORE = `
             orderId
             productId
             quantity
+            updatedOrderitemsId
             product {
               id
               name
               description
+              inventoryItems {
+                edges {
+                  node {
+                    price
+                    measurement
+                    unit
+                  }
+                }
+              }
             }
           }
         }
