@@ -264,8 +264,9 @@ const Orders = () => {
     // Calculate new totals
     const itemAmountChange = price * quantityChange;
     const newTotalAmount = order.totalAmount + itemAmountChange;
-    const newOrderTotalAmount = order.orderTotalAmount + itemAmountChange;
-    const newTaxAmount = order.taxAmount ? order.taxAmount + itemAmountChange * 0.1 : 0;
+    const newTaxAmount = newTotalAmount * 0.1; // 10% tax
+    const newOrderTotalAmount =
+      newTotalAmount + newTaxAmount + (order.deliveryFee || 0) + (order.tipAmount || 0);
 
     const mutationVariables = {
       orderId: parseInt(order.id, 10),
