@@ -325,15 +325,10 @@ const Orders = () => {
       itemMap.set(node.id, node);
     });
 
-    // Find items that are not referenced by any other item's updatedOrderitemsId
+    // Find items that have updatedOrderitemsId as null (these are the latest versions)
     const latestItems = orderItems.edges
       .map(({ node }) => node)
-      .filter(
-        (item) =>
-          !Array.from(itemMap.values()).some(
-            (otherItem) => otherItem.updatedOrderitemsId === item.id
-          )
-      );
+      .filter((item) => item.updatedOrderitemsId === null);
 
     console.log('Latest items:', latestItems);
     return latestItems;
@@ -341,19 +336,36 @@ const Orders = () => {
 
   // Add a helper function to build item history
   const buildItemHistory = (currentItem, allItems) => {
-    const history = [];
-    let item = currentItem;
-    const itemMap = new Map(allItems.map(({ node }) => [node.id, node]));
+    console.log('Building history for current item:', currentItem);
 
-    // Follow the chain of updatedOrderitemsId
-    while (item) {
-      console.log('Processing item in history:', item);
-      history.unshift(item);
-      item = item.updatedOrderitemsId ? itemMap.get(item.updatedOrderitemsId) : null;
+    // Create a map of all items for quick lookup
+    const itemMap = new Map();
+    allItems.forEach(({ node }) => {
+      itemMap.set(node.id, node);
+    });
+
+    // Start with the current item
+    const history = [currentItem];
+    let currentId = currentItem.id;
+
+    // Follow the chain of updates
+    while (true) {
+      // Find the item that references the current item
+      const nextItem = Array.from(itemMap.values()).find(
+        (item) => item.updatedOrderitemsId === currentId
+      );
+
+      if (!nextItem) break;
+
+      console.log('Found previous version:', nextItem);
+      history.push(nextItem);
+      currentId = nextItem.id;
     }
 
-    console.log('Built history:', history);
-    return history;
+    // Reverse the history to show oldest to newest
+    const orderedHistory = history.reverse();
+    console.log('Complete history array:', orderedHistory);
+    return orderedHistory;
   };
 
   // Show loading while fetching profile or orders
@@ -716,56 +728,59 @@ const Orders = () => {
                                                   }}
                                                 >
                                                   <HistoryIcon fontSize="small" />
-                                                  Previous Versions
+                                                  Previous Versions ({itemHistory.length - 1})
                                                 </Typography>
                                                 <Box sx={{ pl: 2 }}>
-                                                  {itemHistory.slice(0, -1).map((item, index) => (
-                                                    <Box
-                                                      key={item.id}
-                                                      sx={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: 2,
-                                                        color: 'text.secondary',
-                                                        bgcolor: 'grey.50',
-                                                        p: 1.5,
-                                                        borderRadius: 1,
-                                                        mb: 1,
-                                                      }}
-                                                    >
-                                                      <Typography
-                                                        variant="body2"
+                                                  {itemHistory.slice(0, -1).map((item, index) => {
+                                                    console.log('Rendering history item:', item);
+                                                    return (
+                                                      <Box
+                                                        key={item.id}
                                                         sx={{
-                                                          textDecoration: 'line-through',
+                                                          display: 'flex',
+                                                          alignItems: 'center',
+                                                          gap: 2,
                                                           color: 'text.secondary',
-                                                          minWidth: '120px',
-                                                          fontWeight: 500,
+                                                          bgcolor: 'grey.50',
+                                                          p: 1.5,
+                                                          borderRadius: 1,
+                                                          mb: 1,
                                                         }}
                                                       >
-                                                        Version {itemHistory.length - index - 1}
-                                                      </Typography>
-                                                      <Box sx={{ display: 'flex', gap: 3 }}>
                                                         <Typography
                                                           variant="body2"
                                                           sx={{
                                                             textDecoration: 'line-through',
                                                             color: 'text.secondary',
+                                                            minWidth: '120px',
+                                                            fontWeight: 500,
                                                           }}
                                                         >
-                                                          Quantity: {item.quantity}
+                                                          Version {index + 1}
                                                         </Typography>
-                                                        <Typography
-                                                          variant="body2"
-                                                          sx={{
-                                                            textDecoration: 'line-through',
-                                                            color: 'text.secondary',
-                                                          }}
-                                                        >
-                                                          Amount: ${item.orderAmount.toFixed(2)}
-                                                        </Typography>
+                                                        <Box sx={{ display: 'flex', gap: 3 }}>
+                                                          <Typography
+                                                            variant="body2"
+                                                            sx={{
+                                                              textDecoration: 'line-through',
+                                                              color: 'text.secondary',
+                                                            }}
+                                                          >
+                                                            Quantity: {item.quantity}
+                                                          </Typography>
+                                                          <Typography
+                                                            variant="body2"
+                                                            sx={{
+                                                              textDecoration: 'line-through',
+                                                              color: 'text.secondary',
+                                                            }}
+                                                          >
+                                                            Amount: ${item.orderAmount.toFixed(2)}
+                                                          </Typography>
+                                                        </Box>
                                                       </Box>
-                                                    </Box>
-                                                  ))}
+                                                    );
+                                                  })}
                                                 </Box>
                                               </Box>
                                             )}
