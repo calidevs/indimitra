@@ -68,6 +68,14 @@ const Orders = () => {
   const [editingQuantity, setEditingQuantity] = useState(null);
   const [tempQuantity, setTempQuantity] = useState(null);
 
+  // Add state for confirmation dialog
+  const [confirmDialog, setConfirmDialog] = useState({
+    open: false,
+    title: '',
+    message: '',
+    onConfirm: null,
+  });
+
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -264,9 +272,13 @@ const Orders = () => {
     // Calculate new totals
     const itemAmountChange = price * quantityChange;
     const newTotalAmount = order.totalAmount + itemAmountChange;
-    const newTaxAmount = newTotalAmount * 0.1; // 10% tax
+
+    // If newTotalAmount is 0 (all items removed), set all amounts to 0
+    const newTaxAmount = newTotalAmount === 0 ? 0 : newTotalAmount * 0.1;
     const newOrderTotalAmount =
-      newTotalAmount + newTaxAmount + (order.deliveryFee || 0) + (order.tipAmount || 0);
+      newTotalAmount === 0
+        ? 0
+        : newTotalAmount + newTaxAmount + (order.deliveryFee || 0) + (order.tipAmount || 0);
 
     const mutationVariables = {
       orderId: parseInt(order.id, 10),
@@ -287,40 +299,15 @@ const Orders = () => {
   };
 
   const handleRemoveItem = (order, item) => {
-    console.log('handleRemoveItem called with:', {
-      order,
-      item,
+    setConfirmDialog({
+      open: true,
+      title: 'Remove Item',
+      message: 'Are you sure you want to remove this item from the order?',
+      onConfirm: () => {
+        handleQuantityUpdate(order, item, 0);
+        setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+      },
     });
-
-    if (!item || !item.id) {
-      console.error('Invalid item or missing item ID:', item);
-      return;
-    }
-
-    const price = item.product.inventoryItems?.edges[0]?.node?.price || 0;
-    const itemAmount = price * item.quantity;
-
-    // Calculate new totals
-    const newTotalAmount = order.totalAmount - itemAmount;
-    const newOrderTotalAmount = order.orderTotalAmount - itemAmount;
-    const newTaxAmount = order.taxAmount ? order.taxAmount - itemAmount * 0.1 : 0;
-
-    const mutationVariables = {
-      orderId: parseInt(order.id, 10),
-      orderItemUpdates: [
-        {
-          orderItemId: parseInt(item.id, 10),
-          quantityChange: -item.quantity,
-        },
-      ],
-      totalAmount: newTotalAmount,
-      orderTotalAmount: newOrderTotalAmount,
-      taxAmount: newTaxAmount,
-    };
-
-    console.log('Sending mutation with variables:', mutationVariables);
-
-    updateOrderItemsMutation.mutate(mutationVariables);
   };
 
   // Update the helper function to get the latest version of an order item
@@ -376,7 +363,7 @@ const Orders = () => {
     return orderedHistory;
   };
 
-  // Add handlers for quantity editing
+  // Update the handlers for quantity editing
   const handleEditQuantity = (item) => {
     setEditingQuantity(item.id);
     setTempQuantity(item.quantity);
@@ -388,11 +375,24 @@ const Orders = () => {
   };
 
   const handleSubmitQuantity = (order, item) => {
-    if (tempQuantity > 0) {
+    if (tempQuantity === 0) {
+      // Show confirmation dialog for removing item
+      setConfirmDialog({
+        open: true,
+        title: 'Remove Item',
+        message: 'Are you sure you want to remove this item from the order?',
+        onConfirm: () => {
+          handleQuantityUpdate(order, item, 0);
+          setEditingQuantity(null);
+          setTempQuantity(null);
+          setConfirmDialog({ open: false, title: '', message: '', onConfirm: null });
+        },
+      });
+    } else if (tempQuantity > 0) {
       handleQuantityUpdate(order, item, tempQuantity);
+      setEditingQuantity(null);
+      setTempQuantity(null);
     }
-    setEditingQuantity(null);
-    setTempQuantity(null);
   };
 
   // Show loading while fetching profile or orders
@@ -654,7 +654,7 @@ const Orders = () => {
                                                           parseInt(e.target.value) || 0
                                                         )
                                                       }
-                                                      inputProps={{ min: 1 }}
+                                                      inputProps={{ min: 0 }}
                                                       sx={{ width: '80px' }}
                                                     />
                                                     <Box sx={{ display: 'flex', gap: 0.5 }}>
@@ -664,7 +664,9 @@ const Orders = () => {
                                                         onClick={() =>
                                                           handleSubmitQuantity(order, node)
                                                         }
-                                                        disabled={!tempQuantity || tempQuantity < 1}
+                                                        disabled={
+                                                          tempQuantity === null || tempQuantity < 0
+                                                        }
                                                       >
                                                         <CheckIcon fontSize="small" />
                                                       </IconButton>
@@ -727,7 +729,12 @@ const Orders = () => {
                                                     fontWeight={700}
                                                     sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
                                                   >
-                                                    ${node.orderAmount.toFixed(2)}
+                                                    $
+                                                    {(
+                                                      node.quantity *
+                                                      (node.product.inventoryItems?.edges[0]?.node
+                                                        ?.price || 0)
+                                                    ).toFixed(2)}
                                                   </Typography>
                                                   {['PENDING', 'ORDER_PLACED'].includes(
                                                     order.status
@@ -769,7 +776,9 @@ const Orders = () => {
                                                   }}
                                                 >
                                                   <HistoryIcon fontSize="small" />
-                                                  Previous Versions ({itemHistory.length - 1})
+                                                  Order Change History ({itemHistory.length -
+                                                    1}{' '}
+                                                  changes)
                                                 </Typography>
                                                 <Box sx={{ pl: 2 }}>
                                                   {itemHistory.slice(0, -1).map((item, index) => {
@@ -797,7 +806,7 @@ const Orders = () => {
                                                             fontWeight: 500,
                                                           }}
                                                         >
-                                                          Version {index + 1}
+                                                          Change {index + 1}
                                                         </Typography>
                                                         <Box sx={{ display: 'flex', gap: 3 }}>
                                                           <Typography
@@ -1100,6 +1109,30 @@ const Orders = () => {
             disabled={!cancelMessage.trim()}
           >
             Yes, Cancel Order
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add the confirmation dialog */}
+      <Dialog
+        open={confirmDialog.open}
+        onClose={() => setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })}
+      >
+        <DialogTitle>{confirmDialog.title}</DialogTitle>
+        <DialogContent>
+          <DialogContentText>{confirmDialog.message}</DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() =>
+              setConfirmDialog({ open: false, title: '', message: '', onConfirm: null })
+            }
+            color="primary"
+          >
+            Cancel
+          </Button>
+          <Button onClick={confirmDialog.onConfirm} color="error" variant="contained">
+            Remove
           </Button>
         </DialogActions>
       </Dialog>
