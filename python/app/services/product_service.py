@@ -30,7 +30,7 @@ def create_product(name: str, description: str, categoryId: int, image: Optional
             raise ValueError(f"Category with ID {categoryId} does not exist")
             
         print(f"Creating product with image: {image}")  # Add logging
-        
+            
         product = ProductModel(
             name=name,
             description=description,

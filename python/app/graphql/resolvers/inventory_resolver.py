@@ -67,7 +67,7 @@ class InventoryMutation:
         product_id: int
     ) -> bool:
         """Remove a product from a store's inventory"""
-        return remove_from_inventory(store_id, product_id)
+        return remove_from_inventory(store_id, product_id) 
     
     @strawberry.mutation
     def update_inventory_item(

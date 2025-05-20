@@ -141,21 +141,6 @@ const UPDATE_ORDER_ITEMS = `
   }
 `;
 
-const DELETE_ORDER_ITEMS = `
-  mutation DeleteOrderItems($orderId: Int!, $orderItemId: Int!) {
-    deleteOrderItems(orderId: $orderId, orderItemId: $orderItemId) {
-      id
-      orderItems {
-        edges {
-          node {
-            id
-          }
-        }
-      }
-    }
-  }
-`;
-
 const StoreOrders = () => {
   const { userProfile } = useAuthStore();
   const [cognitoId, setCognitoId] = useState('');
@@ -179,7 +164,6 @@ const StoreOrders = () => {
   const [editItemDialogOpen, setEditItemDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [newQuantity, setNewQuantity] = useState(1);
-  const [deleteItemDialogOpen, setDeleteItemDialogOpen] = useState(false);
 
   // Fetch Cognito ID on component mount
   useEffect(() => {
@@ -284,9 +268,16 @@ const StoreOrders = () => {
       // Calculate tax based on the store's tax percentage
       const taxAmount = (orderAmount * storeTaxPercentage) / 100;
 
-      // Calculate the final total including all fees
+      // If quantity is 0, set all amounts to 0
       const finalTotal =
-        orderAmount + taxAmount + (currentOrder.deliveryFee || 0) + (currentOrder.tipAmount || 0);
+        quantity === 0
+          ? 0
+          : orderAmount +
+            taxAmount +
+            (currentOrder.deliveryFee || 0) +
+            (currentOrder.tipAmount || 0);
+      const finalTaxAmount = quantity === 0 ? 0 : taxAmount;
+      const finalOrderAmount = quantity === 0 ? 0 : orderAmount;
 
       return await graphqlService(UPDATE_ORDER_ITEMS, {
         orderId: parseInt(orderId),
@@ -296,9 +287,9 @@ const StoreOrders = () => {
             quantityChange: quantityChange,
           },
         ],
-        totalAmount: orderAmount,
+        totalAmount: finalOrderAmount,
         orderTotalAmount: finalTotal,
-        taxAmount: taxAmount,
+        taxAmount: finalTaxAmount,
       });
     },
     onSuccess: () => {
@@ -306,24 +297,6 @@ const StoreOrders = () => {
       setEditItemDialogOpen(false);
       setSelectedItem(null);
       setNewQuantity(1);
-    },
-    onError: (error) => {
-      setError(error.message);
-    },
-  });
-
-  const deleteOrderItemMutation = useMutation({
-    mutationFn: async (variables) => {
-      const { orderId, itemId } = variables;
-      return await graphqlService(DELETE_ORDER_ITEMS, {
-        orderId: parseInt(orderId),
-        orderItemId: parseInt(itemId),
-      });
-    },
-    onSuccess: () => {
-      refetchOrders();
-      setDeleteItemDialogOpen(false);
-      setSelectedItem(null);
     },
     onError: (error) => {
       setError(error.message);
@@ -660,7 +633,8 @@ const StoreOrders = () => {
 
   const handleDeleteItem = (item, orderId) => {
     setSelectedItem({ ...item, orderId });
-    setDeleteItemDialogOpen(true);
+    setNewQuantity(0);
+    setEditItemDialogOpen(true);
   };
 
   const handleUpdateItem = async () => {
@@ -670,17 +644,6 @@ const StoreOrders = () => {
         itemId: selectedItem.id,
         quantity: newQuantity,
         price: selectedItem.product?.inventoryItems?.edges[0]?.node?.price || 0,
-      });
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
-  const handleDeleteItemConfirm = async () => {
-    try {
-      await deleteOrderItemMutation.mutateAsync({
-        orderId: selectedItem.orderId,
-        itemId: selectedItem.id,
       });
     } catch (err) {
       setError(err.message);
@@ -825,7 +788,7 @@ const StoreOrders = () => {
                     <TableRow>
                       <TableCell>{order.id}</TableCell>
                       <TableCell>{order.deliveryInstructions || 'N/A'}</TableCell>
-                      <TableCell>{formatCurrency(calculateOrderTotal(order))}</TableCell>
+                      <TableCell>${order.orderTotalAmount}</TableCell>
                       <TableCell>
                         <Chip
                           label={
@@ -949,7 +912,7 @@ const StoreOrders = () => {
                                               <TableCell>{node.quantity}</TableCell>
                                               <TableCell>{formatCurrency(price)}</TableCell>
                                               <TableCell>
-                                                {formatCurrency(node.orderAmount)}
+                                                {formatCurrency(node.quantity * price)}
                                               </TableCell>
                                               <TableCell>
                                                 {isOrderEditable(order.status) && (
@@ -1263,7 +1226,7 @@ const StoreOrders = () => {
           maxWidth="sm"
           fullWidth
         >
-          <DialogTitle>Edit Order Item</DialogTitle>
+          <DialogTitle>{newQuantity === 0 ? 'Delete Order Item' : 'Edit Order Item'}</DialogTitle>
           <DialogContent>
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12}>
@@ -1277,8 +1240,8 @@ const StoreOrders = () => {
                   label="Quantity"
                   type="number"
                   value={newQuantity}
-                  onChange={(e) => setNewQuantity(parseInt(e.target.value) || 1)}
-                  inputProps={{ min: 1 }}
+                  onChange={(e) => setNewQuantity(parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 0 }}
                 />
               </Grid>
             </Grid>
@@ -1288,42 +1251,14 @@ const StoreOrders = () => {
             <Button
               onClick={handleUpdateItem}
               variant="contained"
-              color="primary"
+              color={newQuantity === 0 ? 'error' : 'primary'}
               disabled={updateOrderItemMutation.isLoading}
             >
-              {updateOrderItemMutation.isLoading ? 'Updating...' : 'Update'}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        {/* Delete Item Dialog */}
-        <Dialog
-          open={deleteItemDialogOpen}
-          onClose={() => setDeleteItemDialogOpen(false)}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>Delete Order Item</DialogTitle>
-          <DialogContent>
-            <Typography>
-              Are you sure you want to delete this item from the order? This action cannot be
-              undone.
-            </Typography>
-            <Typography variant="subtitle1" sx={{ mt: 2 }}>
-              Product: {selectedItem?.product?.name || 'N/A'}
-            </Typography>
-            <Typography>Quantity: {selectedItem?.quantity}</Typography>
-            <Typography>Amount: {formatCurrency(selectedItem?.orderAmount)}</Typography>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setDeleteItemDialogOpen(false)}>Cancel</Button>
-            <Button
-              onClick={handleDeleteItemConfirm}
-              variant="contained"
-              color="error"
-              disabled={deleteOrderItemMutation.isLoading}
-            >
-              {deleteOrderItemMutation.isLoading ? 'Deleting...' : 'Delete'}
+              {updateOrderItemMutation.isLoading
+                ? 'Updating...'
+                : newQuantity === 0
+                  ? 'Delete'
+                  : 'Update'}
             </Button>
           </DialogActions>
         </Dialog>
