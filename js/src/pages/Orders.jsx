@@ -37,6 +37,9 @@ import {
   Remove as RemoveIcon,
   Delete as DeleteIcon,
   History as HistoryIcon,
+  Check as CheckIcon,
+  Close as CloseIcon,
+  Edit as EditIcon,
 } from '@mui/icons-material';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import fetchGraphQL from '@/config/graphql/graphqlService';
@@ -60,6 +63,10 @@ const Orders = () => {
   const [expandedOrder, setExpandedOrder] = useState(null);
   const [cancelMessage, setCancelMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Add state for editing quantity
+  const [editingQuantity, setEditingQuantity] = useState(null);
+  const [tempQuantity, setTempQuantity] = useState(null);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -368,6 +375,25 @@ const Orders = () => {
     return orderedHistory;
   };
 
+  // Add handlers for quantity editing
+  const handleEditQuantity = (item) => {
+    setEditingQuantity(item.id);
+    setTempQuantity(item.quantity);
+  };
+
+  const handleCancelEdit = () => {
+    setEditingQuantity(null);
+    setTempQuantity(null);
+  };
+
+  const handleSubmitQuantity = (order, item) => {
+    if (tempQuantity > 0) {
+      handleQuantityUpdate(order, item, tempQuantity);
+    }
+    setEditingQuantity(null);
+    setTempQuantity(null);
+  };
+
   // Show loading while fetching profile or orders
   if (profileLoading || (ordersLoading && effectiveProfile?.id))
     return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />;
@@ -610,55 +636,69 @@ const Orders = () => {
                                                 >
                                                   Quantity
                                                 </Typography>
-                                                <Box
-                                                  sx={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    gap: 1,
-                                                  }}
-                                                >
-                                                  <IconButton
-                                                    size="small"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      if (node.quantity > 1) {
-                                                        handleQuantityUpdate(
-                                                          order,
-                                                          node,
-                                                          node.quantity - 1
-                                                        );
+                                                {editingQuantity === node.id ? (
+                                                  <Box
+                                                    sx={{
+                                                      display: 'flex',
+                                                      alignItems: 'center',
+                                                      gap: 1,
+                                                    }}
+                                                  >
+                                                    <TextField
+                                                      type="number"
+                                                      size="small"
+                                                      value={tempQuantity}
+                                                      onChange={(e) =>
+                                                        setTempQuantity(
+                                                          parseInt(e.target.value) || 0
+                                                        )
                                                       }
+                                                      inputProps={{ min: 1 }}
+                                                      sx={{ width: '80px' }}
+                                                    />
+                                                    <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                                      <IconButton
+                                                        size="small"
+                                                        color="primary"
+                                                        onClick={() =>
+                                                          handleSubmitQuantity(order, node)
+                                                        }
+                                                        disabled={!tempQuantity || tempQuantity < 1}
+                                                      >
+                                                        <CheckIcon fontSize="small" />
+                                                      </IconButton>
+                                                      <IconButton
+                                                        size="small"
+                                                        color="error"
+                                                        onClick={handleCancelEdit}
+                                                      >
+                                                        <CloseIcon fontSize="small" />
+                                                      </IconButton>
+                                                    </Box>
+                                                  </Box>
+                                                ) : (
+                                                  <Box
+                                                    sx={{
+                                                      display: 'flex',
+                                                      alignItems: 'center',
+                                                      gap: 1,
                                                     }}
-                                                    disabled={
-                                                      !['PENDING', 'ORDER_PLACED'].includes(
-                                                        order.status
-                                                      )
-                                                    }
                                                   >
-                                                    <RemoveIcon fontSize="small" />
-                                                  </IconButton>
-                                                  <Typography variant="body1" fontWeight={500}>
-                                                    {node.quantity}
-                                                  </Typography>
-                                                  <IconButton
-                                                    size="small"
-                                                    onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      handleQuantityUpdate(
-                                                        order,
-                                                        node,
-                                                        node.quantity + 1
-                                                      );
-                                                    }}
-                                                    disabled={
-                                                      !['PENDING', 'ORDER_PLACED'].includes(
-                                                        order.status
-                                                      )
-                                                    }
-                                                  >
-                                                    <AddIcon fontSize="small" />
-                                                  </IconButton>
-                                                </Box>
+                                                    <Typography variant="body1" fontWeight={500}>
+                                                      {node.quantity}
+                                                    </Typography>
+                                                    {['PENDING', 'ORDER_PLACED'].includes(
+                                                      order.status
+                                                    ) && (
+                                                      <IconButton
+                                                        size="small"
+                                                        onClick={() => handleEditQuantity(node)}
+                                                      >
+                                                        <EditIcon fontSize="small" />
+                                                      </IconButton>
+                                                    )}
+                                                  </Box>
+                                                )}
                                               </Grid>
                                               <Grid item xs={12} sm={4}>
                                                 <Box
