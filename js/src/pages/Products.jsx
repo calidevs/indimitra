@@ -90,7 +90,7 @@ const Products = ({ setStoreModalOpen }) => {
         return {
           id: item.productId,
           name: item.product.name,
-          image: storeImages[productId] || 'https://picsum.photos/200',
+          image: item.product.image || storeImages[productId] || 'https://picsum.photos/200',
           price: item.price,
           description: item.product.description,
           categoryId: item.product.category.id,

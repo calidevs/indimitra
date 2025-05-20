@@ -295,6 +295,14 @@ const ProductManagement = () => {
     setPage(0);
   };
 
+  // Add sanitizeFilename function at the top of the component
+  const sanitizeFilename = (str) => {
+    return str
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_]/g, '');
+  };
+
   const handleImageUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -319,7 +327,7 @@ const ProductManagement = () => {
       // Get the category name from CATEGORY_MAP
       const categoryName = CATEGORY_MAP[formData.categoryId] || 'uncategorized';
 
-      // Get upload URL
+      // Get upload URL from backend
       const res = await fetch(
         `${baseUrl}/s3/generate-product-upload-url?product_name=${encodeURIComponent(
           formData.name
@@ -334,7 +342,7 @@ const ProductManagement = () => {
 
       const { upload_url, content_type, key } = await res.json();
 
-      // Upload file to S3
+      // Upload file to S3 using presigned URL
       const uploadRes = await fetch(upload_url, {
         method: 'PUT',
         headers: {
@@ -347,22 +355,13 @@ const ProductManagement = () => {
         throw new Error('Failed to upload image');
       }
 
-      // Get view URL for the uploaded image
-      const viewUrlRes = await fetch(
-        `${baseUrl}/s3/generate-view-url?key=${encodeURIComponent(key)}`
-      );
+      // Construct public URL for the uploaded image
+      const publicUrl = `https://indimitra-dev-order-files.s3.amazonaws.com/${key}`;
 
-      if (!viewUrlRes.ok) {
-        throw new Error('Failed to get view URL');
-      }
-
-      const { view_url } = await viewUrlRes.json();
-
-      // Update form data with the S3 key and view URL
+      // Update form data with the public URL
       setFormData((prev) => ({
         ...prev,
-        image: key,
-        imageUrl: view_url, // Store the view URL for preview
+        image: publicUrl,
       }));
 
       setSnackbar({
@@ -590,10 +589,7 @@ const ProductManagement = () => {
                 {formData.image && (
                   <Box sx={{ mt: 1 }}>
                     <img
-                      src={
-                        formData.imageUrl ||
-                        `${baseUrl}/s3/generate-view-url?key=${encodeURIComponent(formData.image)}`
-                      }
+                      src={formData.image}
                       alt="Product preview"
                       style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'contain' }}
                     />

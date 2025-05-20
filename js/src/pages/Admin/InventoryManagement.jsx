@@ -595,7 +595,7 @@ const InventoryManagement = () => {
               />
 
               <TextField
-                label="Price (₹)"
+                label="Price ($)"
                 type="number"
                 fullWidth
                 value={newPrice}
@@ -789,7 +789,7 @@ const InventoryManagement = () => {
             <Grid container spacing={2}>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Price (₹)"
+                  label="Price ($)"
                   type="number"
                   name="price"
                   fullWidth
