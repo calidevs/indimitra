@@ -270,6 +270,27 @@ const StoreOrders = () => {
         }
       });
 
+      // Check if there are any active items after this update
+      const hasActiveItems = Array.from(latestItems.values()).some((node) =>
+        node.id === parseInt(itemId) ? quantity > 0 : node.quantity > 0
+      );
+
+      // If no active items, set all amounts to 0
+      if (!hasActiveItems) {
+        return await graphqlService(UPDATE_ORDER_ITEMS, {
+          orderId: parseInt(orderId),
+          orderItemUpdates: [
+            {
+              orderItemId: parseInt(itemId),
+              quantityChange: quantity - selectedItem.quantity,
+            },
+          ],
+          totalAmount: 0,
+          orderTotalAmount: 0,
+          taxAmount: 0,
+        });
+      }
+
       // Calculate total amount from latest active items
       let totalAmount = 0;
       latestItems.forEach((node) => {
