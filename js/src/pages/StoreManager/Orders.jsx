@@ -258,7 +258,7 @@ const StoreOrders = () => {
         if (!res.ok) {
           throw new Error('Failed to get upload URL');
         }
-        const { upload_url, content_type, file_name } = await res.json();
+        const { upload_url, content_type, file_name, key } = await res.json();
 
         // Log the generated filename for debugging
         console.log('Generated filename:', file_name);
@@ -278,12 +278,21 @@ const StoreOrders = () => {
           throw new Error('Failed to upload file');
         }
 
-        // Store the filename in the order data
-        order.uploadedFileName = file_name;
+        // Store the bill URL in the order
+        const billUrlRes = await fetch(
+          `${baseUrl}/orders/${order.id}/set-bill-url?file_name=${encodeURIComponent(file_name)}`,
+          {
+            method: 'POST',
+          }
+        );
 
-        // After successful upload, try to get the view URL
+        if (!billUrlRes.ok) {
+          throw new Error('Failed to update bill URL');
+        }
+
+        // After successful upload and bill URL update, try to get the view URL
         const viewRes = await fetch(
-          `${baseUrl}/s3/generate-view-url?order_id=${order.id}&file_name=${encodeURIComponent(file_name)}`
+          `${baseUrl}/s3/generate-view-url?bill_key=${encodeURIComponent(key)}`
         );
 
         if (viewRes.ok) {
@@ -318,14 +327,14 @@ const StoreOrders = () => {
         ? 'http://127.0.0.1:8000'
         : 'https://indimitra.com';
 
-      // Use the stored filename if available, otherwise try common extensions
       let viewUrl = null;
       let fileName = null;
 
-      if (order.uploadedFileName) {
-        console.log('Using stored filename:', order.uploadedFileName);
+      // If order has a bill_url, use it directly
+      if (order.bill_url) {
+        console.log('Using stored bill URL:', order.bill_url);
         const res = await fetch(
-          `${baseUrl}/s3/generate-view-url?order_id=${order.id}&file_name=${encodeURIComponent(order.uploadedFileName)}`
+          `${baseUrl}/s3/generate-view-url?bill_key=${encodeURIComponent(order.bill_url)}`
         );
         if (res.ok) {
           const data = await res.json();
@@ -334,13 +343,13 @@ const StoreOrders = () => {
         }
       }
 
+      // If no bill_url or file not found, try the old method
       if (!viewUrl) {
-        console.log('No stored filename found, trying common extensions');
-        // If no stored filename or file not found, try common extensions
+        console.log('No stored bill URL found, trying common extensions');
         const commonExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.docx'];
         for (const ext of commonExtensions) {
           const res = await fetch(
-            `${baseUrl}/s3/generate-view-url?order_id=${order.id}&file_name=order_receipt${ext}`
+            `${baseUrl}/s3/generate-view-url?order_id=${order.id}&file_name=receipt${ext}`
           );
           if (res.ok) {
             const data = await res.json();
