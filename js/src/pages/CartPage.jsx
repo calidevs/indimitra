@@ -21,6 +21,8 @@ import {
   Stack,
   TextField,
   CircularProgress,
+  ToggleButton,
+  ToggleButtonGroup,
 } from '@mui/material';
 import {
   Remove,
@@ -114,14 +116,14 @@ const SecondaryPhoneInput = ({ userProfile, onPhoneUpdate }) => {
             <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
               Secondary Contact
             </Typography>
+            <Typography variant="body2" color="text.secondary">
+              (Update if you want to change)
+            </Typography>
           </Box>
 
           {userProfile.secondaryPhone ? (
             <>
               <Typography variant="body1">+1 {userProfile.secondaryPhone}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                (Update if you want to change)
-              </Typography>
               <Button
                 variant="outlined"
                 size="small"
@@ -210,7 +212,16 @@ const SecondaryPhoneInput = ({ userProfile, onPhoneUpdate }) => {
 };
 
 const CartPage = () => {
-  const { cart, removeFromCart, addToCart, cartTotal, clearCart } = useStore();
+  const {
+    cart,
+    removeFromCart,
+    addToCart,
+    cartTotal,
+    clearCart,
+    selectedStore,
+    getCartTotals,
+    setTipAmount,
+  } = useStore();
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
   const [error, setError] = useState('');
@@ -218,6 +229,8 @@ const CartPage = () => {
     useAuthStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [tipPercentage, setTipPercentage] = useState(0);
+  const [customTip, setCustomTip] = useState('');
 
   // Fetch user profile when component mounts
   useEffect(() => {
@@ -247,19 +260,10 @@ const CartPage = () => {
   const [isPrimary, setIsPrimary] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [isValidAddress, setIsValidAddress] = useState(false);
-  const subtotal = cartTotal() || 0;
-  const tax = 0;
-
-  const calculateDeliveryFee = (boxCount) => {
-    if (boxCount === 0) return 0;
-    if (boxCount === 1) return 5;
-    return 10; // For 2 or more boxes
-  };
-
   const boxCount = Object.values(cart).reduce((acc, item) => acc + (item.quantity || 0), 0);
-  const deliveryFee = calculateDeliveryFee(boxCount);
 
-  const orderTotal = subtotal + tax + deliveryFee;
+  // Get all totals from the store
+  const { subtotal, deliveryFee, taxAmount, taxPercentage, tipAmount, total } = getCartTotals();
 
   // Fetch addresses when modal opens and user profile is available
   useEffect(() => {
@@ -319,10 +323,20 @@ const CartPage = () => {
       quantity: item.quantity,
     }));
 
+    // Get all the totals from the store
+    const { subtotal, deliveryFee, taxAmount, tipAmount, total } = getCartTotals();
+
     mutate({
       userId: userProfile.id,
       addressId: selectedAddressId,
+      storeId: selectedStore.id,
       productItems: orderItems,
+      totalAmount: subtotal,
+      orderTotalAmount: total,
+      deliveryFee: deliveryFee,
+      tipAmount: tipAmount,
+      taxAmount: taxAmount,
+      deliveryInstructions: deliveryInstructions,
     });
   };
 
@@ -357,6 +371,25 @@ const CartPage = () => {
       }
     };
     fetchProfile();
+  };
+
+  // Handle tip selection
+  const handleTipChange = (event, newTipPercentage) => {
+    if (newTipPercentage !== null) {
+      setTipPercentage(newTipPercentage);
+      setCustomTip('');
+      const tipAmount = (subtotal * newTipPercentage) / 100;
+      setTipAmount(tipAmount);
+    }
+  };
+
+  // Handle custom tip input
+  const handleCustomTipChange = (event) => {
+    const value = event.target.value;
+    setCustomTip(value);
+    setTipPercentage(0);
+    const tipAmount = parseFloat(value) || 0;
+    setTipAmount(tipAmount);
   };
 
   return (
@@ -488,28 +521,113 @@ const CartPage = () => {
                 </Box>
               )}
 
-              <Box sx={{ mb: 3 }}>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography color="text.secondary">Subtotal</Typography>
-                  <Typography>${subtotal.toFixed(2)}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                  <Typography color="text.secondary">Tax</Typography>
-                  <Typography>${tax.toFixed(2)}</Typography>
-                </Box>
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                  <Typography color="text.secondary">Delivery Fee</Typography>
-                  <Typography>${deliveryFee.toFixed(2)}</Typography>
-                </Box>
-                <Divider sx={{ my: 2 }} />
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    Total
-                  </Typography>
-                  <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                    ${orderTotal.toFixed(2)}
-                  </Typography>
-                </Box>
+              <Box sx={{ mt: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Order Summary
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography>Subtotal</Typography>
+                      <Typography>${subtotal.toFixed(2)}</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography>Delivery Fee</Typography>
+                      <Typography>${deliveryFee.toFixed(2)}</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        bgcolor: 'grey.50',
+                        p: 1,
+                        borderRadius: 1,
+                      }}
+                    >
+                      <Box>
+                        <Typography variant="body2" color="text.secondary">
+                          Tax Rate
+                        </Typography>
+                        <Typography>{taxPercentage.toFixed(1)}%</Typography>
+                      </Box>
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography variant="body2" color="text.secondary">
+                          Tax Amount
+                        </Typography>
+                        <Typography>${taxAmount.toFixed(2)}</Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="subtitle1" gutterBottom>
+                        Add Tip
+                      </Typography>
+                      <ToggleButtonGroup
+                        value={tipPercentage}
+                        exclusive
+                        onChange={handleTipChange}
+                        aria-label="tip percentage"
+                        size="small"
+                        fullWidth
+                        sx={{ mb: 1 }}
+                      >
+                        <ToggleButton value={0} aria-label="no tip">
+                          No Tip
+                        </ToggleButton>
+                        <ToggleButton value={10} aria-label="10%">
+                          10%
+                        </ToggleButton>
+                        <ToggleButton value={15} aria-label="15%">
+                          15%
+                        </ToggleButton>
+                        <ToggleButton value={20} aria-label="20%">
+                          20%
+                        </ToggleButton>
+                      </ToggleButtonGroup>
+                      <TextField
+                        fullWidth
+                        size="small"
+                        label="Custom Tip Amount"
+                        type="number"
+                        value={customTip}
+                        onChange={handleCustomTipChange}
+                        InputProps={{
+                          startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
+                        }}
+                        placeholder="Enter custom amount"
+                        sx={{ mt: 1 }}
+                      />
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        bgcolor: 'grey.50',
+                        p: 1,
+                        borderRadius: 1,
+                      }}
+                    >
+                      <Typography>Tip Amount</Typography>
+                      <Typography>${tipAmount.toFixed(2)}</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Divider />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography variant="h6">Total</Typography>
+                      <Typography variant="h6">${total.toFixed(2)}</Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
               </Box>
 
               {/* Delivery Address Section */}

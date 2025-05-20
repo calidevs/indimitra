@@ -45,23 +45,52 @@ import {
   Add as AddIcon,
   Store as StoreIcon,
   LocalShipping as LocalShippingIcon,
+  AttachMoney as AttachMoneyIcon,
+  Percent as PercentIcon,
 } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_STORES } from '@/queries/operations';
 
 // Define the GraphQL mutation for creating a store
 const CREATE_STORE = `
-  mutation CreateStore($name: String!, $address: String!, $managerUserId: Int!, $radius: Float!, $email: String!, $mobile: String!) {
-    createStore(name: $name, address: $address, managerUserId: $managerUserId, radius: $radius, email: $email, mobile: $mobile) {
-      address
-      managerUserId
+  mutation CreateStore(
+    $name: String!
+    $address: String!
+    $managerUserId: Int!
+    $radius: Float!
+    $email: String!
+    $mobile: String!
+    $description: String
+    $storeDeliveryFee: Float
+    $taxPercentage: Float
+    $tnc: String
+    $pincodes: [String!]
+  ) {
+    createStore(
+      name: $name
+      address: $address
+      managerUserId: $managerUserId
+      radius: $radius
+      email: $email
+      mobile: $mobile
+      description: $description
+      storeDeliveryFee: $storeDeliveryFee
+      taxPercentage: $taxPercentage
+      tnc: $tnc
+      pincodes: $pincodes
+    ) {
+      id
       name
+      address
+      email
+      mobile
+      managerUserId
       radius
-      manager {
-        email
-        id
-        mobile
-      }
+      description
+      storeDeliveryFee
+      taxPercentage
+      tnc
+      pincodes
     }
   }
 `;
@@ -81,6 +110,8 @@ const UPDATE_STORE = `
     $description: String
     $pincodes: [String!]
     $tnc: String
+    $storeDeliveryFee: Float
+    $taxPercentage: Float
   ) {
     updateStore(
       storeId: $storeId
@@ -95,6 +126,8 @@ const UPDATE_STORE = `
       description: $description
       pincodes: $pincodes
       tnc: $tnc
+      storeDeliveryFee: $storeDeliveryFee
+      taxPercentage: $taxPercentage
     ) {
       id
       name
@@ -108,6 +141,8 @@ const UPDATE_STORE = `
       description
       pincodes
       tnc
+      storeDeliveryFee
+      taxPercentage
     }
   }
 `;
@@ -133,10 +168,15 @@ const StoreManagement = () => {
     radius: '',
     email: '',
     mobile: '',
+    description: '',
+    storeDeliveryFee: '',
+    taxPercentage: '',
+    tnc: '',
     // Dummy data for additional steps
     inventory: [],
     drivers: [],
     storeManagers: [],
+    pincodes: '',
   });
 
   const [editStore, setEditStore] = useState(null);
@@ -163,6 +203,11 @@ const StoreManagement = () => {
         radius: parseFloat(data.radius),
         email: data.email,
         mobile: data.mobile,
+        description: data.description || null,
+        storeDeliveryFee: data.storeDeliveryFee ? parseFloat(data.storeDeliveryFee) : null,
+        taxPercentage: data.taxPercentage ? parseFloat(data.taxPercentage) : null,
+        tnc: data.tnc || null,
+        pincodes: data.pincodes || null,
       });
     },
     onSuccess: () => {
@@ -176,9 +221,14 @@ const StoreManagement = () => {
         radius: '',
         email: '',
         mobile: '',
+        description: '',
+        storeDeliveryFee: '',
+        taxPercentage: '',
+        tnc: '',
         inventory: [],
         drivers: [],
         storeManagers: [],
+        pincodes: '',
       });
       setActiveStep(0);
       refetch();
@@ -282,14 +332,30 @@ const StoreManagement = () => {
       return;
     }
 
+    // Convert pincodes string to array and ensure no empty strings
+    const pincodesString = formData.pincodes;
+    const pincodes = pincodesString
+      ? pincodesString
+          .split(',')
+          .map((p) => p.trim())
+          .filter((p) => p.length > 0)
+      : [];
+
     // Only send the required fields to the mutation
     const storeData = {
       name: formData.name,
       address: formData.address,
-      managerUserId: formData.managerUserId,
-      radius: formData.radius,
+      managerUserId: parseInt(formData.managerUserId, 10),
+      radius: parseFloat(formData.radius),
       email: formData.email,
       mobile: formData.mobile,
+      description: formData.description || null,
+      storeDeliveryFee: formData.storeDeliveryFee ? parseFloat(formData.storeDeliveryFee) : null,
+      taxPercentage: formData.taxPercentage ? parseFloat(formData.taxPercentage) : null,
+      tnc: formData.tnc || null,
+      pincodes: pincodes,
+      is_active: true,
+      disabled: false,
     };
 
     // Make the actual API call
@@ -331,6 +397,8 @@ const StoreManagement = () => {
       description: formData.get('description') || null,
       pincodes: pincodes,
       tnc: formData.get('tnc') || null,
+      storeDeliveryFee: parseFloat(formData.get('storeDeliveryFee')) || null,
+      taxPercentage: parseFloat(formData.get('taxPercentage')) || null,
     };
 
     updateStoreMutation.mutate(updateData);
@@ -429,6 +497,67 @@ const StoreManagement = () => {
                 value={formData.radius}
                 onChange={handleChange}
                 inputProps={{ step: '0.1' }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Delivery Fee ($)"
+                name="storeDeliveryFee"
+                type="number"
+                value={formData.storeDeliveryFee}
+                onChange={handleChange}
+                inputProps={{ step: '0.01', min: 0 }}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Tax Rate (%)"
+                name="taxPercentage"
+                type="number"
+                value={formData.taxPercentage}
+                onChange={handleChange}
+                inputProps={{ step: '0.1', min: 0 }}
+                InputProps={{
+                  endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                multiline
+                rows={2}
+                helperText="Store timings and other details"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Terms & Conditions"
+                name="tnc"
+                value={formData.tnc}
+                onChange={handleChange}
+                multiline
+                rows={3}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Delivery Pincodes"
+                name="pincodes"
+                value={formData.pincodes}
+                onChange={handleChange}
+                helperText="Enter pincodes separated by commas"
               />
             </Grid>
           </Grid>
@@ -1026,6 +1155,46 @@ const StoreManagement = () => {
                                 </Typography>
                               </Box>
 
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                <AttachMoneyIcon
+                                  sx={{
+                                    mr: 1.5,
+                                    color: 'primary.main',
+                                    flexShrink: 0,
+                                    fontSize: '1.2rem',
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: 'text.primary',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  Delivery Fee: ${store.storeDeliveryFee?.toFixed(2) || '0.00'}
+                                </Typography>
+                              </Box>
+
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                <PercentIcon
+                                  sx={{
+                                    mr: 1.5,
+                                    color: 'primary.main',
+                                    flexShrink: 0,
+                                    fontSize: '1.2rem',
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: 'text.primary',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  Tax Rate: {store.taxPercentage?.toFixed(1) || '0.0'}%
+                                </Typography>
+                              </Box>
+
                               {store.pincodes && store.pincodes.length > 0 && (
                                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.8 }}>
                                   {store.pincodes.map((pincode) => (
@@ -1255,6 +1424,32 @@ const StoreManagement = () => {
                   required
                   fullWidth
                   inputProps={{ step: 0.1 }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  name="storeDeliveryFee"
+                  label="Delivery Fee ($)"
+                  type="number"
+                  defaultValue={editStore?.storeDeliveryFee}
+                  fullWidth
+                  inputProps={{ step: 0.01, min: 0 }}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  name="taxPercentage"
+                  label="Tax Rate (%)"
+                  type="number"
+                  defaultValue={editStore?.taxPercentage}
+                  fullWidth
+                  inputProps={{ step: 0.1, min: 0 }}
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                  }}
                 />
               </Grid>
               <Grid item xs={12} md={6}>

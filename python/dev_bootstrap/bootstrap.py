@@ -12,7 +12,7 @@ def create_data():
     db = SessionLocal()
     
     # User 1 - Regular USER
-    user1 = db.query(UserModel).filter_by(cognitoId="f4f8d4e8-a061-703a-bb00-48a1ee4ccfa8").first()
+    user1 = db.query(UserModel).filter_by(cognitoId="a45894f8-7001-705b-b1ed-587fd34944c0").first()
     if not user1:
         user1 = UserModel(
             email="abhishekgattineni@gmail.com",
@@ -20,7 +20,7 @@ def create_data():
             active=True,
             type=UserType.USER,
             referralId="",
-            cognitoId="f4f8d4e8-a061-703a-bb00-48a1ee4ccfa8",
+            cognitoId="a45894f8-7001-705b-b1ed-587fd34944c0",
             secondary_phone=None
         )
         db.add(user1)
@@ -87,7 +87,7 @@ def create_data():
         db.commit()
     
     # User 4 - STORE_MANAGER
-    user4 = db.query(UserModel).filter_by(cognitoId="f478f488-50b1-70f1-9a20-f22dd6dd63df").first()
+    user4 = db.query(UserModel).filter_by(cognitoId="d4c85498-7091-701f-255b-816dc7b10d4f").first()
     if not user4:
         user4 = UserModel(
             email="anddhendevs@gmail.com",
@@ -95,7 +95,7 @@ def create_data():
             active=True,
             type=UserType.STORE_MANAGER,
             referralId="",
-            cognitoId="f478f488-50b1-70f1-9a20-f22dd6dd63df",
+            cognitoId="d4c85498-7091-701f-255b-816dc7b10d4f",
             secondary_phone=None
         )
         db.add(user4)

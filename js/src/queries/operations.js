@@ -15,32 +15,52 @@ export const PRODUCTS_QUERY = `
 
 export const CREATE_ORDER_MUTATION = `
   mutation CreateOrder(
-    $userId: Int!,
-    $addressId: Int!,
-    $storeId: Int!,
+    $userId: Int!
+    $addressId: Int!
+    $storeId: Int!
     $productItems: [OrderItemInput!]!
+    $totalAmount: Float!
+    $orderTotalAmount: Float!
+    $deliveryFee: Float
+    $tipAmount: Float
+    $taxAmount: Float
+    $deliveryInstructions: String
   ) {
     createOrder(
-      userId: $userId, 
-      addressId: $addressId, 
-      storeId: $storeId, 
+      userId: $userId
+      addressId: $addressId
+      storeId: $storeId
       productItems: $productItems
+      totalAmount: $totalAmount
+      orderTotalAmount: $orderTotalAmount
+      deliveryFee: $deliveryFee
+      tipAmount: $tipAmount
+      taxAmount: $taxAmount
+      deliveryInstructions: $deliveryInstructions
     ) {
       id
-      createdByUserId
-      address { 
-        id
-      }
       status
       totalAmount
+      orderTotalAmount
+      deliveryFee
+      tipAmount
+      taxAmount
+      deliveryInstructions
       deliveryDate
+      address {
+        id
+        address
+      }
       orderItems {
         edges {
           node {
             id
-            productId
             quantity
             orderAmount
+            product {
+              id
+              name
+            }
           }
         }
       }
@@ -51,15 +71,28 @@ export const CREATE_ORDER_MUTATION = `
 export const GET_USER_ORDERS = `
   query GetUserOrders($userId: Int!) {
     getOrdersByUser(userId: $userId) {
+      addressId
+      billUrl
+      deliveryDate
+      deliveryFee
+      deliveryInstructions
       id
+      cancelMessage
+      cancelledAt
+      cancelledByUserId
+      createdByUserId
+      orderTotalAmount
+      paymentId
+      status
+      storeId
+      taxAmount
+      tipAmount
+      totalAmount
       address { 
         id
         address
         isPrimary
       }
-      status
-      totalAmount
-      deliveryDate
       orderItems {
         edges {
           node {
@@ -457,6 +490,8 @@ export const GET_STORE_WITH_INVENTORY = `
       pincodes
       radius
       tnc
+      storeDeliveryFee
+      taxPercentage
     }
   }
 `;
@@ -476,6 +511,8 @@ export const GET_ALL_STORES = `
       pincodes
       radius
       tnc
+      storeDeliveryFee
+      taxPercentage
     }
   }
 `;
@@ -524,6 +561,8 @@ export const GET_STORES = `
       pincodes
       radius
       tnc
+      storeDeliveryFee
+      taxPercentage
       drivers {
         edges {
           node {

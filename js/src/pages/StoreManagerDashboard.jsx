@@ -33,6 +33,7 @@ import {
   ListItemIcon,
   TablePagination,
   Snackbar,
+  InputAdornment,
 } from '@mui/material';
 import {
   Edit,
@@ -65,6 +66,8 @@ const UPDATE_STORE = `
     $description: String
     $pincodes: [String!]
     $tnc: String
+    $storeDeliveryFee: Float
+    $taxPercentage: Float
   ) {
     updateStore(
       storeId: $storeId
@@ -77,6 +80,8 @@ const UPDATE_STORE = `
       description: $description
       pincodes: $pincodes
       tnc: $tnc
+      storeDeliveryFee: $storeDeliveryFee
+      taxPercentage: $taxPercentage
     ) {
       id
       name
@@ -88,6 +93,8 @@ const UPDATE_STORE = `
       description
       pincodes
       tnc
+      storeDeliveryFee
+      taxPercentage
     }
   }
 `;
@@ -242,6 +249,8 @@ const StoreManagerDashboard = () => {
       description: formData.get('description') || null,
       pincodes: pincodes,
       tnc: formData.get('tnc') || null,
+      storeDeliveryFee: parseFloat(formData.get('storeDeliveryFee')) || null,
+      taxPercentage: parseFloat(formData.get('taxPercentage')) || null,
     };
 
     updateStoreMutation.mutate(updateData);
@@ -319,6 +328,16 @@ const StoreManagerDashboard = () => {
               <Typography variant="subtitle1">
                 <strong>Delivery Radius:</strong> {store.radius || 'Not set'}{' '}
                 {store.radius ? 'mi' : ''}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle1">
+                <strong>Delivery Fee:</strong> ${store.storeDeliveryFee?.toFixed(2) || '0.00'}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle1">
+                <strong>Tax Rate:</strong> {store.taxPercentage?.toFixed(1) || '0.0'}%
               </Typography>
             </Grid>
             <Grid item xs={12} md={6}>
@@ -418,6 +437,32 @@ const StoreManagerDashboard = () => {
                     required
                     fullWidth
                     inputProps={{ step: 0.1 }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    name="storeDeliveryFee"
+                    label="Delivery Fee ($)"
+                    type="number"
+                    defaultValue={editStore?.storeDeliveryFee}
+                    fullWidth
+                    inputProps={{ step: '0.01', min: 0 }}
+                    InputProps={{
+                      startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    name="taxPercentage"
+                    label="Tax Rate (%)"
+                    type="number"
+                    defaultValue={editStore?.taxPercentage}
+                    fullWidth
+                    inputProps={{ step: '0.1', min: 0 }}
+                    InputProps={{
+                      endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
