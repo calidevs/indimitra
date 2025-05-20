@@ -82,8 +82,8 @@ const CREATE_STORE = `
       id
       name
       address
-      email
-      mobile
+        email
+        mobile
       managerUserId
       radius
       description

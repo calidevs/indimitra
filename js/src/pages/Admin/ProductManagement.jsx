@@ -26,6 +26,7 @@ import {
   MenuItem,
   Chip,
   TablePagination,
+  Snackbar,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -33,6 +34,7 @@ import {
   Delete as DeleteIcon,
   Visibility as ViewIcon,
   Refresh as RefreshIcon,
+  Upload as UploadIcon,
 } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_PRODUCTS, CREATE_PRODUCT, UPDATE_PRODUCT, DELETE_PRODUCT } from '@/queries/operations';
@@ -77,6 +79,14 @@ const ProductManagement = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [allProducts, setAllProducts] = useState([]);
+  const [imageUploadError, setImageUploadError] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+
+  // Define baseUrl at component level
+  const baseUrl = window.location.href?.includes('http://localhost')
+    ? 'http://127.0.0.1:8000'
+    : 'https://indimitra.com';
 
   // Fetch all products at once
   const { data: productsData, refetch } = useQuery({
@@ -274,6 +284,86 @@ const ProductManagement = () => {
     setPage(0);
   };
 
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setImageUploadError('Please upload a valid image file (JPEG, PNG, GIF, or WebP)');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setImageUploadError('Image size should be less than 5MB');
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      setImageUploadError('');
+
+      // Get the category name from CATEGORY_MAP
+      const categoryName = CATEGORY_MAP[formData.categoryId] || 'uncategorized';
+
+      // Get upload URL
+      const res = await fetch(
+        `${baseUrl}/s3/generate-product-upload-url?product_name=${encodeURIComponent(
+          formData.name
+        )}&category_name=${encodeURIComponent(categoryName)}&file_name=${encodeURIComponent(
+          file.name
+        )}`
+      );
+
+      if (!res.ok) {
+        throw new Error('Failed to get upload URL');
+      }
+
+      const { upload_url, content_type, key } = await res.json();
+
+      // Upload file to S3
+      const uploadRes = await fetch(upload_url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': content_type,
+        },
+        body: file,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      // Update form data with the S3 key
+      setFormData((prev) => ({
+        ...prev,
+        image: key,
+      }));
+
+      setSnackbar({
+        open: true,
+        message: 'Image uploaded successfully!',
+        severity: 'success',
+      });
+    } catch (err) {
+      console.error('Upload error:', err);
+      setImageUploadError('Failed to upload image. Please try again.');
+      setSnackbar({
+        open: true,
+        message: 'Failed to upload image. Please try again.',
+        severity: 'error',
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
+  };
+
   return (
     <Box>
       <Paper sx={{ p: 3, mb: 3 }}>
@@ -447,14 +537,43 @@ const ProductManagement = () => {
               />
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Image URL"
-                name="image"
-                value={formData.image}
-                onChange={handleChange}
-                placeholder="https://example.com/image.jpg"
-              />
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <TextField
+                  fullWidth
+                  label="Image URL"
+                  name="image"
+                  value={formData.image}
+                  onChange={handleChange}
+                  placeholder="https://example.com/image.jpg"
+                  disabled={isUploading}
+                  error={!!imageUploadError}
+                  helperText={imageUploadError}
+                />
+                <Button
+                  variant="outlined"
+                  component="label"
+                  startIcon={<UploadIcon />}
+                  disabled={isUploading || !formData.name || !formData.categoryId}
+                >
+                  {isUploading ? 'Uploading...' : 'Upload Image'}
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={isUploading}
+                  />
+                </Button>
+                {formData.image && (
+                  <Box sx={{ mt: 1 }}>
+                    <img
+                      src={`${baseUrl}/s3/generate-view-url?key=${encodeURIComponent(formData.image)}`}
+                      alt="Product preview"
+                      style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'contain' }}
+                    />
+                  </Box>
+                )}
+              </Box>
             </Grid>
           </Grid>
         </DialogContent>
@@ -507,6 +626,18 @@ const ProductManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Add Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

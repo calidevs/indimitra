@@ -2,6 +2,7 @@ from app.db.session import SessionLocal
 from app.db.models.product import ProductModel
 from app.db.models.inventory import InventoryModel
 from app.db.models.category import CategoryModel
+from typing import Optional
 
 def get_all_products():
     db = SessionLocal()
@@ -10,7 +11,7 @@ def get_all_products():
     finally:
         db.close()
 
-def create_product(name: str, description: str, category_id: int):
+def create_product(name: str, description: str, category_id: int, image: Optional[str] = None):
     db = SessionLocal()
     try:
         # Validate required fields
@@ -31,7 +32,8 @@ def create_product(name: str, description: str, category_id: int):
         product = ProductModel(
             name=name,
             description=description,
-            categoryId=category_id
+            categoryId=category_id,
+            image=image
         )
         db.add(product)
         db.commit()
