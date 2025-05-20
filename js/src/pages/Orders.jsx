@@ -395,6 +395,11 @@ const Orders = () => {
     }
   };
 
+  // Add a helper function to check if order is editable
+  const isOrderEditable = (status) => {
+    return ['PENDING', 'ORDER_PLACED', 'ACCEPTED'].includes(status);
+  };
+
   // Show loading while fetching profile or orders
   if (profileLoading || (ordersLoading && effectiveProfile?.id))
     return <CircularProgress sx={{ display: 'block', mx: 'auto', mt: 4 }} />;
@@ -511,7 +516,7 @@ const Orders = () => {
                             e.stopPropagation();
                             handleOpenModal(order.id);
                           }}
-                          disabled={!['PENDING', 'ORDER_PLACED'].includes(order.status)}
+                          disabled={!isOrderEditable(order.status)}
                         >
                           Cancel
                         </Button>
@@ -690,9 +695,7 @@ const Orders = () => {
                                                     <Typography variant="body1" fontWeight={500}>
                                                       {node.quantity}
                                                     </Typography>
-                                                    {['PENDING', 'ORDER_PLACED'].includes(
-                                                      order.status
-                                                    ) && (
+                                                    {isOrderEditable(order.status) && (
                                                       <IconButton
                                                         size="small"
                                                         onClick={() => handleEditQuantity(node)}
@@ -736,9 +739,7 @@ const Orders = () => {
                                                         ?.price || 0)
                                                     ).toFixed(2)}
                                                   </Typography>
-                                                  {['PENDING', 'ORDER_PLACED'].includes(
-                                                    order.status
-                                                  ) && (
+                                                  {isOrderEditable(order.status) && (
                                                     <IconButton
                                                       size="small"
                                                       color="error"

@@ -280,9 +280,10 @@ def update_order_items(
         if not order:
             return None
         
-        # Only allow updating orders in PENDING state
-        if order.status != OrderStatus.PENDING:
-            raise ValueError(f"Cannot update items for order with status {order.status}. Only PENDING orders can be updated.")
+        # Allow updating orders in PENDING, ORDER_PLACED, or ACCEPTED state
+        editable_statuses = [OrderStatus.PENDING, OrderStatus.ORDER_PLACED, OrderStatus.ACCEPTED]
+        if order.status not in editable_statuses:
+            raise ValueError(f"Cannot update items for order with status {order.status}. Only orders with status PENDING, ORDER_PLACED, or ACCEPTED can be updated.")
         
         # Update order amounts
         order.totalAmount = total_amount
