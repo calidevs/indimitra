@@ -54,6 +54,44 @@ const useStore = create((set, get) => ({
     ),
 
   clearCart: () => set({ cart: {} }),
+
+  // Calculate cart totals using store's delivery fee and tax
+  getCartTotals: () => {
+    const state = get();
+    const cart = state.cart;
+    const store = state.selectedStore;
+
+    // Calculate subtotal
+    const subtotal = Object.values(cart).reduce(
+      (acc, item) => acc + (item.price * item.quantity || 0),
+      0
+    );
+
+    // Get delivery fee from store or default to 0
+    const deliveryFee = store?.storeDeliveryFee || 0;
+
+    // Calculate tax using store's tax percentage or default to 0
+    const taxPercentage = store?.taxPercentage || 0;
+    const taxAmount = (subtotal * taxPercentage) / 100;
+
+    // Get tip amount (default to 0)
+    const tipAmount = state.tipAmount || 0;
+
+    // Calculate total including tip
+    const total = subtotal + deliveryFee + taxAmount + tipAmount;
+
+    return {
+      subtotal,
+      deliveryFee,
+      taxAmount,
+      taxPercentage,
+      tipAmount,
+      total,
+    };
+  },
+
+  // Add tip amount to the store
+  setTipAmount: (amount) => set({ tipAmount: amount }),
 }));
 
 export const useAuthStore = create((set, get) => ({
@@ -103,40 +141,38 @@ export const useAuthStore = create((set, get) => ({
     set({ user: null, userProfile: null, ability: defineUserAbility(null) });
   },
 
-  fetchUserProfile: async () => {
-    if (get().userProfile) {
-      return get().userProfile;
-    }
+  fetchUserProfile: async (cognitoId) => {
+    if (!cognitoId) return;
 
-    set({ isProfileLoading: true, profileError: null });
-
+    set({ isProfileLoading: true });
     try {
-      const session = await fetchAuthSession();
-      const cognitoId = session?.tokens?.idToken?.payload?.sub;
-
-      if (!cognitoId) {
-        throw new Error('No Cognito ID found in session');
-      }
-
       const response = await fetchGraphQL(GET_USER_PROFILE, { userId: cognitoId });
+      console.log('GraphQL Response:', response); // Debug log
 
-      if (response?.getUserProfile) {
-        set({
-          userProfile: response.getUserProfile,
-          isProfileLoading: false,
-          ability: defineUserAbility(response.getUserProfile.role),
-        });
-        return response.getUserProfile;
-      } else {
-        throw new Error('No profile data found in API response');
+      if (response.errors) {
+        console.error('Error fetching user profile:', response.errors);
+        set({ isProfileLoading: false });
+        return;
       }
+
+      // Check if response is the data directly
+      const userProfile = response.getUserProfile || response.data?.getUserProfile;
+      console.log('Extracted user profile:', userProfile); // Debug log
+
+      if (!userProfile) {
+        console.error('No user profile data in response. Full response:', response);
+        set({ isProfileLoading: false });
+        return;
+      }
+
+      set({
+        userProfile: userProfile,
+        isProfileLoading: false,
+        ability: defineUserAbility(userProfile.role),
+      });
     } catch (error) {
       console.error('Error fetching user profile:', error);
-      set({
-        profileError: error.message || 'Failed to fetch user profile',
-        isProfileLoading: false,
-      });
-      return null;
+      set({ isProfileLoading: false });
     }
   },
 

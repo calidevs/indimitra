@@ -6,9 +6,9 @@ const Layout = ({ children }) => {
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />
-      <Container component="main" sx={{ flex: 1 }}>
-        {children}
-      </Container>
+      {/* <Container component="main" sx={{ flex: 1 }}> */}
+      {children}
+      {/* </Container> */}
       <WhatsAppButton />
     </Box>
   );

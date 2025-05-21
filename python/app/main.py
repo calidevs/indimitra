@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.api.routes.product import router as product_router
+from app.api.routes.s3 import router as s3_router
 from app.api.dependencies import get_db
 from sqlalchemy.orm import Session
 
@@ -36,6 +37,9 @@ async def get_context(db: Session = Depends(get_db)):
 graphql_app = GraphQLRouter(
     schema, 
     context_getter=get_context,
-    graphiql=os.getenv("ENABLE_GRAPHQL_PLAYGROUND", "false").lower() == "true"
+    graphiql=True
 )
 app.include_router(graphql_app, prefix="/graphql")
+
+# Include the S3 router
+app.include_router(s3_router)

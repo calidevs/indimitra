@@ -72,6 +72,7 @@ const Products = ({ setStoreModalOpen }) => {
     queryFn: async () => {
       const response = await fetchGraphQL(GET_STORE_PRODUCTS, {
         storeId: selectedStore.id,
+        isListed: true, // Only show listed products
       });
       return response;
     },
@@ -81,23 +82,25 @@ const Products = ({ setStoreModalOpen }) => {
   // Process inventory data to create a products array for the ProductGrid
   const products = useMemo(() => {
     return (
-      inventoryData?.store?.inventory?.edges?.map(({ node }) => {
+      inventoryData?.getInventoryByStore?.map((item) => {
         const storeId = selectedStore?.id;
-        const productId = node.product.id;
+        const productId = item.productId;
         const storeImages = STORE_PRODUCT_IMAGES[storeId] || {};
 
         return {
-          id: node.product.id,
-          name: node.product.name,
-          image: storeImages[productId] || 'https://picsum.photos/200',
-          price: node.price,
-          description: node.product.description,
-          categoryId: node.product.category.id,
-          categoryName: node.product.category.name,
-          inventoryId: node.id,
-          quantity: node.quantity,
-          measurement: node.measurement,
-          unit: node.unit,
+          id: item.productId,
+          name: item.product.name,
+          image: item.product.image || storeImages[productId] || 'https://picsum.photos/200',
+          price: item.price,
+          description: item.product.description,
+          categoryId: item.product.category.id,
+          categoryName: item.product.category.name,
+          inventoryId: item.id,
+          quantity: item.quantity,
+          measurement: item.measurement,
+          unit: item.unit,
+          isAvailable: item.isAvailable,
+          isListed: item.isListed,
         };
       }) || []
     );
@@ -129,82 +132,102 @@ const Products = ({ setStoreModalOpen }) => {
     return <Typography>Error fetching products: {inventoryError.message}</Typography>;
 
   return (
-    <Container>
-      {/* Store Selection */}
+    <>
       {/* Store Selection */}
       {selectedStore && (
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 3,
-            mt: 2,
-            p: 2,
-            backgroundColor: 'rgba(0, 0, 0, 0.03)',
-            borderRadius: 2,
-          }}
-        >
-          <Box>
-            <Typography variant="h6">{selectedStore.name}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {selectedStore.address}
-            </Typography>
-          </Box>
-          <Button
-            variant="outlined"
-            startIcon={<StoreIcon />}
-            onClick={() => setStoreModalOpen(true)}
+        <Container>
+          <Box
+            sx={{
+              alignItems: 'center',
+              mb: 3,
+              mt: 2,
+              p: 2,
+              backgroundColor: 'rgba(0, 0, 0, 0.03)',
+              borderRadius: 2,
+            }}
           >
-            Change Store
-          </Button>
-        </Box>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                width: '100%',
+              }}
+            >
+              <Box>
+                <Typography variant="h6">{selectedStore.name}</Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {selectedStore.address}
+                </Typography>
+              </Box>
+              <Button
+                variant="outlined"
+                startIcon={<StoreIcon />}
+                onClick={() => setStoreModalOpen(true)}
+              >
+                Change Store
+              </Button>
+            </Box>
+            <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between' }}>
+              <Typography variant="body2" color="text.secondary">
+                {selectedStore.description}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                Pincodes Served:{selectedStore?.pincodes?.map((pincode) => pincode).join(', ')}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {selectedStore.tnc}
+              </Typography>
+            </Box>
+          </Box>
+        </Container>
       )}
-
-      {/* Search Field */}
-      <TextField
-        label="Search Products"
-        variant="outlined"
-        fullWidth
-        sx={{ mb: 3 }}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        placeholder="Search by product name or category..."
-        InputProps={{
-          startAdornment: (
-            <InputAdornment position="start">
-              <SearchIcon />
-            </InputAdornment>
-          ),
-        }}
-      />
-
-      {/* Product Grid */}
-      {inventoryLoading ? (
-        <Box display="flex" justifyContent="center" my={4}>
-          <CircularProgress />
-        </Box>
-      ) : products.length === 0 ? (
-        <Typography variant="h6" align="center" sx={{ mt: 4 }}>
-          No products available in this store.
-        </Typography>
-      ) : (
-        <ProductGrid products={visibleRows} />
-        // <div></div>
-      )}
-      {/* Add pagination controls */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-        <TablePagination
-          rowsPerPageOptions={[8, 12, 24]}
-          component="div"
-          count={filteredProducts.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={handleChangePage}
-          onRowsPerPageChange={handleChangeRowsPerPage}
+      <Container>
+        {/* Search Field */}
+        <TextField
+          label="Search Products"
+          variant="outlined"
+          fullWidth
+          sx={{ mb: 3 }}
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by product name or category..."
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SearchIcon />
+              </InputAdornment>
+            ),
+          }}
         />
-      </Box>
-    </Container>
+
+        {/* Product Grid */}
+        {inventoryLoading ? (
+          <Box display="flex" justifyContent="center" my={4}>
+            <CircularProgress />
+          </Box>
+        ) : products.length === 0 ? (
+          <Typography variant="h6" align="center" sx={{ mt: 4 }}>
+            No products available in this store.
+          </Typography>
+        ) : (
+          <ProductGrid products={visibleRows} />
+          // <div></div>
+        )}
+        {/* Add pagination controls */}
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <TablePagination
+            rowsPerPageOptions={[8, 12, 24]}
+            component="div"
+            count={filteredProducts.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </Box>
+      </Container>
+    </>
   );
 };
 

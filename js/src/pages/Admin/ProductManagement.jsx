@@ -26,6 +26,7 @@ import {
   MenuItem,
   Chip,
   TablePagination,
+  Snackbar,
 } from '@mui/material';
 import {
   Add as AddIcon,
@@ -33,6 +34,7 @@ import {
   Delete as DeleteIcon,
   Visibility as ViewIcon,
   Refresh as RefreshIcon,
+  Upload as UploadIcon,
 } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_PRODUCTS, CREATE_PRODUCT, UPDATE_PRODUCT, DELETE_PRODUCT } from '@/queries/operations';
@@ -77,6 +79,14 @@ const ProductManagement = () => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [allProducts, setAllProducts] = useState([]);
+  const [imageUploadError, setImageUploadError] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+
+  // Define baseUrl at component level
+  const baseUrl = window.location.href?.includes('http://localhost')
+    ? 'http://127.0.0.1:8000'
+    : 'https://indimitra.com';
 
   // Fetch all products at once
   const { data: productsData, refetch } = useQuery({
@@ -96,7 +106,15 @@ const ProductManagement = () => {
 
   // Create product mutation
   const createProductMutation = useMutation({
-    mutationFn: (data) => fetchGraphQL(CREATE_PRODUCT, data),
+    mutationFn: (data) => {
+      console.log('Executing mutation with data:', data); // Add logging
+      return fetchGraphQL(CREATE_PRODUCT, {
+        name: data.name,
+        description: data.description,
+        categoryId: data.categoryId,
+        image: data.image,
+      });
+    },
     onSuccess: () => {
       refetch();
       handleCloseDialog();
@@ -179,11 +197,14 @@ const ProductManagement = () => {
     if (editingProduct) {
       updateProductMutation.mutate({ id: editingProduct.id, data: formData });
     } else {
-      // Convert categoryId to integer
+      // Convert categoryId to integer and ensure image is included
       const mutationData = {
-        ...formData,
+        name: formData.name,
+        description: formData.description,
         categoryId: parseInt(formData.categoryId, 10),
+        image: formData.image || null, // Ensure image is passed even if null
       };
+      console.log('Submitting product with data:', mutationData); // Add logging
       createProductMutation.mutate(mutationData);
     }
   };
@@ -272,6 +293,97 @@ const ProductManagement = () => {
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
+  };
+
+  // Add sanitizeFilename function at the top of the component
+  const sanitizeFilename = (str) => {
+    return str
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_]/g, '');
+  };
+
+  const handleImageUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setImageUploadError('Please upload a valid image file (JPEG, PNG, GIF, or WebP)');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setImageUploadError('Image size should be less than 5MB');
+      return;
+    }
+
+    try {
+      setIsUploading(true);
+      setImageUploadError('');
+
+      // Get the category name from CATEGORY_MAP
+      const categoryName = CATEGORY_MAP[formData.categoryId] || 'uncategorized';
+
+      // Get upload URL from backend
+      const res = await fetch(
+        `${baseUrl}/s3/generate-product-upload-url?product_name=${encodeURIComponent(
+          formData.name
+        )}&category_name=${encodeURIComponent(categoryName)}&file_name=${encodeURIComponent(
+          file.name
+        )}`
+      );
+
+      if (!res.ok) {
+        throw new Error('Failed to get upload URL');
+      }
+
+      const { upload_url, content_type, key } = await res.json();
+
+      // Upload file to S3 using presigned URL
+      const uploadRes = await fetch(upload_url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': content_type,
+        },
+        body: file,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      // Construct public URL for the uploaded image
+      const publicUrl = `https://indimitra-dev-order-files.s3.amazonaws.com/${key}`;
+
+      // Update form data with the public URL
+      setFormData((prev) => ({
+        ...prev,
+        image: publicUrl,
+      }));
+
+      setSnackbar({
+        open: true,
+        message: 'Image uploaded successfully!',
+        severity: 'success',
+      });
+    } catch (err) {
+      console.error('Upload error:', err);
+      setImageUploadError('Failed to upload image. Please try again.');
+      setSnackbar({
+        open: true,
+        message: 'Failed to upload image. Please try again.',
+        severity: 'error',
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
   return (
@@ -447,14 +559,43 @@ const ProductManagement = () => {
               />
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Image URL"
-                name="image"
-                value={formData.image}
-                onChange={handleChange}
-                placeholder="https://example.com/image.jpg"
-              />
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <TextField
+                  fullWidth
+                  label="Image URL"
+                  name="image"
+                  value={formData.image}
+                  onChange={handleChange}
+                  placeholder="https://example.com/image.jpg"
+                  disabled={isUploading}
+                  error={!!imageUploadError}
+                  helperText={imageUploadError}
+                />
+                <Button
+                  variant="outlined"
+                  component="label"
+                  startIcon={<UploadIcon />}
+                  disabled={isUploading || !formData.name || !formData.categoryId}
+                >
+                  {isUploading ? 'Uploading...' : 'Upload Image'}
+                  <input
+                    type="file"
+                    hidden
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={isUploading}
+                  />
+                </Button>
+                {formData.image && (
+                  <Box sx={{ mt: 1 }}>
+                    <img
+                      src={formData.image}
+                      alt="Product preview"
+                      style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'contain' }}
+                    />
+                  </Box>
+                )}
+              </Box>
             </Grid>
           </Grid>
         </DialogContent>
@@ -507,6 +648,18 @@ const ProductManagement = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Add Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

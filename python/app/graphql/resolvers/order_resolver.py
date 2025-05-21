@@ -14,7 +14,9 @@ from app.services.order_service import (
     create_order, 
     cancel_order, 
     update_order_status,
-    get_orders_by_store
+    get_orders_by_store,
+    update_order_bill_url,
+    update_order_items
 )
 from app.services.delivery_service import assign_delivery
 
@@ -51,6 +53,14 @@ class OrderItemInput:
     quantity: int
 
 
+# ✅ Input Type for Updating Order Items
+@strawberry.input
+class OrderItemUpdateInput:
+    """Defines input format for updating order items"""
+    orderItemId: int
+    quantityChange: Optional[int] = None  # None means delete, positive/negative means increase/decrease
+
+
 # ✅ Input Type for Updating Order Status
 @strawberry.input
 class UpdateOrderStatusInput:
@@ -72,6 +82,11 @@ class OrderMutation:
         addressId: int,
         storeId: int,
         productItems: List[OrderItemInput],
+        totalAmount: float,
+        orderTotalAmount: float,
+        deliveryFee: Optional[float] = None,
+        tipAmount: Optional[float] = None,
+        taxAmount: Optional[float] = None,
         deliveryInstructions: Optional[str] = None
     ) -> Order:
         """
@@ -82,20 +97,36 @@ class OrderMutation:
             addressId (int): The ID of the delivery address.
             storeId (int): The ID of the store the order is being placed from.
             productItems (List[OrderItemInput]): List of items with product IDs and quantities.
+            totalAmount (float): The subtotal amount of products.
+            orderTotalAmount (float): The final total amount including all fees and taxes.
+            deliveryFee (float, optional): Delivery fee.
+            tipAmount (float, optional): Tip amount.
+            taxAmount (float, optional): Tax amount.
             deliveryInstructions (str, optional): Special instructions for delivery.
         
         Returns:
             Order: The newly created order.
+            
+        Raises:
+            Exception: If address validation fails, including if delivery to that pincode is not supported.
         """
-        # Convert OrderItemInput to dictionary
-        items = [{"product_id": item.productId, "quantity": item.quantity} for item in productItems]
-        return create_order(
-            user_id=userId, 
-            address_id=addressId, 
-            store_id=storeId,
-            product_items=items,
-            delivery_instructions=deliveryInstructions
-        )
+        try:
+            # Convert OrderItemInput to dictionary
+            items = [{"product_id": item.productId, "quantity": item.quantity} for item in productItems]
+            return create_order(
+                user_id=userId, 
+                address_id=addressId, 
+                store_id=storeId,
+                product_items=items,
+                total_amount=totalAmount,
+                order_total_amount=orderTotalAmount,
+                delivery_fee=deliveryFee,
+                tip_amount=tipAmount,
+                tax_amount=taxAmount,
+                delivery_instructions=deliveryInstructions
+            )
+        except ValueError as e:
+            raise Exception(str(e))
     
     @strawberry.mutation
     def cancelOrderById(self, orderId: int, cancelMessage: str, cancelledByUserId: int) -> Optional[Order]:
@@ -130,7 +161,6 @@ class OrderMutation:
         Returns:
             Updated Order object.
         """
-
         db = SessionLocal()
         try:
             # ✅ Check if order exists
@@ -155,7 +185,7 @@ class OrderMutation:
             if delivery and input.status not in delivery_progression_statuses:
                 # Instead of deleting, set the driver to null and update status to FAILED
                 delivery.driverId = None
-                db.commit() 
+                db.commit()
 
             # ✅ Assign Delivery only if status is READY_FOR_DELIVERY
             if input.status == "READY_FOR_DELIVERY":
@@ -192,4 +222,72 @@ class OrderMutation:
 
         finally:
             db.close()
+    
+    @strawberry.mutation
+    def updateOrderBillUrl(self, orderId: int, billUrl: Optional[str] = None) -> Optional[Order]:
+        """
+        Update the bill URL for an order
+        
+        Args:
+            orderId: The ID of the order to update
+            billUrl: The new bill URL (can be None to remove the bill)
+            
+        Returns:
+            The updated order, or None if the order doesn't exist
+        """
+        try:
+            order = update_order_bill_url(order_id=orderId, bill_url=billUrl)
+            if not order:
+                raise Exception(f"Order with ID {orderId} not found")
+            return order
+        except ValueError as e:
+            raise Exception(str(e))
+            
+    @strawberry.mutation
+    def updateOrderItems(
+        self,
+        orderId: int,
+        orderItemUpdates: List[OrderItemUpdateInput],
+        totalAmount: float,
+        orderTotalAmount: float,
+        taxAmount: Optional[float] = None
+    ) -> Optional[Order]:
+        """
+        Update order items with the store manager's changes
+        
+        Args:
+            orderId: The ID of the order to update
+            orderItemUpdates: List of order item updates including ID and quantity change
+                              A None quantityChange means delete the item
+            totalAmount: The updated total amount for products
+            orderTotalAmount: The updated final total amount for the order
+            taxAmount: The updated tax amount for the order
+        
+        Returns:
+            The updated order, or None if the order doesn't exist
+        """
+        try:
+            # Convert input to dictionary format expected by service
+            updates = [
+                {
+                    "order_item_id": item.orderItemId,
+                    "quantity_change": item.quantityChange
+                }
+                for item in orderItemUpdates
+            ]
+            
+            order = update_order_items(
+                order_id=orderId,
+                order_item_updates=updates,
+                total_amount=totalAmount,
+                tax_amount=taxAmount,
+                order_total_amount=orderTotalAmount
+            )
+            
+            if not order:
+                raise Exception(f"Order with ID {orderId} not found")
+                
+            return order
+        except ValueError as e:
+            raise Exception(str(e))
 

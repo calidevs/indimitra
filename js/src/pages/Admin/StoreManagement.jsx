@@ -44,44 +44,106 @@ import {
   Refresh as RefreshIcon,
   Add as AddIcon,
   Store as StoreIcon,
+  LocalShipping as LocalShippingIcon,
+  AttachMoney as AttachMoneyIcon,
+  Percent as PercentIcon,
 } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_STORES } from '@/queries/operations';
 
 // Define the GraphQL mutation for creating a store
 const CREATE_STORE = `
-  mutation CreateStore($name: String!, $address: String!, $managerUserId: Int!, $radius: Float!, $email: String!, $mobile: String!) {
-    createStore(name: $name, address: $address, managerUserId: $managerUserId, radius: $radius, email: $email, mobile: $mobile) {
-      address
-      managerUserId
+  mutation CreateStore(
+    $name: String!
+    $address: String!
+    $managerUserId: Int!
+    $radius: Float!
+    $email: String!
+    $mobile: String!
+    $description: String
+    $storeDeliveryFee: Float
+    $taxPercentage: Float
+    $tnc: String
+    $pincodes: [String!]
+  ) {
+    createStore(
+      name: $name
+      address: $address
+      managerUserId: $managerUserId
+      radius: $radius
+      email: $email
+      mobile: $mobile
+      description: $description
+      storeDeliveryFee: $storeDeliveryFee
+      taxPercentage: $taxPercentage
+      tnc: $tnc
+      pincodes: $pincodes
+    ) {
+      id
       name
-      radius
-      manager {
+      address
         email
-        id
         mobile
-      }
+      managerUserId
+      radius
+      description
+      storeDeliveryFee
+      taxPercentage
+      tnc
+      pincodes
     }
   }
 `;
 
 // Add the mutation
 const UPDATE_STORE = `
-  mutation UpdateStore($storeId: Int!, $address: String!, $managerUserId: Int!, $name: String!, $radius: Float!) {
-    updateStore(storeId: $storeId, address: $address, managerUserId: $managerUserId, name: $name, radius: $radius) {
-      address
+  mutation UpdateStore(
+    $storeId: Int!
+    $name: String
+    $address: String
+    $email: String
+    $mobile: String
+    $managerUserId: Int
+    $radius: Float
+    $isActive: Boolean
+    $disabled: Boolean
+    $description: String
+    $pincodes: [String!]
+    $tnc: String
+    $storeDeliveryFee: Float
+    $taxPercentage: Float
+  ) {
+    updateStore(
+      storeId: $storeId
+      name: $name
+      address: $address
+      email: $email
+      mobile: $mobile
+      managerUserId: $managerUserId
+      radius: $radius
+      isActive: $isActive
+      disabled: $disabled
+      description: $description
+      pincodes: $pincodes
+      tnc: $tnc
+      storeDeliveryFee: $storeDeliveryFee
+      taxPercentage: $taxPercentage
+    ) {
       id
-      managerUserId
       name
+      address
+      email
+      mobile
+      managerUserId
       radius
+      isActive
+      disabled
+      description
+      pincodes
+      tnc
+      storeDeliveryFee
+      taxPercentage
     }
-  }
-`;
-
-// Add the delete mutation
-const DELETE_STORE = `
-  mutation DeleteStore($storeId: Int!) {
-    deleteStore(storeId: $storeId)
   }
 `;
 
@@ -106,17 +168,19 @@ const StoreManagement = () => {
     radius: '',
     email: '',
     mobile: '',
+    description: '',
+    storeDeliveryFee: '',
+    taxPercentage: '',
+    tnc: '',
     // Dummy data for additional steps
     inventory: [],
     drivers: [],
     storeManagers: [],
+    pincodes: '',
   });
 
   const [editStore, setEditStore] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-  const [deleteStore, setDeleteStore] = useState(null);
-  const [deleteConfirmation, setDeleteConfirmation] = useState('');
-  const [deleteError, setDeleteError] = useState('');
 
   // Fetch stores
   const {
@@ -139,6 +203,11 @@ const StoreManagement = () => {
         radius: parseFloat(data.radius),
         email: data.email,
         mobile: data.mobile,
+        description: data.description || null,
+        storeDeliveryFee: data.storeDeliveryFee ? parseFloat(data.storeDeliveryFee) : null,
+        taxPercentage: data.taxPercentage ? parseFloat(data.taxPercentage) : null,
+        tnc: data.tnc || null,
+        pincodes: data.pincodes || null,
       });
     },
     onSuccess: () => {
@@ -152,9 +221,14 @@ const StoreManagement = () => {
         radius: '',
         email: '',
         mobile: '',
+        description: '',
+        storeDeliveryFee: '',
+        taxPercentage: '',
+        tnc: '',
         inventory: [],
         drivers: [],
         storeManagers: [],
+        pincodes: '',
       });
       setActiveStep(0);
       refetch();
@@ -183,30 +257,6 @@ const StoreManagement = () => {
       setSnackbar({
         open: true,
         message: 'Failed to update store: ' + error.message,
-        severity: 'error',
-      });
-    },
-  });
-
-  // Add the delete mutation hook
-  const deleteStoreMutation = useMutation({
-    mutationFn: (variables) => {
-      return fetchGraphQL(DELETE_STORE, variables);
-    },
-    onSuccess: () => {
-      setSnackbar({
-        open: true,
-        message: 'Store deleted successfully',
-        severity: 'success',
-      });
-      setDeleteStore(null);
-      setDeleteConfirmation('');
-      refetch();
-    },
-    onError: (error) => {
-      setSnackbar({
-        open: true,
-        message: 'Failed to delete store: ' + error.message,
         severity: 'error',
       });
     },
@@ -282,14 +332,30 @@ const StoreManagement = () => {
       return;
     }
 
+    // Convert pincodes string to array and ensure no empty strings
+    const pincodesString = formData.pincodes;
+    const pincodes = pincodesString
+      ? pincodesString
+          .split(',')
+          .map((p) => p.trim())
+          .filter((p) => p.length > 0)
+      : [];
+
     // Only send the required fields to the mutation
     const storeData = {
       name: formData.name,
       address: formData.address,
-      managerUserId: formData.managerUserId,
-      radius: formData.radius,
+      managerUserId: parseInt(formData.managerUserId, 10),
+      radius: parseFloat(formData.radius),
       email: formData.email,
       mobile: formData.mobile,
+      description: formData.description || null,
+      storeDeliveryFee: formData.storeDeliveryFee ? parseFloat(formData.storeDeliveryFee) : null,
+      taxPercentage: formData.taxPercentage ? parseFloat(formData.taxPercentage) : null,
+      tnc: formData.tnc || null,
+      pincodes: pincodes,
+      is_active: true,
+      disabled: false,
     };
 
     // Make the actual API call
@@ -307,36 +373,35 @@ const StoreManagement = () => {
   const handleUpdateStore = (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
-    updateStoreMutation.mutate({
+
+    // Convert pincodes string to array and ensure no empty strings
+    const pincodesString = formData.get('pincodes');
+    const pincodes = pincodesString
+      ? pincodesString
+          .split(',')
+          .map((p) => p.trim())
+          .filter((p) => p.length > 0)
+      : [];
+
+    // Convert string values to appropriate types
+    const updateData = {
       storeId: editStore.id,
-      address: formData.get('address'),
-      managerUserId: parseInt(formData.get('managerUserId')),
       name: formData.get('name'),
+      address: formData.get('address'),
+      email: formData.get('email'),
+      mobile: formData.get('mobile') || null,
+      managerUserId: parseInt(formData.get('managerUserId')),
       radius: parseFloat(formData.get('radius')),
-    });
-  };
+      isActive: formData.get('isActive') === 'true',
+      disabled: formData.get('disabled') === 'true',
+      description: formData.get('description') || null,
+      pincodes: pincodes,
+      tnc: formData.get('tnc') || null,
+      storeDeliveryFee: parseFloat(formData.get('storeDeliveryFee')) || null,
+      taxPercentage: parseFloat(formData.get('taxPercentage')) || null,
+    };
 
-  const handleDeleteClick = (store) => {
-    setDeleteStore(store);
-    setDeleteConfirmation('');
-    setDeleteError('');
-  };
-
-  const handleCloseDelete = () => {
-    setDeleteStore(null);
-    setDeleteConfirmation('');
-    setDeleteError('');
-  };
-
-  const handleDeleteConfirm = () => {
-    if (deleteConfirmation.toLowerCase() !== 'delete') {
-      setDeleteError('Please type "delete" to confirm');
-      return;
-    }
-
-    deleteStoreMutation.mutate({
-      storeId: deleteStore.id,
-    });
+    updateStoreMutation.mutate(updateData);
   };
 
   // Filter stores based on search term
@@ -426,12 +491,73 @@ const StoreManagement = () => {
               <TextField
                 required
                 fullWidth
-                label="Delivery Radius (km)"
+                label="Delivery Radius (mi)"
                 name="radius"
                 type="number"
                 value={formData.radius}
                 onChange={handleChange}
                 inputProps={{ step: '0.1' }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Delivery Fee ($)"
+                name="storeDeliveryFee"
+                type="number"
+                value={formData.storeDeliveryFee}
+                onChange={handleChange}
+                inputProps={{ step: '0.01', min: 0 }}
+                InputProps={{
+                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                }}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Tax Rate (%)"
+                name="taxPercentage"
+                type="number"
+                value={formData.taxPercentage}
+                onChange={handleChange}
+                inputProps={{ step: '0.1', min: 0 }}
+                InputProps={{
+                  endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                }}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Description"
+                name="description"
+                value={formData.description}
+                onChange={handleChange}
+                multiline
+                rows={2}
+                helperText="Store timings and other details"
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Terms & Conditions"
+                name="tnc"
+                value={formData.tnc}
+                onChange={handleChange}
+                multiline
+                rows={3}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                fullWidth
+                label="Delivery Pincodes"
+                name="pincodes"
+                value={formData.pincodes}
+                onChange={handleChange}
+                helperText="Enter pincodes separated by commas"
               />
             </Grid>
           </Grid>
@@ -786,126 +912,392 @@ const StoreManagement = () => {
             ) : (
               <Grid container spacing={3}>
                 {filteredStores.map((store) => (
-                  <Grid item xs={12} sm={6} md={4} key={store.id}>
-                    <Card
+                  <Grid item xs={12} key={store.id}>
+                    <Paper
                       sx={{
-                        height: '100%',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        minHeight: isMobile ? 'auto' : 320,
+                        transition: 'all 0.3s ease-in-out',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        '&:hover': {
+                          boxShadow: (theme) => `0 8px 24px ${theme.palette.primary.main}20`,
+                          '& .store-header': {
+                            background: (theme) =>
+                              `linear-gradient(45deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
+                            '& .store-name': {
+                              color: 'white',
+                            },
+                            '& .store-id': {
+                              color: 'rgba(255, 255, 255, 0.8)',
+                            },
+                          },
+                          '& .action-buttons': {
+                            opacity: 1,
+                          },
+                        },
                       }}
                     >
-                      <CardContent sx={{ flexGrow: 1, pb: 1 }}>
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'flex-start',
-                            mb: 2,
-                          }}
-                        >
-                          <Typography
-                            variant="h6"
-                            component="div"
-                            sx={{
-                              wordBreak: 'break-word',
-                              pr: 1,
-                              fontSize: isMobile ? '1rem' : '1.25rem',
-                            }}
-                          >
-                            {store.name}
-                          </Typography>
-                          <Chip
-                            label={`${store.drivers.edges.length} drivers`}
-                            color="primary"
-                            size="small"
-                            sx={{ flexShrink: 0 }}
-                          />
-                        </Box>
+                      {/* Header Section with Gradient */}
+                      <Box
+                        className="store-header"
+                        sx={{
+                          p: 2,
+                          background: (theme) =>
+                            `linear-gradient(45deg, ${theme.palette.primary.light}, ${theme.palette.primary.main})`,
+                          transition: 'all 0.3s ease-in-out',
+                        }}
+                      >
+                        <Grid container alignItems="center" spacing={2}>
+                          <Grid item xs={12} md={6}>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                              <StoreIcon sx={{ mr: 2, color: 'white', fontSize: '2rem' }} />
+                              <Box>
+                                <Typography
+                                  className="store-name"
+                                  variant="h6"
+                                  sx={{
+                                    color: 'white',
+                                    fontWeight: 600,
+                                    transition: 'color 0.3s ease-in-out',
+                                  }}
+                                >
+                                  {store.name}
+                                </Typography>
+                                <Typography
+                                  className="store-id"
+                                  variant="body2"
+                                  sx={{
+                                    color: 'rgba(255, 255, 255, 0.8)',
+                                    transition: 'color 0.3s ease-in-out',
+                                  }}
+                                >
+                                  ID: {store.id}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Grid>
+                          <Grid item xs={12} md={6}>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                justifyContent: { xs: 'flex-start', md: 'flex-end' },
+                                gap: 2,
+                              }}
+                            >
+                              <Chip
+                                label={store.isActive ? 'Active' : 'Inactive'}
+                                color={store.isActive ? 'success' : 'error'}
+                                sx={{
+                                  fontWeight: 600,
+                                  boxShadow: 2,
+                                  '& .MuiChip-label': { px: 1 },
+                                }}
+                              />
+                              <Box
+                                className="action-buttons"
+                                sx={{ display: 'flex', gap: 1, opacity: 0.9 }}
+                              >
+                                <Button
+                                  size="small"
+                                  startIcon={<EditIcon />}
+                                  sx={{
+                                    fontWeight: 600,
+                                    textTransform: 'none',
+                                    color: 'white',
+                                    '&:hover': {
+                                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                                    },
+                                  }}
+                                  onClick={() => handleEditClick(store)}
+                                >
+                                  Edit
+                                </Button>
+                              </Box>
+                            </Box>
+                          </Grid>
+                        </Grid>
+                      </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
-                          <LocationIcon
-                            sx={{ mr: 1, color: 'text.secondary', mt: 0.3, flexShrink: 0 }}
-                          />
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ wordBreak: 'break-word' }}
-                          >
-                            {store.address}
-                          </Typography>
-                        </Box>
+                      <Box sx={{ p: 3 }}>
+                        <Grid container spacing={3}>
+                          {/* Contact Information */}
+                          <Grid item xs={12} md={4}>
+                            <Box>
+                              <Typography
+                                variant="subtitle2"
+                                sx={{
+                                  mb: 2,
+                                  fontWeight: 600,
+                                  color: 'primary.main',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  '&::before': {
+                                    content: '""',
+                                    display: 'inline-block',
+                                    width: 4,
+                                    height: 16,
+                                    backgroundColor: 'primary.main',
+                                    marginRight: 1,
+                                    borderRadius: 1,
+                                  },
+                                }}
+                              >
+                                Contact Information
+                              </Typography>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                          <PhoneIcon sx={{ mr: 1, color: 'text.secondary', flexShrink: 0 }} />
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{ wordBreak: 'break-word' }}
-                          >
-                            {store.drivers.edges.length > 0
-                              ? store.drivers.edges[0].node.driver.mobile
-                              : 'No contact info'}
-                          </Typography>
-                        </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 2 }}>
+                                <LocationIcon
+                                  sx={{
+                                    mr: 1.5,
+                                    color: 'primary.main',
+                                    mt: 0.3,
+                                    flexShrink: 0,
+                                    fontSize: '1.2rem',
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    wordBreak: 'break-word',
+                                    color: 'text.primary',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  {store.address}
+                                </Typography>
+                              </Box>
 
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                          <EmailIcon sx={{ mr: 1, color: 'text.secondary', flexShrink: 0 }} />
-                          <Typography
-                            variant="body2"
-                            color="text.secondary"
-                            sx={{
-                              wordBreak: 'break-word',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              display: '-webkit-box',
-                              WebkitLineClamp: 1,
-                              WebkitBoxOrient: 'vertical',
-                            }}
-                          >
-                            {store.drivers.edges.length > 0
-                              ? store.drivers.edges[0].node.driver.email
-                              : 'No email info'}
-                          </Typography>
-                        </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                <PhoneIcon
+                                  sx={{
+                                    mr: 1.5,
+                                    color: 'primary.main',
+                                    flexShrink: 0,
+                                    fontSize: '1.2rem',
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    wordBreak: 'break-word',
+                                    color: 'text.primary',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  {store.mobile || 'No contact info'}
+                                </Typography>
+                              </Box>
 
-                        <Box
-                          sx={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            mt: 'auto',
-                          }}
-                        >
-                          <Typography variant="body2" color="text.secondary">
-                            Active:{' '}
-                            {store.drivers.edges.filter(({ node }) => node.driver.active).length}
-                          </Typography>
-                          <Typography variant="body2" color="text.secondary">
-                            Total: {store.drivers.edges.length}
-                          </Typography>
-                        </Box>
-                      </CardContent>
-                      <CardActions sx={{ justifyContent: 'space-between', px: 2, py: 1 }}>
-                        <Button
-                          size="small"
-                          startIcon={<EditIcon />}
-                          sx={{ flex: 1, mr: 1 }}
-                          onClick={() => handleEditClick(store)}
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          size="small"
-                          color="error"
-                          startIcon={<DeleteIcon />}
-                          sx={{ flex: 1 }}
-                          onClick={() => handleDeleteClick(store)}
-                        >
-                          Delete
-                        </Button>
-                      </CardActions>
-                    </Card>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <EmailIcon
+                                  sx={{
+                                    mr: 1.5,
+                                    color: 'primary.main',
+                                    flexShrink: 0,
+                                    fontSize: '1.2rem',
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    wordBreak: 'break-word',
+                                    color: 'text.primary',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  {store.email || 'No email info'}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          </Grid>
+
+                          {/* Delivery Information */}
+                          <Grid item xs={12} md={4}>
+                            <Box>
+                              <Typography
+                                variant="subtitle2"
+                                sx={{
+                                  mb: 2,
+                                  fontWeight: 600,
+                                  color: 'primary.main',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  '&::before': {
+                                    content: '""',
+                                    display: 'inline-block',
+                                    width: 4,
+                                    height: 16,
+                                    backgroundColor: 'primary.main',
+                                    marginRight: 1,
+                                    borderRadius: 1,
+                                  },
+                                }}
+                              >
+                                Delivery Information
+                              </Typography>
+
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                <LocalShippingIcon
+                                  sx={{
+                                    mr: 1.5,
+                                    color: 'primary.main',
+                                    flexShrink: 0,
+                                    fontSize: '1.2rem',
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: 'text.primary',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  Radius: {store.radius} mi
+                                </Typography>
+                              </Box>
+
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                <AttachMoneyIcon
+                                  sx={{
+                                    mr: 1.5,
+                                    color: 'primary.main',
+                                    flexShrink: 0,
+                                    fontSize: '1.2rem',
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: 'text.primary',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  Delivery Fee: ${store.storeDeliveryFee?.toFixed(2) || '0.00'}
+                                </Typography>
+                              </Box>
+
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                <PercentIcon
+                                  sx={{
+                                    mr: 1.5,
+                                    color: 'primary.main',
+                                    flexShrink: 0,
+                                    fontSize: '1.2rem',
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    color: 'text.primary',
+                                    fontWeight: 500,
+                                  }}
+                                >
+                                  Tax Rate: {store.taxPercentage?.toFixed(1) || '0.0'}%
+                                </Typography>
+                              </Box>
+
+                              {store.pincodes && store.pincodes.length > 0 && (
+                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.8 }}>
+                                  {store.pincodes.map((pincode) => (
+                                    <Chip
+                                      key={pincode}
+                                      label={pincode}
+                                      size="small"
+                                      sx={{
+                                        backgroundColor: 'primary.light',
+                                        color: 'primary.contrastText',
+                                        fontWeight: 600,
+                                        transition: 'all 0.2s ease-in-out',
+                                        '&:hover': {
+                                          backgroundColor: 'primary.main',
+                                          transform: 'scale(1.05)',
+                                        },
+                                      }}
+                                    />
+                                  ))}
+                                </Box>
+                              )}
+                            </Box>
+                          </Grid>
+
+                          {/* Description & T&C */}
+                          <Grid item xs={12} md={4}>
+                            <Box>
+                              {store.description && (
+                                <Box sx={{ mb: 3 }}>
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{
+                                      mb: 2,
+                                      fontWeight: 600,
+                                      color: 'primary.main',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      '&::before': {
+                                        content: '""',
+                                        display: 'inline-block',
+                                        width: 4,
+                                        height: 16,
+                                        backgroundColor: 'primary.main',
+                                        marginRight: 1,
+                                        borderRadius: 1,
+                                      },
+                                    }}
+                                  >
+                                    Description
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      wordBreak: 'break-word',
+                                      color: 'text.primary',
+                                      fontWeight: 500,
+                                    }}
+                                  >
+                                    {store.description}
+                                  </Typography>
+                                </Box>
+                              )}
+
+                              {store.tnc && (
+                                <Box>
+                                  <Typography
+                                    variant="subtitle2"
+                                    sx={{
+                                      mb: 2,
+                                      fontWeight: 600,
+                                      color: 'primary.main',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      '&::before': {
+                                        content: '""',
+                                        display: 'inline-block',
+                                        width: 4,
+                                        height: 16,
+                                        backgroundColor: 'primary.main',
+                                        marginRight: 1,
+                                        borderRadius: 1,
+                                      },
+                                    }}
+                                  >
+                                    Terms & Conditions
+                                  </Typography>
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      wordBreak: 'break-word',
+                                      color: 'text.primary',
+                                      fontWeight: 500,
+                                    }}
+                                  >
+                                    {store.tnc}
+                                  </Typography>
+                                </Box>
+                              )}
+                            </Box>
+                          </Grid>
+                        </Grid>
+                      </Box>
+                    </Paper>
                   </Grid>
                 ))}
               </Grid>
@@ -948,90 +1340,206 @@ const StoreManagement = () => {
       </Paper>
 
       {/* Edit Store Modal */}
-      <Dialog open={!!editStore} onClose={handleCloseEdit} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit Store</DialogTitle>
+      <Dialog open={!!editStore} onClose={handleCloseEdit} maxWidth="md" fullWidth>
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <StoreIcon />
+            <Typography variant="h6">Edit Store</Typography>
+          </Box>
+        </DialogTitle>
         <form onSubmit={handleUpdateStore}>
           <DialogContent>
-            <Stack spacing={3}>
-              <TextField
-                name="name"
-                label="Store Name"
-                defaultValue={editStore?.name}
-                required
-                fullWidth
-              />
-              <TextField
-                name="address"
-                label="Address"
-                defaultValue={editStore?.address}
-                required
-                fullWidth
-              />
-              <TextField
-                name="managerUserId"
-                label="Manager User ID"
-                type="number"
-                defaultValue={editStore?.managerUserId}
-                required
-                fullWidth
-              />
-              <TextField
-                name="radius"
-                label="Radius (mi)"
-                type="number"
-                defaultValue={editStore?.radius}
-                required
-                fullWidth
-                inputProps={{ step: 0.1 }}
-              />
-            </Stack>
+            <Grid container spacing={3}>
+              {/* Basic Information */}
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" color="primary" sx={{ mb: 2, fontWeight: 600 }}>
+                  Basic Information
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  name="name"
+                  label="Store Name"
+                  defaultValue={editStore?.name}
+                  required
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  name="email"
+                  label="Email"
+                  type="email"
+                  defaultValue={editStore?.email}
+                  required
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  name="mobile"
+                  label="Mobile Number"
+                  defaultValue={editStore?.mobile}
+                  fullWidth
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  name="managerUserId"
+                  label="Manager User ID"
+                  type="number"
+                  defaultValue={editStore?.managerUserId}
+                  required
+                  fullWidth
+                />
+              </Grid>
+
+              {/* Location & Delivery */}
+              <Grid item xs={12}>
+                <Typography
+                  variant="subtitle1"
+                  color="primary"
+                  sx={{ mb: 2, fontWeight: 600, mt: 2 }}
+                >
+                  Location & Delivery
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  name="address"
+                  label="Address"
+                  defaultValue={editStore?.address}
+                  required
+                  fullWidth
+                  multiline
+                  rows={2}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  name="radius"
+                  label="Delivery Radius (mi)"
+                  type="number"
+                  defaultValue={editStore?.radius}
+                  required
+                  fullWidth
+                  inputProps={{ step: 0.1 }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  name="storeDeliveryFee"
+                  label="Delivery Fee ($)"
+                  type="number"
+                  defaultValue={editStore?.storeDeliveryFee}
+                  fullWidth
+                  inputProps={{ step: 0.01, min: 0 }}
+                  InputProps={{
+                    startAdornment: <InputAdornment position="start">$</InputAdornment>,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  name="taxPercentage"
+                  label="Tax Rate (%)"
+                  type="number"
+                  defaultValue={editStore?.taxPercentage}
+                  fullWidth
+                  inputProps={{ step: 0.1, min: 0 }}
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">%</InputAdornment>,
+                  }}
+                />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField
+                  name="pincodes"
+                  label="Delivery Pincodes"
+                  defaultValue={editStore?.pincodes?.join(', ')}
+                  fullWidth
+                  helperText="Enter pincodes separated by commas"
+                />
+              </Grid>
+
+              {/* Additional Information */}
+              <Grid item xs={12}>
+                <Typography
+                  variant="subtitle1"
+                  color="primary"
+                  sx={{ mb: 2, fontWeight: 600, mt: 2 }}
+                >
+                  Additional Information
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  name="description"
+                  label="Description"
+                  defaultValue={editStore?.description}
+                  fullWidth
+                  multiline
+                  rows={2}
+                  helperText="Store timings and other details"
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  name="tnc"
+                  label="Terms & Conditions"
+                  defaultValue={editStore?.tnc}
+                  fullWidth
+                  multiline
+                  rows={3}
+                />
+              </Grid>
+
+              {/* Store Status */}
+              <Grid item xs={12}>
+                <Typography
+                  variant="subtitle1"
+                  color="primary"
+                  sx={{ mb: 2, fontWeight: 600, mt: 2 }}
+                >
+                  Store Status
+                </Typography>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Store Status</InputLabel>
+                  <Select name="isActive" label="Store Status" defaultValue={editStore?.isActive}>
+                    <MenuItem value={true}>Active</MenuItem>
+                    <MenuItem value={false}>Inactive</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Disabled Status</InputLabel>
+                  <Select
+                    name="disabled"
+                    label="Disabled Status"
+                    defaultValue={editStore?.disabled}
+                  >
+                    <MenuItem value={true}>Disabled</MenuItem>
+                    <MenuItem value={false}>Enabled</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+            </Grid>
           </DialogContent>
-          <DialogActions>
+          <DialogActions sx={{ p: 3, pt: 0 }}>
             <Button onClick={handleCloseEdit}>Cancel</Button>
-            <Button type="submit" variant="contained" disabled={updateStoreMutation.isPending}>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={updateStoreMutation.isPending}
+              startIcon={updateStoreMutation.isPending ? <CircularProgress size={20} /> : null}
+            >
               {updateStoreMutation.isPending ? 'Updating...' : 'Update Store'}
             </Button>
           </DialogActions>
         </form>
-      </Dialog>
-
-      {/* Delete Store Confirmation Dialog */}
-      <Dialog open={!!deleteStore} onClose={handleCloseDelete} maxWidth="sm" fullWidth>
-        <DialogTitle>Delete Store</DialogTitle>
-        <DialogContent>
-          <Stack spacing={3}>
-            <Typography>
-              Are you sure you want to delete the store "{deleteStore?.name}"? This action cannot be
-              undone.
-            </Typography>
-            <Typography variant="body2" color="error">
-              Please type "delete" to confirm:
-            </Typography>
-            <TextField
-              value={deleteConfirmation}
-              onChange={(e) => {
-                setDeleteConfirmation(e.target.value);
-                setDeleteError('');
-              }}
-              error={!!deleteError}
-              helperText={deleteError}
-              fullWidth
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDelete}>Cancel</Button>
-          <Button
-            onClick={handleDeleteConfirm}
-            variant="contained"
-            color="error"
-            disabled={
-              deleteStoreMutation.isPending || deleteConfirmation.toLowerCase() !== 'delete'
-            }
-          >
-            {deleteStoreMutation.isPending ? 'Deleting...' : 'Delete Store'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
       {/* Success/Error Snackbar */}

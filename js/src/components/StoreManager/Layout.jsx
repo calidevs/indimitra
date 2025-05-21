@@ -28,7 +28,6 @@ const Layout = ({ children }) => {
             p: 3,
             width: { sm: `calc(100% - ${open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH}px)` },
             ml: { sm: `${open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH}px` },
-            mt: { xs: '64px', sm: '70px' },
             transition: theme.transitions.create(['width', 'margin'], {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.leavingScreen,
@@ -40,7 +39,7 @@ const Layout = ({ children }) => {
             overflow: 'hidden',
           }}
         >
-          <Box sx={{ width: '100%', maxWidth: 1200 }}>{children}</Box>
+          <Box sx={{ width: '100%' }}>{children}</Box>
         </Box>
       </Box>
     </DrawerContext.Provider>

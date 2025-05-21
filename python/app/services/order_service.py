@@ -7,6 +7,7 @@ from app.db.models.order_item import OrderItemModel
 from app.db.models.product import ProductModel
 from app.db.models.address import AddressModel
 from app.db.models.inventory import InventoryModel
+from app.services.validation_service import validate_delivery_pincode
 
 def get_order_by_id(order_id: int) -> Optional[OrderModel]:
     """Get an order by its ID"""
@@ -68,7 +69,10 @@ def get_orders_by_store(store_id: int) -> List[OrderModel]:
     finally:
         db.close()
 
-def create_order(user_id: int, address_id: int, store_id: int, product_items: List[dict], delivery_instructions: Optional[str] = None) -> OrderModel:
+def create_order(user_id: int, address_id: int, store_id: int, product_items: List[dict], 
+                 total_amount: float, order_total_amount: float, delivery_fee: Optional[float] = None,
+                 tip_amount: Optional[float] = None, tax_amount: Optional[float] = None,
+                 delivery_instructions: Optional[str] = None) -> OrderModel:
     """
     Create a new order with multiple order items
     
@@ -77,6 +81,11 @@ def create_order(user_id: int, address_id: int, store_id: int, product_items: Li
         address_id: The ID of the delivery address
         store_id: The ID of the store the order is being placed from
         product_items: List of product items [{"product_id": int, "quantity": int}, ...]
+        total_amount: The total amount of products (subtotal)
+        order_total_amount: The final total amount including all fees and taxes
+        delivery_fee: Optional delivery fee
+        tip_amount: Optional tip amount
+        tax_amount: Optional tax amount
         delivery_instructions: Optional special instructions for delivery
     
     Returns:
@@ -92,6 +101,9 @@ def create_order(user_id: int, address_id: int, store_id: int, product_items: Li
         
         if not address:
             raise ValueError(f"Address with ID {address_id} not found or does not belong to user {user_id}")
+        
+        # Validate delivery pincode is serviced by the store
+        validate_delivery_pincode(address_id, store_id)
         
         # Extract all product IDs from the items
         product_ids = [item["product_id"] for item in product_items]
@@ -110,19 +122,17 @@ def create_order(user_id: int, address_id: int, store_id: int, product_items: Li
             if item["product_id"] not in inventory_dict:
                 raise ValueError(f"Product with ID {item['product_id']} not found in store inventory")
         
-        # Calculate total amount using inventory prices
-        total_amount = 0.0
-        for item in product_items:
-            inventory_item = inventory_dict[item["product_id"]]
-            total_amount += inventory_item.price * item["quantity"]
-        
-        # Create the order
+        # Create the order with the provided amounts (no calculation in BE)
         order = OrderModel(
             createdByUserId=user_id,
             addressId=address_id,
             storeId=store_id,
             status=OrderStatus.PENDING,
             totalAmount=total_amount,
+            orderTotalAmount=order_total_amount,
+            deliveryFee=delivery_fee,
+            tipAmount=tip_amount,
+            taxAmount=tax_amount,
             deliveryDate=None,
             deliveryInstructions=delivery_instructions
         )
@@ -210,6 +220,166 @@ def cancel_order(order_id: int, cancel_message: str, cancelled_by_user_id: int) 
         order.cancelMessage = cancel_message
         order.cancelledByUserId = cancelled_by_user_id
         order.cancelledAt = datetime.now()
+        
+        db.commit()
+        db.refresh(order)
+        return order
+    finally:
+        db.close()
+
+def update_order_bill_url(order_id: int, bill_url: Optional[str] = None) -> Optional[OrderModel]:
+    """
+    Update the bill URL for an order
+    
+    Args:
+        order_id: The ID of the order to update
+        bill_url: The new bill URL (can be None to remove the bill)
+        
+    Returns:
+        The updated order, or None if the order doesn't exist
+    """
+    db = SessionLocal()
+    try:
+        order = db.query(OrderModel).filter(OrderModel.id == order_id).first()
+        if not order:
+            return None
+            
+        order.bill_url = bill_url
+        db.commit()
+        db.refresh(order)
+        return order
+    finally:
+        db.close()
+
+def update_order_items(
+    order_id: int, 
+    order_item_updates: List[dict], 
+    total_amount: float, 
+    tax_amount: Optional[float] = None,
+    order_total_amount: float = None
+) -> Optional[OrderModel]:
+    """
+    Update order items and recalculate totals for an order
+    
+    Args:
+        order_id: The ID of the order to update
+        order_item_updates: List of order item updates [{"order_item_id": int, "quantity_change": int}, ...]
+                           A negative quantity_change means reduce quantity, positive means increase
+                           A quantity_change of None means delete the item
+        total_amount: The updated total amount for products
+        tax_amount: The updated tax amount for the order
+        order_total_amount: The updated final total amount for the order
+    
+    Returns:
+        The updated order, or None if the order doesn't exist
+    """
+    db = SessionLocal()
+    try:
+        # Get the order
+        order = db.query(OrderModel).filter(OrderModel.id == order_id).first()
+        if not order:
+            return None
+        
+        # Allow updating orders in PENDING, ORDER_PLACED, or ACCEPTED state
+        editable_statuses = [OrderStatus.PENDING, OrderStatus.ORDER_PLACED, OrderStatus.ACCEPTED]
+        if order.status not in editable_statuses:
+            raise ValueError(f"Cannot update items for order with status {order.status}. Only orders with status PENDING, ORDER_PLACED, or ACCEPTED can be updated.")
+        
+        # Update order amounts
+        order.totalAmount = total_amount
+        
+        if tax_amount is not None:
+            order.taxAmount = tax_amount
+            
+        if order_total_amount is not None:
+            order.orderTotalAmount = order_total_amount
+        
+        # Process each order item update
+        for update in order_item_updates:
+            order_item_id = update.get("order_item_id")
+            quantity_change = update.get("quantity_change")
+            
+            # Get the order item
+            order_item = db.query(OrderItemModel).filter(
+                OrderItemModel.id == order_item_id,
+                OrderItemModel.orderId == order_id
+            ).first()
+            
+            if not order_item:
+                continue  # Skip if order item not found
+            
+            # Check if this is the original item or an already updated one
+            if order_item.updatedOrderitemsId is not None:
+                # This is already updated once, we need to find the latest revision
+                latest_item = order_item
+                while latest_item.updated_order_item is not None:
+                    latest_item = latest_item.updated_order_item
+                
+                # Update or delete the latest revision
+                if quantity_change is None:
+                    # Delete the item (mark as zero quantity)
+                    new_order_item = OrderItemModel(
+                        productId=latest_item.productId,
+                        quantity=0,  # Set to zero to indicate deletion
+                        orderId=order_id,
+                        orderAmount=0,
+                        inventoryId=latest_item.inventoryId
+                    )
+                    db.add(new_order_item)
+                    db.flush()  # Get the ID
+                    
+                    # Link to the original item
+                    latest_item.updatedOrderitemsId = new_order_item.id
+                else:
+                    # Calculate new quantity (can't be negative)
+                    new_quantity = max(0, latest_item.quantity + quantity_change)
+                    
+                    # Create a new order item with updated quantity
+                    new_order_item = OrderItemModel(
+                        productId=latest_item.productId,
+                        quantity=new_quantity,
+                        orderId=order_id,
+                        orderAmount=latest_item.orderAmount / latest_item.quantity * new_quantity if latest_item.quantity > 0 else 0,
+                        inventoryId=latest_item.inventoryId
+                    )
+                    db.add(new_order_item)
+                    db.flush()  # Get the ID
+                    
+                    # Link to the original item
+                    latest_item.updatedOrderitemsId = new_order_item.id
+            else:
+                # This is the original item, create a new revision
+                if quantity_change is None:
+                    # Delete the item (mark as zero quantity)
+                    new_order_item = OrderItemModel(
+                        productId=order_item.productId,
+                        quantity=0,  # Set to zero to indicate deletion
+                        orderId=order_id,
+                        orderAmount=0,
+                        inventoryId=order_item.inventoryId
+                    )
+                    db.add(new_order_item)
+                    db.flush()  # Get the ID
+                    
+                    # Link to the original item
+                    order_item.updatedOrderitemsId = new_order_item.id
+                else:
+                    # Calculate new quantity (can't be negative)
+                    new_quantity = max(0, order_item.quantity + quantity_change)
+                    
+                    # Create a new order item with updated quantity
+                    new_order_item = OrderItemModel(
+                        productId=order_item.productId,
+                        quantity=new_quantity,
+                        orderId=order_id,
+                        orderAmount=order_item.orderAmount / order_item.quantity * new_quantity if order_item.quantity > 0 else 0,
+                        inventoryId=order_item.inventoryId
+                    )
+                    db.add(new_order_item)
+                    db.flush()  # Get the ID
+                    
+                    # Link to the original item
+                    order_item.updatedOrderitemsId = new_order_item.id
         
         db.commit()
         db.refresh(order)

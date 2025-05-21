@@ -2,6 +2,7 @@ from app.db.session import SessionLocal
 from app.db.models.product import ProductModel
 from app.db.models.inventory import InventoryModel
 from app.db.models.category import CategoryModel
+from typing import Optional
 
 def get_all_products():
     db = SessionLocal()
@@ -10,7 +11,7 @@ def get_all_products():
     finally:
         db.close()
 
-def create_product(name: str, description: str, category_id: int):
+def create_product(name: str, description: str, categoryId: int, image: Optional[str] = None):
     db = SessionLocal()
     try:
         # Validate required fields
@@ -24,18 +25,22 @@ def create_product(name: str, description: str, category_id: int):
         description = description.strip()
         
         # Check if the category exists
-        category = db.query(CategoryModel).get(category_id)
+        category = db.query(CategoryModel).get(categoryId)
         if not category:
-            raise ValueError(f"Category with ID {category_id} does not exist")
+            raise ValueError(f"Category with ID {categoryId} does not exist")
+            
+        print(f"Creating product with image: {image}")  # Add logging
             
         product = ProductModel(
             name=name,
             description=description,
-            categoryId=category_id
+            categoryId=categoryId,
+            image=image
         )
         db.add(product)
         db.commit()
         db.refresh(product)
+        print(f"Created product with image: {product.image}")  # Add logging
         return product
     finally:
         db.close()

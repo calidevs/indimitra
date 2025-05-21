@@ -15,32 +15,52 @@ export const PRODUCTS_QUERY = `
 
 export const CREATE_ORDER_MUTATION = `
   mutation CreateOrder(
-    $userId: Int!,
-    $addressId: Int!,
-    $storeId: Int!,
+    $userId: Int!
+    $addressId: Int!
+    $storeId: Int!
     $productItems: [OrderItemInput!]!
+    $totalAmount: Float!
+    $orderTotalAmount: Float!
+    $deliveryFee: Float
+    $tipAmount: Float
+    $taxAmount: Float
+    $deliveryInstructions: String
   ) {
     createOrder(
-      userId: $userId, 
-      addressId: $addressId, 
-      storeId: $storeId, 
+      userId: $userId
+      addressId: $addressId
+      storeId: $storeId
       productItems: $productItems
+      totalAmount: $totalAmount
+      orderTotalAmount: $orderTotalAmount
+      deliveryFee: $deliveryFee
+      tipAmount: $tipAmount
+      taxAmount: $taxAmount
+      deliveryInstructions: $deliveryInstructions
     ) {
       id
-      createdByUserId
-      address { 
-        id
-      }
       status
       totalAmount
+      orderTotalAmount
+      deliveryFee
+      tipAmount
+      taxAmount
+      deliveryInstructions
       deliveryDate
+      address {
+        id
+        address
+      }
       orderItems {
         edges {
           node {
             id
-            productId
             quantity
             orderAmount
+            product {
+              id
+              name
+            }
           }
         }
       }
@@ -51,20 +71,35 @@ export const CREATE_ORDER_MUTATION = `
 export const GET_USER_ORDERS = `
   query GetUserOrders($userId: Int!) {
     getOrdersByUser(userId: $userId) {
+      addressId
+      billUrl
+      deliveryDate
+      deliveryFee
+      deliveryInstructions
       id
+      cancelMessage
+      cancelledAt
+      cancelledByUserId
+      createdByUserId
+      orderTotalAmount
+      paymentId
+      status
+      storeId
+      taxAmount
+      tipAmount
+      totalAmount
       address { 
         id
         address
         isPrimary
       }
-      status
-      totalAmount
-      deliveryDate
       orderItems {
         edges {
           node {
+            id
             orderAmount
             quantity
+            updatedOrderitemsId
             product {
               id
               name
@@ -161,10 +196,40 @@ export const GET_DELIVERIES_BY_DRIVER = `
       status
       comments
       order {
+        addressId
+        cancelMessage
+        cancelledAt
+        cancelledByUserId
+        createdByUserId
+        deliveryDate
+        deliveryInstructions
+        id
+        paymentId
+        status
+        storeId
+        totalAmount
         address {
           address
         }
-        cancelMessage
+        orderItems {
+          edges {
+            node {
+              id
+              inventoryId
+              orderAmount
+              orderId
+              productId
+              quantity
+              product {
+                categoryId
+                description
+                id
+                image
+                name
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -173,14 +238,21 @@ export const GET_DELIVERIES_BY_DRIVER = `
 export const GET_USER_PROFILE = `
   query GetUserProfile($userId: String!) {
     getUserProfile(userId: $userId) {
-      id
+      active
+      createdAt
       email
+      id
+      mobile
+      referralId
+      secondaryPhone
       type
+      updatedAt
       stores {
         edges {
           node {
             id
             name
+            taxPercentage
           }
         }
       }
@@ -203,6 +275,10 @@ export const GET_ORDERS_BY_STORE = `
       status
       storeId
       totalAmount
+      orderTotalAmount
+      deliveryFee
+      tipAmount
+      taxAmount
       address {
         address
       }
@@ -222,10 +298,20 @@ export const GET_ORDERS_BY_STORE = `
             orderId
             productId
             quantity
+            updatedOrderitemsId
             product {
               id
               name
               description
+              inventoryItems {
+                edges {
+                  node {
+                    price
+                    measurement
+                    unit
+                  }
+                }
+              }
             }
           }
         }
@@ -334,6 +420,8 @@ export const GET_STORE_INVENTORY = `
       quantity
       price
       updatedAt
+      isAvailable
+      isListed
       product {
         id
         name
@@ -349,11 +437,29 @@ export const GET_STORE_INVENTORY = `
 `;
 
 export const UPDATE_INVENTORY_ITEM = `
-  mutation UpdateInventoryItem($inventoryId: Int!, $price: Float!, $quantity: Int!) {
-    updateInventoryItem(inventoryId: $inventoryId, price: $price, quantity: $quantity) {
+  mutation UpdateInventoryItem(
+    $inventoryId: Int!
+    $price: Float
+    $quantity: Int
+    $isAvailable: Boolean
+    $isListed: Boolean
+  ) {
+    updateInventoryItem(
+      inventoryId: $inventoryId
+      price: $price
+      quantity: $quantity
+      isAvailable: $isAvailable
+      isListed: $isListed
+    ) {
       id
+      isAvailable
+      isListed
+      measurement
       price
+      productId
       quantity
+      storeId
+      unit
       updatedAt
     }
   }
@@ -393,48 +499,37 @@ export const GET_STORE_WITH_INVENTORY = `
       id
       name
       address
-      radius
-      inventory {
-        edges {
-          node {
-            id
-            quantity
-            price
-            measurement
-            updatedAt
-            product {
-              id
-              name
-              description
-              category {
-                id
-                name
-              }
-              image
-            }
-          }
-        }
-      }
-    }
-    products {
-      id
-      name
       description
-      category {
-        id
-        name
-      }
+      disabled
+      email
+      isActive
+      mobile
+      pincodes
+      radius
+      tnc
+      storeDeliveryFee
+      taxPercentage
     }
   }
 `;
 
 export const GET_ALL_STORES = `
   query GetAllStores {
-    stores {
+    stores(disabled: false) {
       id
       name
       address
+      description
+      disabled
+      email
+      isActive
+      managerUserId
+      mobile
+      pincodes
       radius
+      tnc
+      storeDeliveryFee
+      taxPercentage
     }
   }
 `;
@@ -442,29 +537,26 @@ export const GET_ALL_STORES = `
 // Add this to your js/src/queries/operations.js file
 
 export const GET_STORE_PRODUCTS = `
-  query GetStoreProducts($storeId: Int!) {
-    store(storeId: $storeId) {
-      inventory {
-        edges {
-          node {
-            id
-            measurement
-            price
-            productId
-            quantity
-            unit
-            updatedAt
-            product {
-              id
-              name
-              image
-              description
-              category {
-                id
-                name
-              }
-            }
-          }
+  query GetStoreProducts($storeId: Int!, $isListed: Boolean) {
+    getInventoryByStore(storeId: $storeId, isListed: $isListed) {
+      id
+      isAvailable
+      isListed
+      measurement
+      price
+      productId
+      quantity
+      storeId
+      unit
+      updatedAt
+      product {
+        id
+        name
+        image
+        description
+        category {
+          id
+          name
         }
       }
     }
@@ -477,7 +569,17 @@ export const GET_STORES = `
       id
       name
       address
+      description
+      disabled
+      email
+      isActive
       managerUserId
+      mobile
+      pincodes
+      radius
+      tnc
+      storeDeliveryFee
+      taxPercentage
       drivers {
         edges {
           node {
@@ -517,8 +619,8 @@ export const GET_PRODUCTS = `
 `;
 
 export const CREATE_PRODUCT = `
-  mutation CreateProduct($name: String!, $description: String!, $categoryId: Int!) {
-    createProduct(name: $name, description: $description, categoryId: $categoryId) {
+  mutation CreateProduct($name: String!, $description: String!, $categoryId: Int!, $image: String) {
+    createProduct(name: $name, description: $description, categoryId: $categoryId, image: $image) {
       id
       name
       description
@@ -558,6 +660,78 @@ export const ASSIGN_DRIVER_TO_STORE = `
             node {
               driver {
                 email
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const GET_ORDER_FILE = `
+  query GetOrderFile($orderId: Int!) {
+    getOrderById(orderId: $orderId) {
+      id
+      status
+      totalAmount
+      deliveryDate
+      orderItems {
+        edges {
+          node {
+            id
+            quantity
+            orderAmount
+            product {
+              name
+              description
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const UPDATE_ORDER_ITEMS = `
+  mutation UpdateOrderItems(
+    $orderId: Int!
+    $orderItemUpdates: [OrderItemUpdateInput!]!
+    $totalAmount: Float!
+    $orderTotalAmount: Float!
+    $taxAmount: Float
+  ) {
+    updateOrderItems(
+      orderId: $orderId
+      orderItemUpdates: $orderItemUpdates
+      totalAmount: $totalAmount
+      orderTotalAmount: $orderTotalAmount
+      taxAmount: $taxAmount
+    ) {
+      id
+      totalAmount
+      orderTotalAmount
+      taxAmount
+      orderItems {
+        edges {
+          node {
+            id
+            quantity
+            orderAmount
+            product {
+              id
+              name
+              category {
+                name
+              }
+              inventoryItems {
+                edges {
+                  node {
+                    price
+                    measurement
+                    unit
+                  }
+                }
               }
             }
           }

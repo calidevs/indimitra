@@ -30,6 +30,7 @@ import {
   FormControl,
   InputLabel,
   Select,
+  Snackbar,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -39,6 +40,9 @@ import {
   Search as SearchIcon,
   FilterList as FilterIcon,
   Sort as SortIcon,
+  Upload as UploadIcon,
+  Visibility as VisibilityIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/useStore';
 import { useStore } from '@/store/useStore';
@@ -69,6 +73,74 @@ const ORDER_STATUSES = [
   { value: 'CANCELLED', label: 'Cancelled', color: 'error' },
 ];
 
+const calculateOrderTotal = (order) => {
+  console.log('Calculating total for order:', order);
+
+  if (!order) {
+    console.log('No order data provided');
+    return 0;
+  }
+
+  // Log all the relevant amounts
+  console.log('Order amounts:', {
+    orderTotalAmount: order.orderTotalAmount,
+    totalAmount: order.totalAmount,
+    deliveryFee: order.deliveryFee,
+    tipAmount: order.tipAmount,
+    taxAmount: order.taxAmount,
+  });
+
+  // First try to use totalAmount if it exists
+  if (order.totalAmount) {
+    console.log('Using totalAmount:', order.totalAmount);
+    return order.totalAmount;
+  }
+
+  // If totalAmount is not available, calculate from order items
+  if (order.orderItems?.edges?.length > 0) {
+    const itemsTotal = order.orderItems.edges.reduce((sum, { node }) => {
+      const amount = node.orderAmount || 0;
+      console.log('Adding item amount:', amount);
+      return sum + amount;
+    }, 0);
+
+    console.log('Calculated total from items:', itemsTotal);
+    return itemsTotal;
+  }
+
+  console.log('No valid total found, returning 0');
+  return 0;
+};
+
+// Update the mutation with the correct OrderItemUpdateInput structure
+const UPDATE_ORDER_ITEMS = `
+  mutation UpdateOrderItems($orderId: Int!, $orderItemUpdates: [OrderItemUpdateInput!]!, $totalAmount: Float!, $orderTotalAmount: Float!, $taxAmount: Float!) {
+    updateOrderItems(
+      orderId: $orderId,
+      orderItemUpdates: $orderItemUpdates,
+      totalAmount: $totalAmount,
+      orderTotalAmount: $orderTotalAmount,
+      taxAmount: $taxAmount
+    ) {
+      id
+      orderItems {
+        edges {
+          node {
+            id
+            quantity
+            orderAmount
+            productId
+            updatedOrderitemsId
+          }
+        }
+      }
+      totalAmount
+      orderTotalAmount
+      taxAmount
+    }
+  }
+`;
+
 const StoreOrders = () => {
   const { userProfile } = useAuthStore();
   const [cognitoId, setCognitoId] = useState('');
@@ -88,6 +160,10 @@ const StoreOrders = () => {
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [driverId, setDriverId] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  const [editItemDialogOpen, setEditItemDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [newQuantity, setNewQuantity] = useState(1);
 
   // Fetch Cognito ID on component mount
   useEffect(() => {
@@ -170,6 +246,98 @@ const StoreOrders = () => {
     },
   });
 
+  // Update the mutation function to include taxAmount
+  const updateOrderItemMutation = useMutation({
+    mutationFn: async (variables) => {
+      const { orderId, itemId, quantity, price } = variables;
+
+      // Get the current order to access existing fees
+      const currentOrder = ordersData.find((order) => order.id === orderId);
+      if (!currentOrder) {
+        throw new Error('Order not found');
+      }
+
+      // Get store's tax percentage from user profile
+      const storeTaxPercentage =
+        profileData?.getUserProfile?.stores?.edges?.[0]?.node?.taxPercentage || 0;
+
+      // Get the latest active items for each product
+      const latestItems = new Map();
+      currentOrder.orderItems.edges.forEach(({ node }) => {
+        const productId = node.productId;
+        if (!latestItems.has(productId) || node.id > latestItems.get(productId).id) {
+          latestItems.set(productId, node);
+        }
+      });
+
+      // Check if there are any active items after this update
+      const hasActiveItems = Array.from(latestItems.values()).some((node) =>
+        node.id === parseInt(itemId) ? quantity > 0 : node.quantity > 0
+      );
+
+      // If no active items, set all amounts to 0
+      if (!hasActiveItems) {
+        return await graphqlService(UPDATE_ORDER_ITEMS, {
+          orderId: parseInt(orderId),
+          orderItemUpdates: [
+            {
+              orderItemId: parseInt(itemId),
+              quantityChange: quantity - selectedItem.quantity,
+            },
+          ],
+          totalAmount: 0,
+          orderTotalAmount: 0,
+          taxAmount: 0,
+        });
+      }
+
+      // Calculate total amount from latest active items
+      let totalAmount = 0;
+      latestItems.forEach((node) => {
+        // If this is the item being updated, use the new quantity
+        if (node.id === parseInt(itemId)) {
+          totalAmount += quantity * price;
+        } else {
+          // For other items, use their current quantity and price
+          const itemPrice = node.product?.inventoryItems?.edges[0]?.node?.price || 0;
+          totalAmount += node.quantity * itemPrice;
+        }
+      });
+
+      // Calculate tax based on the total amount
+      const taxAmount = (totalAmount * storeTaxPercentage) / 100;
+
+      // Calculate the final total including all fees
+      const finalTotal =
+        totalAmount + taxAmount + (currentOrder.deliveryFee || 0) + (currentOrder.tipAmount || 0);
+
+      // Calculate the quantity change for the updated item
+      const quantityChange = quantity - selectedItem.quantity;
+
+      return await graphqlService(UPDATE_ORDER_ITEMS, {
+        orderId: parseInt(orderId),
+        orderItemUpdates: [
+          {
+            orderItemId: parseInt(itemId),
+            quantityChange: quantityChange,
+          },
+        ],
+        totalAmount: totalAmount,
+        orderTotalAmount: finalTotal,
+        taxAmount: taxAmount,
+      });
+    },
+    onSuccess: () => {
+      refetchOrders();
+      setEditItemDialogOpen(false);
+      setSelectedItem(null);
+      setNewQuantity(1);
+    },
+    onError: (error) => {
+      setError(error.message);
+    },
+  });
+
   const handleEditClick = (order) => {
     setSelectedOrder(order);
     setNewStatus(order.status);
@@ -228,6 +396,157 @@ const StoreOrders = () => {
       setSelectedOrder(null);
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const handleUpload = async (order) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '*/*'; // Accept any file type
+    input.onchange = async () => {
+      try {
+        const file = input.files[0];
+        if (!file) return;
+
+        // Get upload URL for PUT operation
+        const baseUrl = window.location.href?.includes('http://localhost')
+          ? 'http://127.0.0.1:8000'
+          : 'https://indimitra.com';
+
+        // Log the original filename for debugging
+        console.log('Original filename:', file.name);
+
+        const res = await fetch(
+          `${baseUrl}/s3/generate-upload-url?file_name=${encodeURIComponent(file.name)}&order_id=${order.id}`
+        );
+        if (!res.ok) {
+          throw new Error('Failed to get upload URL');
+        }
+        const { upload_url, content_type, file_name, key } = await res.json();
+
+        // Log the generated filename for debugging
+        console.log('Generated filename:', file_name);
+
+        // Upload file to S3 using PUT with exact same Content-Type
+        const uploadRes = await fetch(upload_url, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': content_type,
+          },
+          body: file,
+        });
+
+        if (!uploadRes.ok) {
+          const errorText = await uploadRes.text();
+          console.error('Upload failed:', errorText);
+          throw new Error('Failed to upload file');
+        }
+
+        // Store the bill URL in the order
+        const billUrlRes = await fetch(
+          `${baseUrl}/orders/${order.id}/set-bill-url?file_name=${encodeURIComponent(file_name)}`,
+          {
+            method: 'POST',
+          }
+        );
+
+        if (!billUrlRes.ok) {
+          throw new Error('Failed to update bill URL');
+        }
+
+        // After successful upload and bill URL update, try to get the view URL
+        const viewRes = await fetch(
+          `${baseUrl}/s3/generate-view-url?bill_key=${encodeURIComponent(key)}`
+        );
+
+        if (viewRes.ok) {
+          setSnackbar({
+            open: true,
+            message: 'File uploaded and verified successfully!',
+            severity: 'success',
+          });
+        } else {
+          setSnackbar({
+            open: true,
+            message: 'File uploaded but verification failed. Please try viewing the file.',
+            severity: 'warning',
+          });
+        }
+      } catch (err) {
+        console.error('Upload error:', err);
+        setSnackbar({
+          open: true,
+          message: 'Failed to upload file. Please try again.',
+          severity: 'error',
+        });
+      }
+    };
+    input.click();
+  };
+
+  const handleView = async (order) => {
+    try {
+      // Get view URL for GET operation
+      const baseUrl = window.location.href?.includes('http://localhost')
+        ? 'http://127.0.0.1:8000'
+        : 'https://indimitra.com';
+
+      let viewUrl = null;
+      let fileName = null;
+
+      // If order has a bill_url, use it directly
+      if (order.bill_url) {
+        console.log('Using stored bill URL:', order.bill_url);
+        const res = await fetch(
+          `${baseUrl}/s3/generate-view-url?bill_key=${encodeURIComponent(order.bill_url)}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          viewUrl = data.view_url;
+          fileName = data.file_name;
+        }
+      }
+
+      // If no bill_url or file not found, try the old method
+      if (!viewUrl) {
+        console.log('No stored bill URL found, trying common extensions');
+        const commonExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.docx'];
+        for (const ext of commonExtensions) {
+          const res = await fetch(
+            `${baseUrl}/s3/generate-view-url?order_id=${order.id}&file_name=receipt${ext}`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            viewUrl = data.view_url;
+            fileName = data.file_name;
+            break;
+          }
+        }
+      }
+
+      if (!viewUrl) {
+        setSnackbar({
+          open: true,
+          message: 'No file found for this order.',
+          severity: 'warning',
+        });
+        return;
+      }
+
+      // Create a temporary link element to handle the download with the correct filename
+      const link = document.createElement('a');
+      link.href = viewUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } catch (err) {
+      setSnackbar({
+        open: true,
+        message: 'Failed to view file. Please try again.',
+        severity: 'error',
+      });
     }
   };
 
@@ -290,6 +609,81 @@ const StoreOrders = () => {
     const start = page * rowsPerPage;
     return filteredOrders.slice(start, start + rowsPerPage);
   }, [filteredOrders, page, rowsPerPage]);
+
+  // Update the getLatestOrderItem function to handle the current data structure
+  const getLatestOrderItem = (orderItems) => {
+    console.log('getLatestOrderItem input:', orderItems);
+
+    if (!orderItems?.edges?.length) {
+      console.log('No order items found');
+      return null;
+    }
+
+    // Group items by product ID and get the latest quantity for each product
+    const productMap = new Map();
+
+    orderItems.edges.forEach(({ node }) => {
+      const productId = node.productId;
+      if (!productMap.has(productId) || node.id > productMap.get(productId).id) {
+        productMap.set(productId, node);
+      }
+    });
+
+    const latestItems = Array.from(productMap.values());
+    console.log('Latest items found:', latestItems);
+    return latestItems;
+  };
+
+  // Update the buildItemHistory function to show quantity changes
+  const buildItemHistory = (currentItem, allItems) => {
+    console.log('Building history for item:', currentItem);
+    console.log('All available items:', allItems);
+
+    if (!currentItem || !allItems) {
+      console.log('Missing required data for history building');
+      return [currentItem];
+    }
+
+    // Get all items for the same product, sorted by ID (which represents chronological order)
+    const productHistory = allItems
+      .map(({ node }) => node)
+      .filter((item) => item.productId === currentItem.productId)
+      .sort((a, b) => a.id - b.id);
+
+    console.log('Product history:', productHistory);
+    return productHistory;
+  };
+
+  // Add a helper function to check if order is editable
+  const isOrderEditable = (status) => {
+    return ['PENDING', 'ORDER_PLACED', 'ACCEPTED'].includes(status);
+  };
+
+  // Update the handler functions to include order ID
+  const handleEditItem = (item, orderId) => {
+    setSelectedItem({ ...item, orderId });
+    setNewQuantity(item.quantity);
+    setEditItemDialogOpen(true);
+  };
+
+  const handleDeleteItem = (item, orderId) => {
+    setSelectedItem({ ...item, orderId });
+    setNewQuantity(0);
+    setEditItemDialogOpen(true);
+  };
+
+  const handleUpdateItem = async () => {
+    try {
+      await updateOrderItemMutation.mutateAsync({
+        orderId: selectedItem.orderId,
+        itemId: selectedItem.id,
+        quantity: newQuantity,
+        price: selectedItem.product?.inventoryItems?.edges[0]?.node?.price || 0,
+      });
+    } catch (err) {
+      setError(err.message);
+    }
+  };
 
   if (profileLoading || ordersLoading || driversLoading) {
     return (
@@ -429,7 +823,7 @@ const StoreOrders = () => {
                     <TableRow>
                       <TableCell>{order.id}</TableCell>
                       <TableCell>{order.deliveryInstructions || 'N/A'}</TableCell>
-                      <TableCell>{formatCurrency(order.totalAmount)}</TableCell>
+                      <TableCell>${order.orderTotalAmount}</TableCell>
                       <TableCell>
                         <Chip
                           label={
@@ -445,7 +839,7 @@ const StoreOrders = () => {
                           <IconButton
                             size="small"
                             onClick={() => handleEditClick(order)}
-                            disabled={order.status === 'CANCELLED' || order.status === 'DELIVERED'}
+                            disabled={!isOrderEditable(order.status)}
                           >
                             <EditIcon />
                           </IconButton>
@@ -454,9 +848,23 @@ const StoreOrders = () => {
                           <IconButton
                             size="small"
                             onClick={() => handleCancelClick(order)}
-                            disabled={order.status === 'CANCELLED' || order.status === 'DELIVERED'}
+                            disabled={!isOrderEditable(order.status)}
                           >
                             <CancelIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Upload File">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleUpload(order)}
+                            disabled={!isOrderEditable(order.status)}
+                          >
+                            <UploadIcon />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="View File">
+                          <IconButton size="small" onClick={() => handleView(order)}>
+                            <VisibilityIcon />
                           </IconButton>
                         </Tooltip>
                       </TableCell>
@@ -474,44 +882,243 @@ const StoreOrders = () => {
                     {expandedOrder === order.id && (
                       <TableRow>
                         <TableCell colSpan={6}>
-                         <Box sx={{ p: 2 }}>
-                            <Grid container spacing={2} alignItems="center">
-                            <Grid item xs={6}>
-                                  <Typography> Email: {order?.creator?.email}</Typography>
+                          <Box sx={{ p: 2 }}>
+                            <Grid container spacing={2}>
+                              {/* Customer Information */}
+                              <Grid item xs={12}>
+                                <Typography
+                                  variant="subtitle1"
+                                  gutterBottom
+                                  sx={{ fontWeight: 'bold' }}
+                                >
+                                  Customer Information
+                                </Typography>
+                                <Grid container spacing={2}>
+                                  <Grid item xs={12} md={6}>
+                                    <Typography>Email: {order?.creator?.email || 'N/A'}</Typography>
+                                  </Grid>
+                                  <Grid item xs={12} md={6}>
+                                    <Typography>
+                                      Phone: {order?.creator?.mobile || 'N/A'}
+                                    </Typography>
+                                  </Grid>
+                                  <Grid item xs={12}>
+                                    <Typography>
+                                      Delivery Address: {order?.address?.address || 'N/A'}
+                                    </Typography>
+                                  </Grid>
                                 </Grid>
-                                <Grid item xs={6}>
-                                  <Typography>
-                                      Phone: {order?.creator?.mobile}
-                                  </Typography>
-                                </Grid>
+                              </Grid>
+
+                              {/* Order Items */}
+                              <Grid item xs={12}>
+                                <Typography
+                                  variant="subtitle1"
+                                  gutterBottom
+                                  sx={{ fontWeight: 'bold' }}
+                                >
+                                  Order Items
+                                </Typography>
+                                <Table size="small">
+                                  <TableHead>
+                                    <TableRow>
+                                      <TableCell>Product</TableCell>
+                                      <TableCell>Quantity</TableCell>
+                                      <TableCell>Price</TableCell>
+                                      <TableCell>Total</TableCell>
+                                      <TableCell>Actions</TableCell>
+                                    </TableRow>
+                                  </TableHead>
+                                  <TableBody>
+                                    {order.orderItems?.edges?.length > 0 ? (
+                                      getLatestOrderItem(order.orderItems)?.map((node) => {
+                                        console.log('Processing order item:', node);
+                                        const itemHistory = buildItemHistory(
+                                          node,
+                                          order.orderItems.edges
+                                        );
+                                        const price =
+                                          node.product?.inventoryItems?.edges[0]?.node?.price || 0;
+
+                                        return (
+                                          <React.Fragment key={node.id}>
+                                            <TableRow>
+                                              <TableCell>{node.product?.name || 'N/A'}</TableCell>
+                                              <TableCell>{node.quantity}</TableCell>
+                                              <TableCell>{formatCurrency(price)}</TableCell>
+                                              <TableCell>
+                                                {formatCurrency(node.quantity * price)}
+                                              </TableCell>
+                                              <TableCell>
+                                                {isOrderEditable(order.status) && (
+                                                  <>
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() => handleEditItem(node, order.id)}
+                                                      sx={{ mr: 1 }}
+                                                    >
+                                                      <EditIcon fontSize="small" />
+                                                    </IconButton>
+                                                    <IconButton
+                                                      size="small"
+                                                      onClick={() =>
+                                                        handleDeleteItem(node, order.id)
+                                                      }
+                                                      color="error"
+                                                    >
+                                                      <DeleteIcon fontSize="small" />
+                                                    </IconButton>
+                                                  </>
+                                                )}
+                                              </TableCell>
+                                            </TableRow>
+                                            {itemHistory.length > 1 && (
+                                              <TableRow>
+                                                <TableCell colSpan={5}>
+                                                  <Box sx={{ pl: 2, py: 1 }}>
+                                                    <Typography
+                                                      variant="caption"
+                                                      color="text.secondary"
+                                                      sx={{ display: 'block', mb: 1 }}
+                                                    >
+                                                      Order Change History ({itemHistory.length - 1}{' '}
+                                                      changes)
+                                                    </Typography>
+                                                    {itemHistory.slice(0, -1).map((item, index) => (
+                                                      <Box
+                                                        key={item.id}
+                                                        sx={{
+                                                          display: 'flex',
+                                                          alignItems: 'center',
+                                                          gap: 2,
+                                                          color: 'text.secondary',
+                                                          bgcolor: 'grey.50',
+                                                          p: 1,
+                                                          borderRadius: 1,
+                                                          mb: 1,
+                                                        }}
+                                                      >
+                                                        <Typography
+                                                          variant="caption"
+                                                          sx={{
+                                                            textDecoration: 'line-through',
+                                                            color: 'text.secondary',
+                                                            minWidth: '100px',
+                                                          }}
+                                                        >
+                                                          Change {index + 1}
+                                                        </Typography>
+                                                        <Box sx={{ display: 'flex', gap: 3 }}>
+                                                          <Typography
+                                                            variant="caption"
+                                                            sx={{
+                                                              textDecoration: 'line-through',
+                                                              color: 'text.secondary',
+                                                            }}
+                                                          >
+                                                            Quantity: {item.quantity}
+                                                          </Typography>
+                                                          <Typography
+                                                            variant="caption"
+                                                            sx={{
+                                                              textDecoration: 'line-through',
+                                                              color: 'text.secondary',
+                                                            }}
+                                                          >
+                                                            Amount:{' '}
+                                                            {formatCurrency(item.orderAmount)}
+                                                          </Typography>
+                                                        </Box>
+                                                      </Box>
+                                                    ))}
+                                                  </Box>
+                                                </TableCell>
+                                              </TableRow>
+                                            )}
+                                          </React.Fragment>
+                                        );
+                                      })
+                                    ) : (
+                                      <TableRow>
+                                        <TableCell colSpan={5} align="center">
+                                          No items found for this order
+                                        </TableCell>
+                                      </TableRow>
+                                    )}
+                                  </TableBody>
+                                </Table>
+                              </Grid>
+
+                              {/* Order Summary */}
+                              <Grid item xs={12}>
+                                <Typography
+                                  variant="subtitle1"
+                                  gutterBottom
+                                  sx={{ fontWeight: 'bold' }}
+                                >
+                                  Order Summary
+                                </Typography>
+                                <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1 }}>
+                                  <Grid container spacing={1}>
+                                    <Grid item xs={6}>
+                                      <Typography>Subtotal:</Typography>
+                                    </Grid>
+                                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
+                                      <Typography>{formatCurrency(order.totalAmount)}</Typography>
+                                    </Grid>
+
+                                    <Grid item xs={6}>
+                                      <Typography>Delivery Fee:</Typography>
+                                    </Grid>
+                                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
+                                      <Typography>{formatCurrency(order.deliveryFee)}</Typography>
+                                    </Grid>
+
+                                    <Grid item xs={6}>
+                                      <Typography>Tax:</Typography>
+                                    </Grid>
+                                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
+                                      <Typography>{formatCurrency(order.taxAmount)}</Typography>
+                                    </Grid>
+
+                                    <Grid item xs={6}>
+                                      <Typography>Tip:</Typography>
+                                    </Grid>
+                                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
+                                      <Typography>{formatCurrency(order.tipAmount)}</Typography>
+                                    </Grid>
+
+                                    <Grid item xs={12}>
+                                      <Divider sx={{ my: 1 }} />
+                                    </Grid>
+
+                                    <Grid item xs={6}>
+                                      <Typography sx={{ fontWeight: 'bold' }}>
+                                        Total Amount:
+                                      </Typography>
+                                    </Grid>
+                                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
+                                      <Typography sx={{ fontWeight: 'bold' }}>
+                                        {formatCurrency(order.orderTotalAmount)}
+                                      </Typography>
+                                    </Grid>
+                                  </Grid>
+                                </Box>
+                              </Grid>
+
+                              {/* Delivery Instructions */}
+                              {order.deliveryInstructions && (
                                 <Grid item xs={12}>
-                                  <Typography>
-                                      Delivery Address: {order?.address?.address}
+                                  <Typography
+                                    variant="subtitle1"
+                                    gutterBottom
+                                    sx={{ fontWeight: 'bold' }}
+                                  >
+                                    Delivery Instructions
                                   </Typography>
+                                  <Typography>{order.deliveryInstructions}</Typography>
                                 </Grid>
-                                <Grid item xs={12} sx={{ marginTop: 2 }}>
-                            <Typography variant="subtitle2" gutterBottom>
-                              Order Items:
-                            </Typography>
-                            <Table size="small">
-                              <TableHead>
-                                <TableRow>
-                                  <TableCell>Product</TableCell>
-                                  <TableCell>Quantity</TableCell>
-                                  <TableCell>Total</TableCell>
-                                </TableRow>
-                              </TableHead>
-                              <TableBody>
-                                {order.orderItems.edges.map(({ node: item }) => (
-                                  <TableRow key={item.id}>
-                                    <TableCell>{item.product.name}</TableCell>
-                                    <TableCell>{item.quantity}</TableCell>
-                                    <TableCell>${item.orderAmount}</TableCell>
-                                  </TableRow>
-                                ))}
-                              </TableBody>
-                            </Table>
-                                </Grid>
+                              )}
                             </Grid>
                           </Box>
                         </TableCell>
@@ -646,6 +1253,64 @@ const StoreOrders = () => {
             </Button>
           </DialogActions>
         </Dialog>
+
+        {/* Edit Item Dialog */}
+        <Dialog
+          open={editItemDialogOpen}
+          onClose={() => setEditItemDialogOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle>{newQuantity === 0 ? 'Delete Order Item' : 'Edit Order Item'}</DialogTitle>
+          <DialogContent>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12}>
+                <Typography variant="subtitle1">
+                  Product: {selectedItem?.product?.name || 'N/A'}
+                </Typography>
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Quantity"
+                  type="number"
+                  value={newQuantity}
+                  onChange={(e) => setNewQuantity(parseInt(e.target.value) || 0)}
+                  inputProps={{ min: 0 }}
+                />
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setEditItemDialogOpen(false)}>Cancel</Button>
+            <Button
+              onClick={handleUpdateItem}
+              variant="contained"
+              color={newQuantity === 0 ? 'error' : 'primary'}
+              disabled={updateOrderItemMutation.isLoading}
+            >
+              {updateOrderItemMutation.isLoading
+                ? 'Updating...'
+                : newQuantity === 0
+                  ? 'Delete'
+                  : 'Update'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        <Snackbar
+          open={snackbar.open}
+          autoHideDuration={6000}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+        >
+          <Alert
+            onClose={() => setSnackbar({ ...snackbar, open: false })}
+            severity={snackbar.severity}
+            sx={{ width: '100%' }}
+          >
+            {snackbar.message}
+          </Alert>
+        </Snackbar>
       </Box>
     </Layout>
   );
