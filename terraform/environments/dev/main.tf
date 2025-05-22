@@ -280,7 +280,21 @@ locals {
       {
         name = "COGNITO_USER_POOL_CLIENT_ID"
         value = "${var.COGNITO_USER_POOL_CLIENT_ID}"
+      },
+      {
+        name = "AWS_ACCESS_KEY_ID"
+        value = "${var.AWS_ACCESS_KEY_ID}"
+      },
+      {
+        name = "AWS_SECRET_ACCESS_KEY"
+        value = "${var.AWS_SECRET_ACCESS_KEY}"
+      },
+      {
+        name = "S3_BUCKET_NAME"
+        value = "${var.S3_BUCKET_NAME}"
       }
+
+      
     ]
     command = [
       "sh",

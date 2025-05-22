@@ -11,6 +11,12 @@ on:
             required: true
         TF_VAR_COGNITO_USER_POOL_ID:
             required: true
+        TF_VAR_AWS_ACCESS_KEY_ID:
+            required: true
+        TF_VAR_AWS_SECRET_ACCESS_KEY:
+            required: true
+        TF_VAR_S3_BUCKET_NAME:
+            required: true
 
 permissions:
     id-token: write
@@ -25,6 +31,9 @@ jobs:
       TF_VAR_image_tag_backend: latest
       TF_VAR_COGNITO_USER_POOL_CLIENT_ID: ${{ secrets.TF_VAR_COGNITO_USER_POOL_CLIENT_ID }}
       TF_VAR_COGNITO_USER_POOL_ID: ${{ secrets.TF_VAR_COGNITO_USER_POOL_ID }}
+      TF_VAR_AWS_ACCESS_KEY_ID: ${{ secrets.TF_VAR_AWS_ACCESS_KEY_ID }}
+      TF_VAR_AWS_SECRET_ACCESS_KEY: ${{ secrets.TF_VAR_AWS_SECRET_ACCESS_KEY }}
+      TF_VAR_S3_BUCKET_NAME: ${{ secrets.TF_VAR_S3_BUCKET_NAME }}
 
     steps:        
       - name: Checkout branch
