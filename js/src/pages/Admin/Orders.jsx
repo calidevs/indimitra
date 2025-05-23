@@ -274,7 +274,10 @@ const Orders = () => {
               >
                 <MenuItem value="">All Status</MenuItem>
                 <MenuItem value="PENDING">Pending</MenuItem>
+                <MenuItem value="ACCEPTED">Accepted</MenuItem>
                 <MenuItem value="READY_FOR_DELIVERY">Ready for Delivery</MenuItem>
+                <MenuItem value="PICKED_UP">Picked Up</MenuItem>
+                <MenuItem value="DELIVERED">Delivered</MenuItem>
                 <MenuItem value="CANCELLED">Cancelled</MenuItem>
               </Select>
             </FormControl>

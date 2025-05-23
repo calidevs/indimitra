@@ -220,6 +220,7 @@ export const GET_DELIVERIES_BY_DRIVER = `
               orderId
               productId
               quantity
+              updatedOrderitemsId
               product {
                 categoryId
                 description
