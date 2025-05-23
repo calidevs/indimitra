@@ -767,33 +767,35 @@ const DriverDashboard = () => {
                     VERIFY ITEMS TO BE PICKED UP
                   </Typography>
                   <Paper sx={{ p: 2, maxHeight: 300, overflow: 'auto' }}>
-                    {selectedDelivery.order.orderItems.edges.map(({ node: item }) => (
-                      <Box
-                        key={item.id}
-                        sx={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          mb: 1,
-                          p: 1,
-                          borderRadius: 1,
-                          bgcolor: 'background.default',
-                        }}
-                      >
-                        <Checkbox
-                          checked={!!checkedItems[item.id]}
-                          onChange={() => handleItemCheck(item.id)}
-                          color="primary"
-                        />
-                        <Box sx={{ ml: 2, flex: 1 }}>
-                          <Typography variant="body2" fontWeight="500">
-                            {item.product.name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            Quantity: {item.quantity} × ${item.orderAmount.toFixed(2)}
-                          </Typography>
+                    {selectedDelivery.order.orderItems.edges
+                      .filter(({ node }) => node.updatedOrderitemsId === null && node.quantity > 0)
+                      .map(({ node: item }) => (
+                        <Box
+                          key={item.id}
+                          sx={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            mb: 1,
+                            p: 1,
+                            borderRadius: 1,
+                            bgcolor: 'background.default',
+                          }}
+                        >
+                          <Checkbox
+                            checked={!!checkedItems[item.id]}
+                            onChange={() => handleItemCheck(item.id)}
+                            color="primary"
+                          />
+                          <Box sx={{ ml: 2, flex: 1 }}>
+                            <Typography variant="body2" fontWeight="500">
+                              {item.product.name}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                              Quantity: {item.quantity} × ${item.orderAmount.toFixed(2)}
+                            </Typography>
+                          </Box>
                         </Box>
-                      </Box>
-                    ))}
+                      ))}
                   </Paper>
                   {!areAllItemsChecked(selectedDelivery.order.orderItems) && (
                     <Alert severity="warning" sx={{ mt: 1 }}>

@@ -664,13 +664,16 @@ const Inventory = () => {
 
   // Extract unique categories from inventory items
   useEffect(() => {
-    if (inventoryItems.length > 0) {
-      const uniqueCategories = [
-        ...new Set(inventoryItems.map((item) => item.product?.category?.name || 'Uncategorized')),
-      ];
+    const uniqueCategories = [
+      ...new Set(
+        inventoryItems
+          .map((item) => item.product?.category?.name || 'Uncategorized')
+          .filter(Boolean)
+      ),
+    ].sort();
+
+    if (JSON.stringify(uniqueCategories) !== JSON.stringify(categories)) {
       setCategories(uniqueCategories);
-    } else {
-      setCategories([]);
     }
   }, [inventoryItems]);
 
@@ -818,36 +821,38 @@ const Inventory = () => {
               />
             </Grid>
             <Grid item xs={12} md={3}>
-              <label htmlFor="category-select" style={labelStyles}>
-                Category
-              </label>
-              <select
-                id="category-select"
-                value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
-                style={selectStyles}
-              >
-                <option value="all">All Categories</option>
-                {categories.map((category) => (
-                  <option key={category} value={category}>
-                    {category}
-                  </option>
-                ))}
-              </select>
+              <FormControl fullWidth size="small">
+                <InputLabel id="category-select-label">Category</InputLabel>
+                <Select
+                  labelId="category-select-label"
+                  id="category-select"
+                  value={filterCategory}
+                  label="Category"
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                >
+                  <MenuItem value="all">All Categories</MenuItem>
+                  {categories.map((category) => (
+                    <MenuItem key={category} value={category}>
+                      {category}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12} md={3}>
-              <label htmlFor="stock-filter-select" style={labelStyles}>
-                Stock Filter
-              </label>
-              <select
-                id="stock-filter-select"
-                value={lowStockOnly ? 'true' : 'false'}
-                onChange={(e) => setLowStockOnly(e.target.value === 'true')}
-                style={selectStyles}
-              >
-                <option value="false">All Items</option>
-                <option value="true">Low Stock Only</option>
-              </select>
+              <FormControl fullWidth size="small">
+                <InputLabel id="stock-filter-label">Stock Filter</InputLabel>
+                <Select
+                  labelId="stock-filter-label"
+                  id="stock-filter-select"
+                  value={lowStockOnly ? 'true' : 'false'}
+                  label="Stock Filter"
+                  onChange={(e) => setLowStockOnly(e.target.value === 'true')}
+                >
+                  <MenuItem value="false">All Items</MenuItem>
+                  <MenuItem value="true">Low Stock Only</MenuItem>
+                </Select>
+              </FormControl>
             </Grid>
             <Grid item xs={12} md={2}>
               <TextField
