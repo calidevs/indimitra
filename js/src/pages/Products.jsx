@@ -209,11 +209,12 @@ const Products = ({ setStoreModalOpen }) => {
           flexDirection: 'column',
           justifyContent: 'center',
           alignItems: 'center',
+          width: '100%',
           px: 2,
           py: 4,
         }}
       >
-        <Container maxWidth="md">
+        <Container>
           <FormControl fullWidth>
             <TextField
               ref={anchorRef}
@@ -228,6 +229,7 @@ const Products = ({ setStoreModalOpen }) => {
               minRows={3}
               maxRows={13}
               sx={{
+                width: '100%',
                 '& .MuiOutlinedInput-root': {
                   backgroundColor: 'white',
                   borderRadius: 2,
@@ -260,9 +262,13 @@ const Products = ({ setStoreModalOpen }) => {
                   fontSize: '1rem',
                   lineHeight: 1.5,
                   padding: '16px',
+                  height: '100%',
                   '&::placeholder': {
                     color: 'text.secondary',
                     opacity: 0.7,
+                    position: 'absolute',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
                   },
                 },
               }}
