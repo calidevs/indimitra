@@ -200,87 +200,150 @@ const Products = ({ setStoreModalOpen }) => {
           </Box>
         </Container>
       )}
-      <Container>
-        {/* Search Field */}
-        <FormControl fullWidth sx={{ mb: 3 }}>
-          <TextField
-            ref={anchorRef}
-            label="Search Products"
-            placeholder="Type or paste your grocery list..."
-            value={search}
-            onChange={handleSearchChange}
-            onFocus={() => setDropdownOpen(true)}
-            onClick={() => setDropdownOpen(true)}
-            fullWidth
-            multiline
-            minRows={3}
-            maxRows={13}
-            sx={{
-              '& .MuiOutlinedInput-root': {
-                backgroundColor: 'white',
-                '&:hover': {
-                  '& > fieldset': { borderColor: 'primary.main' },
-                },
-              },
-            }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
-              endAdornment: inventoryLoading ? (
-                <CircularProgress color="inherit" size={20} />
-              ) : null,
-            }}
-          />
-          <Popper
-            open={dropdownOpen && filteredProducts.length > 0}
-            anchorEl={anchorRef.current}
-            placement="bottom-start"
-            style={{ width: anchorRef.current?.offsetWidth, zIndex: 1300 }}
-          >
-            <ClickAwayListener onClickAway={handleClickAway}>
-              <Paper elevation={3}>
-                <MenuList sx={{ maxHeight: 300, overflow: 'auto' }}>
-                  {filteredProducts.map((product) => (
-                    <MenuItem
-                      key={product.id}
-                      onClick={() => {
-                        setSearch(product.name);
-                        setDropdownOpen(false);
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                        {product.image && (
-                          <Box
-                            component="img"
-                            src={product.image}
-                            alt={product.name}
-                            sx={{
-                              width: 40,
-                              height: 40,
-                              mr: 2,
-                              objectFit: 'cover',
-                              borderRadius: 1,
-                            }}
-                          />
-                        )}
-                        <Box>
-                          <Typography variant="body1">{product.name}</Typography>
-                          <Typography variant="caption" color="textSecondary">
-                            {product.categoryName || 'No category'}
-                          </Typography>
-                        </Box>
-                      </Box>
-                    </MenuItem>
-                  ))}
-                </MenuList>
-              </Paper>
-            </ClickAwayListener>
-          </Popper>
-        </FormControl>
 
+      {/* Landing Page Section */}
+      <Box
+        sx={{
+          minHeight: 'calc(100vh - 200px)', // Adjust based on navbar and store details height
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          px: 2,
+          py: 4,
+        }}
+      >
+        <Container maxWidth="md">
+          <FormControl fullWidth>
+            <TextField
+              ref={anchorRef}
+              label="Search Products"
+              placeholder="Type or paste your grocery list..."
+              value={search}
+              onChange={handleSearchChange}
+              onFocus={() => setDropdownOpen(true)}
+              onClick={() => setDropdownOpen(true)}
+              fullWidth
+              multiline
+              minRows={3}
+              maxRows={13}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: 'white',
+                  borderRadius: 2,
+                  transition: 'all 0.2s ease-in-out',
+                  '&:hover': {
+                    '& > fieldset': {
+                      borderColor: 'primary.main',
+                      borderWidth: '1px',
+                    },
+                  },
+                  '&.Mui-focused': {
+                    '& > fieldset': {
+                      borderColor: 'primary.main',
+                      borderWidth: '1px',
+                    },
+                  },
+                  '& > fieldset': {
+                    borderColor: 'rgba(0, 0, 0, 0.12)',
+                    transition: 'all 0.2s ease-in-out',
+                  },
+                },
+                '& .MuiInputLabel-root': {
+                  color: 'text.secondary',
+                  '&.Mui-focused': {
+                    color: 'primary.main',
+                  },
+                },
+                '& .MuiInputBase-input': {
+                  color: 'text.primary',
+                  fontSize: '1rem',
+                  lineHeight: 1.5,
+                  padding: '16px',
+                  '&::placeholder': {
+                    color: 'text.secondary',
+                    opacity: 0.7,
+                  },
+                },
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start" sx={{ ml: 1 }}>
+                    <SearchIcon sx={{ color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+                endAdornment: inventoryLoading ? (
+                  <CircularProgress color="inherit" size={20} sx={{ mr: 1 }} />
+                ) : null,
+              }}
+            />
+            <Popper
+              open={dropdownOpen && filteredProducts.length > 0}
+              anchorEl={anchorRef.current}
+              placement="bottom-start"
+              style={{ width: anchorRef.current?.offsetWidth, zIndex: 1300 }}
+            >
+              <ClickAwayListener onClickAway={handleClickAway}>
+                <Paper
+                  elevation={3}
+                  sx={{
+                    mt: 1,
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
+                  }}
+                >
+                  <MenuList sx={{ maxHeight: 300, overflow: 'auto' }}>
+                    {filteredProducts.map((product) => (
+                      <MenuItem
+                        key={product.id}
+                        onClick={() => {
+                          setSearch(product.name);
+                          setDropdownOpen(false);
+                        }}
+                        sx={{
+                          py: 1.5,
+                          '&:hover': {
+                            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                          },
+                        }}
+                      >
+                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                          {product.image && (
+                            <Box
+                              component="img"
+                              src={product.image}
+                              alt={product.name}
+                              sx={{
+                                width: 40,
+                                height: 40,
+                                mr: 2,
+                                objectFit: 'cover',
+                                borderRadius: 1,
+                              }}
+                            />
+                          )}
+                          <Box>
+                            <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                              {product.name}
+                            </Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              {product.categoryName || 'No category'}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      </MenuItem>
+                    ))}
+                  </MenuList>
+                </Paper>
+              </ClickAwayListener>
+            </Popper>
+          </FormControl>
+        </Container>
+      </Box>
+
+      {/* Products Section */}
+      <Container>
         {/* Product Grid */}
         {inventoryLoading ? (
           <Box display="flex" justifyContent="center" my={4}>
@@ -292,10 +355,9 @@ const Products = ({ setStoreModalOpen }) => {
           </Typography>
         ) : (
           <ProductGrid products={visibleRows} />
-          // <div></div>
         )}
         {/* Add pagination controls */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3, mb: 4 }}>
           <TablePagination
             rowsPerPageOptions={[8, 12, 24]}
             component="div"
