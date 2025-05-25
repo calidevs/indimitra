@@ -1,5 +1,5 @@
 // In js/src/pages/Products.jsx
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import {
   Container,
@@ -10,6 +10,12 @@ import {
   Box,
   Button,
   TablePagination,
+  Popper,
+  ClickAwayListener,
+  MenuList,
+  MenuItem,
+  Paper,
+  FormControl,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import StoreIcon from '@mui/icons-material/Storefront';
@@ -57,6 +63,8 @@ const Products = ({ setStoreModalOpen }) => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(12); // Default rows per page
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const anchorRef = useRef(null);
 
   const { selectedStore, availableStores } = useStore();
 
@@ -128,6 +136,15 @@ const Products = ({ setStoreModalOpen }) => {
 
   console.log({ visibleRows });
 
+  const handleSearchChange = (event) => {
+    setSearch(event.target.value);
+    setDropdownOpen(true);
+  };
+
+  const handleClickAway = () => {
+    setDropdownOpen(false);
+  };
+
   if (inventoryError)
     return <Typography>Error fetching products: {inventoryError.message}</Typography>;
 
@@ -185,22 +202,73 @@ const Products = ({ setStoreModalOpen }) => {
       )}
       <Container>
         {/* Search Field */}
-        <TextField
-          label="Search Products"
-          variant="outlined"
-          fullWidth
-          sx={{ mb: 3 }}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by product name or category..."
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
+        <FormControl fullWidth sx={{ mb: 3 }}>
+          <TextField
+            ref={anchorRef}
+            label="Search Products"
+            placeholder="Search by product name or category..."
+            value={search}
+            onChange={handleSearchChange}
+            onFocus={() => setDropdownOpen(true)}
+            onClick={() => setDropdownOpen(true)}
+            fullWidth
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <SearchIcon />
+                </InputAdornment>
+              ),
+              endAdornment: inventoryLoading ? (
+                <CircularProgress color="inherit" size={20} />
+              ) : null,
+            }}
+          />
+          <Popper
+            open={dropdownOpen && filteredProducts.length > 0}
+            anchorEl={anchorRef.current}
+            placement="bottom-start"
+            style={{ width: anchorRef.current?.offsetWidth, zIndex: 1300 }}
+          >
+            <ClickAwayListener onClickAway={handleClickAway}>
+              <Paper elevation={3}>
+                <MenuList sx={{ maxHeight: 300, overflow: 'auto' }}>
+                  {filteredProducts.map((product) => (
+                    <MenuItem
+                      key={product.id}
+                      onClick={() => {
+                        setSearch(product.name);
+                        setDropdownOpen(false);
+                      }}
+                    >
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        {product.image && (
+                          <Box
+                            component="img"
+                            src={product.image}
+                            alt={product.name}
+                            sx={{
+                              width: 40,
+                              height: 40,
+                              mr: 2,
+                              objectFit: 'cover',
+                              borderRadius: 1,
+                            }}
+                          />
+                        )}
+                        <Box>
+                          <Typography variant="body1">{product.name}</Typography>
+                          <Typography variant="caption" color="textSecondary">
+                            {product.categoryName || 'No category'}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </MenuItem>
+                  ))}
+                </MenuList>
+              </Paper>
+            </ClickAwayListener>
+          </Popper>
+        </FormControl>
 
         {/* Product Grid */}
         {inventoryLoading ? (
