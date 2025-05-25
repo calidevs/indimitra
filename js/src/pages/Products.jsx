@@ -206,12 +206,23 @@ const Products = ({ setStoreModalOpen }) => {
           <TextField
             ref={anchorRef}
             label="Search Products"
-            placeholder="Search by product name or category..."
+            placeholder="Type or paste your grocery list..."
             value={search}
             onChange={handleSearchChange}
             onFocus={() => setDropdownOpen(true)}
             onClick={() => setDropdownOpen(true)}
             fullWidth
+            multiline
+            minRows={3}
+            maxRows={13}
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                backgroundColor: 'white',
+                '&:hover': {
+                  '& > fieldset': { borderColor: 'primary.main' },
+                },
+              },
+            }}
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
