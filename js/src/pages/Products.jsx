@@ -154,14 +154,14 @@ const Products = ({ setStoreModalOpen }) => {
         const firstPart = parts[0] || '';
         const secondPart = parts[1] || '';
 
-        // Add new text to the first part, preserving existing content
+        // Add new text to the first part with a comma separator
         const newFirstPart = firstPart
-          ? `${firstPart} ${search}` // Add a space between existing content and new content
+          ? `${firstPart}, ${search}` // Add a comma and space between existing content and new content
           : search;
 
-        // Only add separator if there's content in the second part
+        // Only add separator if there's content in the second part, without extra newlines
         const newInstructions = secondPart
-          ? `${newFirstPart}DELIVERY INSTRUCTIONS\n${secondPart}`
+          ? `${newFirstPart}DELIVERY INSTRUCTIONS${secondPart}`
           : newFirstPart;
 
         setDeliveryInstructions(newInstructions);
