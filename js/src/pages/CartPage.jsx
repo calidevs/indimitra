@@ -221,8 +221,9 @@ const CartPage = () => {
     selectedStore,
     getCartTotals,
     setTipAmount,
+    deliveryInstructions,
+    setDeliveryInstructions,
   } = useStore();
-  const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
   const [error, setError] = useState('');
   const { userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm } =

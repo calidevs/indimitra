@@ -14,10 +14,13 @@ const useStore = create((set, get) => ({
   cart: {},
   selectedStore: null,
   availableStores: [],
+  deliveryInstructions: '',
 
   setAvailableStores: (stores) => set({ availableStores: stores }),
 
   setSelectedStore: (store) => set({ selectedStore: store }),
+
+  setDeliveryInstructions: (instructions) => set({ deliveryInstructions: instructions }),
 
   getSelectedStore: () => get().selectedStore,
 

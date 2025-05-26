@@ -66,7 +66,7 @@ const Products = ({ setStoreModalOpen }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const anchorRef = useRef(null);
 
-  const { selectedStore, availableStores } = useStore();
+  const { selectedStore, availableStores, setDeliveryInstructions } = useStore();
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -145,6 +145,17 @@ const Products = ({ setStoreModalOpen }) => {
     setDropdownOpen(false);
   };
 
+  const handleKeyPress = (event) => {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      if (search.trim()) {
+        setDeliveryInstructions(search.trim());
+        setSearch('');
+        setDropdownOpen(false);
+      }
+    }
+  };
+
   if (inventoryError)
     return <Typography>Error fetching products: {inventoryError.message}</Typography>;
 
@@ -207,11 +218,12 @@ const Products = ({ setStoreModalOpen }) => {
           minHeight: 'calc(100vh - 200px)', // Adjust based on navbar and store details height
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center',
+          justifyContent: 'flex-start',
           alignItems: 'center',
           width: '100%',
           px: 2,
-          py: 4,
+          pt: '25vh', // Position at 25% of viewport height
+          pb: 4,
         }}
       >
         <Container>
@@ -222,6 +234,7 @@ const Products = ({ setStoreModalOpen }) => {
               placeholder="Type or paste your grocery list..."
               value={search}
               onChange={handleSearchChange}
+              onKeyPress={handleKeyPress}
               onFocus={() => setDropdownOpen(true)}
               onClick={() => setDropdownOpen(true)}
               fullWidth
