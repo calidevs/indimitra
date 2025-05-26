@@ -149,7 +149,11 @@ const Products = ({ setStoreModalOpen }) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
       if (search.trim()) {
-        setDeliveryInstructions(search.trim());
+        const currentInstructions = useStore.getState().deliveryInstructions;
+        const newInstructions = currentInstructions
+          ? `${currentInstructions}\n${search.trim()}`
+          : search.trim();
+        setDeliveryInstructions(newInstructions);
         setSearch('');
         setDropdownOpen(false);
       }
