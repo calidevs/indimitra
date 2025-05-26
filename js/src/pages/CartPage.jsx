@@ -740,10 +740,12 @@ const CartPage = () => {
                         const parts = deliveryInstructions.split('DELIVERY INSTRUCTIONS');
                         const firstPart = parts[0] || '';
 
-                        // Combine first part with new delivery instructions
+                        // Preserve formatting and only add separator if there's content
                         const newInstructions = firstPart
-                          ? `${firstPart}\nDELIVERY INSTRUCTIONS\n${newDeliveryText}`
-                          : `DELIVERY INSTRUCTIONS\n${newDeliveryText}`;
+                          ? `${firstPart}DELIVERY INSTRUCTIONS${newDeliveryText}`
+                          : newDeliveryText
+                            ? `DELIVERY INSTRUCTIONS${newDeliveryText}`
+                            : '';
 
                         setDeliveryInstructions(newInstructions);
                       }}
@@ -765,9 +767,9 @@ const CartPage = () => {
                         const parts = deliveryInstructions.split('DELIVERY INSTRUCTIONS');
                         const secondPart = parts[1] || '';
 
-                        // Combine new manual text with second part
+                        // Preserve formatting and only add separator if there's content
                         const newInstructions = secondPart
-                          ? `${newManualText}\nDELIVERY INSTRUCTIONS\n${secondPart}`
+                          ? `${newManualText}DELIVERY INSTRUCTIONS${secondPart}`
                           : newManualText;
 
                         setDeliveryInstructions(newInstructions);

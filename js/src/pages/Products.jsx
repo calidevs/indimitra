@@ -148,18 +148,20 @@ const Products = ({ setStoreModalOpen }) => {
   const handleKeyPress = (event) => {
     if (event.key === 'Enter' && !event.shiftKey) {
       event.preventDefault();
-      if (search.trim()) {
+      if (search) {
         const currentInstructions = useStore.getState().deliveryInstructions;
         const parts = currentInstructions.split('DELIVERY INSTRUCTIONS');
         const firstPart = parts[0] || '';
         const secondPart = parts[1] || '';
 
-        // Add new text to the first part
-        const newFirstPart = firstPart ? `${firstPart}\n${search.trim()}` : search.trim();
+        // Add new text to the first part, preserving existing content
+        const newFirstPart = firstPart
+          ? `${firstPart} ${search}` // Add a space between existing content and new content
+          : search;
 
-        // Combine with second part if it exists
+        // Only add separator if there's content in the second part
         const newInstructions = secondPart
-          ? `${newFirstPart}\nDELIVERY INSTRUCTIONS\n${secondPart}`
+          ? `${newFirstPart}DELIVERY INSTRUCTIONS\n${secondPart}`
           : newFirstPart;
 
         setDeliveryInstructions(newInstructions);
