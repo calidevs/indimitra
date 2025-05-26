@@ -740,7 +740,7 @@ const CartPage = () => {
                         const parts = deliveryInstructions.split('DELIVERY INSTRUCTIONS');
                         const firstPart = parts[0] || '';
 
-                        // Preserve formatting and only add separator if there's content
+                        // Preserve user's formatting while preventing automatic trailing newlines
                         const newInstructions = firstPart
                           ? `${firstPart}DELIVERY INSTRUCTIONS${newDeliveryText}`
                           : newDeliveryText
