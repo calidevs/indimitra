@@ -734,8 +734,19 @@ const CartPage = () => {
                       fullWidth
                       multiline
                       rows={2}
-                      value={deliveryInstructions}
-                      onChange={(e) => setDeliveryInstructions(e.target.value)}
+                      value={deliveryInstructions.split('DELIVERY INSTRUCTIONS')[1] || ''}
+                      onChange={(e) => {
+                        const newDeliveryText = e.target.value;
+                        const parts = deliveryInstructions.split('DELIVERY INSTRUCTIONS');
+                        const firstPart = parts[0] || '';
+
+                        // Combine first part with new delivery instructions
+                        const newInstructions = firstPart
+                          ? `${firstPart}\nDELIVERY INSTRUCTIONS\n${newDeliveryText}`
+                          : `DELIVERY INSTRUCTIONS\n${newDeliveryText}`;
+
+                        setDeliveryInstructions(newInstructions);
+                      }}
                       placeholder="Add any special instructions for delivery..."
                     />
                   </Box>
@@ -748,8 +759,19 @@ const CartPage = () => {
                       fullWidth
                       multiline
                       rows={2}
-                      value={deliveryInstructions}
-                      onChange={(e) => setDeliveryInstructions(e.target.value)}
+                      value={deliveryInstructions.split('DELIVERY INSTRUCTIONS')[0] || ''}
+                      onChange={(e) => {
+                        const newManualText = e.target.value;
+                        const parts = deliveryInstructions.split('DELIVERY INSTRUCTIONS');
+                        const secondPart = parts[1] || '';
+
+                        // Combine new manual text with second part
+                        const newInstructions = secondPart
+                          ? `${newManualText}\nDELIVERY INSTRUCTIONS\n${secondPart}`
+                          : newManualText;
+
+                        setDeliveryInstructions(newInstructions);
+                      }}
                       placeholder="Items added from the search field..."
                     />
                   </Box>

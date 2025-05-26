@@ -150,9 +150,18 @@ const Products = ({ setStoreModalOpen }) => {
       event.preventDefault();
       if (search.trim()) {
         const currentInstructions = useStore.getState().deliveryInstructions;
-        const newInstructions = currentInstructions
-          ? `${currentInstructions}\n${search.trim()}`
-          : search.trim();
+        const parts = currentInstructions.split('DELIVERY INSTRUCTIONS');
+        const firstPart = parts[0] || '';
+        const secondPart = parts[1] || '';
+
+        // Add new text to the first part
+        const newFirstPart = firstPart ? `${firstPart}\n${search.trim()}` : search.trim();
+
+        // Combine with second part if it exists
+        const newInstructions = secondPart
+          ? `${newFirstPart}\nDELIVERY INSTRUCTIONS\n${secondPart}`
+          : newFirstPart;
+
         setDeliveryInstructions(newInstructions);
         setSearch('');
         setDropdownOpen(false);
