@@ -172,9 +172,10 @@ const Products = ({ setStoreModalOpen }) => {
               <Typography variant="body2" color="text.secondary">
                 {selectedStore.description}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
+              {/* commenting for mnow if not occuping more spaces */}
+              {/* <Typography variant="body2" color="text.secondary">
                 Pincodes Served:{selectedStore?.pincodes?.map((pincode) => pincode).join(', ')}
-              </Typography>
+              </Typography> */}
               <Typography variant="body2" color="text.secondary">
                 {selectedStore.tnc}
               </Typography>
