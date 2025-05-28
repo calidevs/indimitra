@@ -102,6 +102,7 @@ def generate_upload_url(file_name: str, order_id: int):
             },
             ExpiresIn=300,
         )
+        logger.info(f"✅ url '{url}'")
         return {
             "upload_url": url,
             "content_type": content_type,
