@@ -132,7 +132,6 @@ const CategoryManagement = () => {
 
   const handleOpenDialog = (category = null) => {
     if (category) {
-      // console.log("category", category);
       setEditingCategory(category);
       setCategoryName(category.name);
     } else {
