@@ -393,15 +393,15 @@ const CartPage = () => {
   };
 
   return (
-    <Box sx={{ padding: 3 }}>
+    <Box sx={{ py: 1, px:3 }}>
       <Typography
-        variant="h4"
+        variant="h6"
         component="h1"
         gutterBottom
         sx={{
           fontWeight: 600,
           color: 'primary.main',
-          mb: 4,
+          mb: 1,
           display: 'flex',
           alignItems: 'center',
           gap: 1,
