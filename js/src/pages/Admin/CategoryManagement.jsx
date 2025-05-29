@@ -52,8 +52,8 @@ const CREATE_CATEGORY = `
 `;
 
 const UPDATE_CATEGORY = `
-  mutation UpdateCategory($id: Int!, $name: String!) {
-    updateCategory(id: $id, name: $name) {
+  mutation UpdateCategory($categoryId: Int!, $name: String!) {
+    updateCategory(categoryId: $categoryId, name: $name) {
       category {
         id
         name
@@ -107,7 +107,7 @@ const CategoryManagement = () => {
 
   // Update category mutation
   const updateCategoryMutation = useMutation({
-    mutationFn: ({ id, name }) => graphqlService(UPDATE_CATEGORY, { id, name }),
+    mutationFn: ({ id, name }) => graphqlService(UPDATE_CATEGORY, { categoryId: id, name }),
     onSuccess: () => {
       handleCloseDialog();
       refetch();
@@ -132,6 +132,7 @@ const CategoryManagement = () => {
 
   const handleOpenDialog = (category = null) => {
     if (category) {
+      // console.log("category", category);
       setEditingCategory(category);
       setCategoryName(category.name);
     } else {
