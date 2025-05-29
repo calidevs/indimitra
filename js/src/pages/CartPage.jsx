@@ -430,65 +430,54 @@ const CartPage = () => {
                   <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>
                     Cart Items
                   </Typography>
-                  {Object.values(cart).map((item) => (
-                    <Card key={item.id} sx={{ mb: 2, position: 'relative' }}>
-                      <CardContent>
-                        <Grid container alignItems="center" spacing={2}>
-                          <Grid item xs={12} sm={4}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                              <img
-                                src={item.image}
-                                alt={item.name}
-                                style={{
-                                  width: 60,
-                                  height: 60,
-                                  objectFit: 'cover',
-                                  borderRadius: 8,
-                                }}
-                              />
-                              <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
-                                {item.name}
-                              </Typography>
-                            </Box>
-                          </Grid>
-                          <Grid item xs={12} sm={3}>
-                            <Typography color="text.secondary">
-                              ${item.price.toFixed(2)} each
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={12} sm={3}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <IconButton
-                                size="small"
-                                onClick={() => removeFromCart(item.id)}
-                                sx={{ border: '1px solid', borderColor: 'divider' }}
-                              >
-                                <Remove fontSize="small" />
-                              </IconButton>
-                              <Typography sx={{ minWidth: 40, textAlign: 'center' }}>
-                                {item.quantity}
-                              </Typography>
-                              <IconButton
-                                size="small"
-                                onClick={() => addToCart(item)}
-                                sx={{ border: '1px solid', borderColor: 'divider' }}
-                              >
-                                <Add fontSize="small" />
-                              </IconButton>
-                            </Box>
-                          </Grid>
-                          <Grid item xs={12} sm={2}>
-                            <Typography
-                              variant="subtitle1"
-                              sx={{ fontWeight: 600, textAlign: 'right' }}
-                            >
-                              ${(item.price * item.quantity).toFixed(2)}
-                            </Typography>
-                          </Grid>
-                        </Grid>
-                      </CardContent>
-                    </Card>
-                  ))}
+                  <Box sx={{ maxHeight: '60vh', overflowY: 'auto', pr: 0.5 }}>
+  {Object.values(cart).map((item) => (
+    <Box
+      key={item.id}
+      sx={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        py: 0.5,
+        px: 0.5,
+        borderBottom: '1px solid #ddd',
+      }}
+    >
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, width: '40%' }}>
+        <img
+          src={item.image}
+          alt={item.name}
+          style={{ width: 32, height: 32, objectFit: 'cover', borderRadius: 3 }}
+        />
+        <Typography variant="caption" noWrap>
+          {item.name}
+        </Typography>
+      </Box>
+
+      <Typography variant="caption" sx={{ width: '15%', textAlign: 'center' }}>
+        ${item.price.toFixed(2)}
+      </Typography>
+
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3, width: '25%', justifyContent: 'center' }}>
+        <IconButton size="small" onClick={() => removeFromCart(item.id)} sx={{ p: '2px' }}>
+          <Remove fontSize="inherit" />
+        </IconButton>
+        <Typography variant="caption" sx={{ minWidth: 16, textAlign: 'center' }}>
+          {item.quantity}
+        </Typography>
+        <IconButton size="small" onClick={() => addToCart(item)} sx={{ p: '2px' }}>
+          <Add fontSize="inherit" />
+        </IconButton>
+      </Box>
+
+      <Typography variant="caption" sx={{ width: '15%', textAlign: 'right', fontWeight: 500 }}>
+        ${(item.price * item.quantity).toFixed(2)}
+      </Typography>
+    </Box>
+  ))}
+</Box>
+
+
                 </>
               ) : (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
