@@ -1013,21 +1013,6 @@ const Orders = () => {
                                         </Typography>
                                       </Box>
 
-                                      {order.deliveryInstructions && (
-                                        <Box sx={{ mb: 1 }}>
-                                          <Typography
-                                            variant="subtitle2"
-                                            color="text.secondary"
-                                            fontWeight={700}
-                                          >
-                                            Delivery Instructions
-                                          </Typography>
-                                          <Typography variant="body2" fontWeight={500}>
-                                            {order.deliveryInstructions}
-                                          </Typography>
-                                        </Box>
-                                      )}
-
                                       {order.deliveryDate && (
                                         <Box sx={{ mb: 1 }}>
                                           <Typography
@@ -1066,6 +1051,47 @@ const Orders = () => {
                                 </Grid>
                               </Paper>
                             </Grid>
+
+                            {/* Delivery Instructions Section - Moved to full width */}
+                            {order.deliveryInstructions && (
+                              <Grid item xs={12}>
+                                <Paper sx={{ p: { xs: 1.5, sm: 2 } }}>
+                                  <Typography
+                                    variant="h6"
+                                    gutterBottom
+                                    sx={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      gap: 1,
+                                      color: 'primary.main',
+                                      fontWeight: 600,
+                                      mb: 1,
+                                      fontSize: { xs: '1rem', sm: '1.25rem' },
+                                    }}
+                                  >
+                                    Delivery Instructions
+                                  </Typography>
+                                  <Box
+                                    sx={{
+                                      p: 2,
+                                      bgcolor: 'grey.50',
+                                      borderRadius: 1,
+                                    }}
+                                  >
+                                    <Typography
+                                      variant="body2"
+                                      sx={{
+                                        whiteSpace: 'pre-wrap',
+                                        wordBreak: 'break-word',
+                                        lineHeight: 1.5,
+                                      }}
+                                    >
+                                      {order.deliveryInstructions}
+                                    </Typography>
+                                  </Box>
+                                </Paper>
+                              </Grid>
+                            )}
                           </Grid>
                         </Box>
                       </Collapse>

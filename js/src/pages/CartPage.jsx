@@ -800,7 +800,8 @@ const CartPage = () => {
                   size="large"
                   onClick={handleOrderPlacement}
                   disabled={
-                    Object.values(cart).length === 0 ||
+                    (Object.values(cart).length === 0 &&
+                      !deliveryInstructions.split('DELIVERY INSTRUCTIONS')[0]) ||
                     isPending ||
                     !selectedAddressId ||
                     isProfileLoading
@@ -811,6 +812,9 @@ const CartPage = () => {
                     py: 1.5,
                     fontSize: '1.1rem',
                     fontWeight: 600,
+                    maxWidth: { xs: '100%', sm: '400px' },
+                    mx: 'auto',
+                    display: 'block',
                   }}
                 >
                   {isPending ? 'Processing...' : 'Place Order'}
@@ -830,6 +834,9 @@ const CartPage = () => {
                     py: 1.5,
                     fontSize: '1.1rem',
                     fontWeight: 600,
+                    maxWidth: { xs: '100%', sm: '400px' },
+                    mx: 'auto',
+                    display: 'block',
                   }}
                 >
                   Login to Continue
