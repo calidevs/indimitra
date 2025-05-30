@@ -418,7 +418,7 @@ const CartPage = () => {
       ) : (
         <Grid container spacing={3}>
           {/* Cart Items Section */}
-          <Grid item xs={12} md={8}>
+          <Grid item xs={12}>
             <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
               {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
@@ -506,7 +506,7 @@ const CartPage = () => {
           </Grid>
 
           {/* Order Summary Section */}
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12}>
             <Paper elevation={2} sx={{ p: 3, position: 'sticky', top: 24 }}>
               <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
                 Order Summary
