@@ -16,8 +16,9 @@ import {
   MenuItem,
   Paper,
   FormControl,
+  IconButton,
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
+import { Search as SearchIcon, Send as SendIcon } from '@mui/icons-material';
 import StoreIcon from '@mui/icons-material/Storefront';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_STORE_PRODUCTS } from '@/queries/operations';
@@ -145,29 +146,26 @@ const Products = ({ setStoreModalOpen }) => {
     setDropdownOpen(false);
   };
 
-  const handleKeyPress = (event) => {
-    if (event.key === 'Enter' && !event.shiftKey) {
-      event.preventDefault();
-      if (search) {
-        const currentInstructions = useStore.getState().deliveryInstructions;
-        const parts = currentInstructions.split('DELIVERY INSTRUCTIONS');
-        const firstPart = parts[0] || '';
-        const secondPart = parts[1] || '';
+  const handleAddToDeliveryInstructions = () => {
+    if (search) {
+      const currentInstructions = useStore.getState().deliveryInstructions;
+      const parts = currentInstructions.split('DELIVERY INSTRUCTIONS');
+      const firstPart = parts[0] || '';
+      const secondPart = parts[1] || '';
 
-        // Add new text to the first part with a comma separator
-        const newFirstPart = firstPart
-          ? `${firstPart}, ${search}` // Add a comma and space between existing content and new content
-          : search;
+      // Add new text to the first part with a comma separator
+      const newFirstPart = firstPart
+        ? `${firstPart}, ${search}` // Add a comma and space between existing content and new content
+        : search;
 
-        // Only add separator if there's content in the second part, without extra newlines
-        const newInstructions = secondPart
-          ? `${newFirstPart}DELIVERY INSTRUCTIONS${secondPart}`
-          : newFirstPart;
+      // Only add separator if there's content in the second part, without extra newlines
+      const newInstructions = secondPart
+        ? `${newFirstPart}DELIVERY INSTRUCTIONS${secondPart}`
+        : newFirstPart;
 
-        setDeliveryInstructions(newInstructions);
-        setSearch('');
-        setDropdownOpen(false);
-      }
+      setDeliveryInstructions(newInstructions);
+      setSearch('');
+      setDropdownOpen(false);
     }
   };
 
@@ -230,18 +228,31 @@ const Products = ({ setStoreModalOpen }) => {
       {/* Landing Page Section */}
       <Box
         sx={{
-          minHeight: 'calc(100vh - 200px)', // Adjust based on navbar and store details height
+          minHeight: 'calc(100vh - 200px)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'flex-start',
           alignItems: 'center',
           width: '100%',
           px: 2,
-          pt: '25vh', // Position at 25% of viewport height
+          pt: '25vh',
           pb: 4,
         }}
       >
         <Container>
+          <Box sx={{ mb: 3, textAlign: 'center' }}>
+            <Typography
+              variant="h5"
+              sx={{
+                mb: 1,
+                color: 'text.primary',
+                fontWeight: 500,
+              }}
+            >
+              You can search from our available products below or simply paste your entire grocery
+              list. We'll process it and create an order for you.
+            </Typography>
+          </Box>
           <FormControl fullWidth>
             <TextField
               ref={anchorRef}
@@ -249,7 +260,12 @@ const Products = ({ setStoreModalOpen }) => {
               placeholder="Type or paste your grocery list..."
               value={search}
               onChange={handleSearchChange}
-              onKeyPress={handleKeyPress}
+              onKeyPress={(e) => {
+                if (e.key === 'Enter' && e.shiftKey) {
+                  e.preventDefault();
+                  handleAddToDeliveryInstructions();
+                }
+              }}
               onFocus={() => setDropdownOpen(true)}
               onClick={() => setDropdownOpen(true)}
               fullWidth
@@ -306,9 +322,25 @@ const Products = ({ setStoreModalOpen }) => {
                     <SearchIcon sx={{ color: 'text.secondary' }} />
                   </InputAdornment>
                 ),
-                endAdornment: inventoryLoading ? (
-                  <CircularProgress color="inherit" size={20} sx={{ mr: 1 }} />
-                ) : null,
+                endAdornment: (
+                  <Box sx={{ display: 'flex', alignItems: 'center', mr: 1 }}>
+                    {inventoryLoading && (
+                      <CircularProgress color="inherit" size={20} sx={{ mr: 1 }} />
+                    )}
+                    <IconButton
+                      onClick={handleAddToDeliveryInstructions}
+                      disabled={!search.trim()}
+                      sx={{
+                        color: 'primary.main',
+                        '&:hover': {
+                          backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                        },
+                      }}
+                    >
+                      <SendIcon />
+                    </IconButton>
+                  </Box>
+                ),
               }}
             />
             <Popper

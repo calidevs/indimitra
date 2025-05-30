@@ -396,7 +396,7 @@ const CartPage = () => {
   return (
     <Box sx={{ px: 3, py: 1 }}>
       <Typography
-        variant="h4"
+        variant="h6"
         component="h1"
         gutterBottom
         sx={{
