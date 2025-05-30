@@ -17,8 +17,10 @@ import {
   Paper,
   FormControl,
   IconButton,
+  Snackbar,
+  Alert,
 } from '@mui/material';
-import { Search as SearchIcon, Send as SendIcon } from '@mui/icons-material';
+import { Search as SearchIcon, Send as SendIcon, Check as CheckIcon } from '@mui/icons-material';
 import StoreIcon from '@mui/icons-material/Storefront';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_STORE_PRODUCTS } from '@/queries/operations';
@@ -65,9 +67,11 @@ const Products = ({ setStoreModalOpen }) => {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(12); // Default rows per page
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [addedProduct, setAddedProduct] = useState(null);
   const anchorRef = useRef(null);
 
-  const { selectedStore, availableStores, setDeliveryInstructions } = useStore();
+  const { selectedStore, availableStores, setDeliveryInstructions, addToCart } = useStore();
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -144,6 +148,26 @@ const Products = ({ setStoreModalOpen }) => {
 
   const handleClickAway = () => {
     setDropdownOpen(false);
+  };
+
+  const handleProductSelect = (product) => {
+    // Add to cart
+    addToCart({
+      ...product,
+      quantity: 1,
+    });
+
+    // Show success message
+    setAddedProduct(product);
+    setShowSuccess(true);
+
+    // Close dropdown
+    setDropdownOpen(false);
+  };
+
+  const handleCloseSuccess = () => {
+    setShowSuccess(false);
+    setAddedProduct(null);
   };
 
   const handleAddToDeliveryInstructions = () => {
@@ -363,10 +387,7 @@ const Products = ({ setStoreModalOpen }) => {
                     {filteredProducts.map((product) => (
                       <MenuItem
                         key={product.id}
-                        onClick={() => {
-                          setSearch(product.name);
-                          setDropdownOpen(false);
-                        }}
+                        onClick={() => handleProductSelect(product)}
                         sx={{
                           py: 1.5,
                           '&:hover': {
@@ -435,6 +456,25 @@ const Products = ({ setStoreModalOpen }) => {
           />
         </Box>
       </Container>
+
+      <Box sx={{ position: 'fixed', bottom: 24, right: 24, zIndex: 2000 }}>
+        <Snackbar
+          open={showSuccess}
+          autoHideDuration={3000}
+          onClose={handleCloseSuccess}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        >
+          <Alert
+            onClose={handleCloseSuccess}
+            severity="success"
+            variant="filled"
+            icon={<CheckIcon />}
+            sx={{ width: '100%' }}
+          >
+            {addedProduct ? `${addedProduct.name} added to cart` : 'Item added to cart'}
+          </Alert>
+        </Snackbar>
+      </Box>
     </>
   );
 };
