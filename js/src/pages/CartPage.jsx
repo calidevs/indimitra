@@ -512,15 +512,15 @@ const CartPage = () => {
           </Grid>
 
           {/* Order Summary Section */}
-          <Grid item xs={12}>
+          <Grid item xs={12} sx={{ mx: 3 }}>
             <Paper elevation={2} sx={{ p: 3, position: 'sticky', top: 24 }}>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
+              <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>
                 Order Summary
               </Typography>
 
               {/* Secondary Phone Section */}
               {userProfile && (
-                <Box sx={{ mb: 3 }}>
+                <Box sx={{ mb: 2 }}>
                   <SecondaryPhoneInput
                     userProfile={userProfile}
                     onPhoneUpdate={handlePhoneUpdate}
@@ -528,263 +528,269 @@ const CartPage = () => {
                 </Box>
               )}
 
-              <Box sx={{ mt: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Order Summary
-                </Typography>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography>Subtotal</Typography>
-                      <Typography>${subtotal.toFixed(2)}</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography>Delivery Fee</Typography>
-                      <Typography>${deliveryFee.toFixed(2)}</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        bgcolor: 'grey.50',
-                        p: 1,
-                        borderRadius: 1,
-                      }}
+              <Stack spacing={2}>
+                {/* Subtotal and Delivery Fee */}
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1 }}>
+                  <Typography variant="body2">Subtotal</Typography>
+                  <Typography variant="body2">${subtotal.toFixed(2)}</Typography>
+                </Box>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', py: 1 }}>
+                  <Typography variant="body2">Delivery Fee</Typography>
+                  <Typography variant="body2">${deliveryFee.toFixed(2)}</Typography>
+                </Box>
+
+                {/* Tax Section */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    bgcolor: 'grey.50',
+                    p: 1.5,
+                    borderRadius: 1,
+                  }}
+                >
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      Tax Rate
+                    </Typography>
+                    <Typography variant="body2">{taxPercentage.toFixed(1)}%</Typography>
+                  </Box>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Tax Amount
+                    </Typography>
+                    <Typography variant="body2">${taxAmount.toFixed(2)}</Typography>
+                  </Box>
+                </Box>
+
+                {/* Tip Section */}
+                <Box>
+                  <Typography variant="body2" gutterBottom>
+                    Add Tip
+                  </Typography>
+                  <ToggleButtonGroup
+                    value={tipPercentage}
+                    exclusive
+                    onChange={handleTipChange}
+                    aria-label="tip percentage"
+                    size="small"
+                    fullWidth
+                    sx={{ mb: 1 }}
+                  >
+                    <ToggleButton value={0} aria-label="no tip">
+                      No Tip
+                    </ToggleButton>
+                    <ToggleButton value={10} aria-label="10%">
+                      10%
+                    </ToggleButton>
+                    <ToggleButton value={15} aria-label="15%">
+                      15%
+                    </ToggleButton>
+                    <ToggleButton value={20} aria-label="20%">
+                      20%
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label="Custom Tip Amount"
+                    type="number"
+                    value={customTip}
+                    onChange={handleCustomTipChange}
+                    InputProps={{
+                      startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
+                    }}
+                    placeholder="Enter custom amount"
+                  />
+                </Box>
+
+                {/* Tip Amount Display */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    bgcolor: 'grey.50',
+                    p: 1.5,
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography variant="body2">Tip Amount</Typography>
+                  <Typography variant="body2">${tipAmount.toFixed(2)}</Typography>
+                </Box>
+
+                {/* Total */}
+                <Box
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                    pt: 2,
+                    mt: 1,
+                  }}
+                >
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    Total
+                  </Typography>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                    ${total.toFixed(2)}
+                  </Typography>
+                </Box>
+
+                {/* Delivery Address Section */}
+                {userProfile && (
+                  <Box>
+                    <Typography
+                      variant="subtitle2"
+                      sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}
                     >
+                      <LocalShipping fontSize="small" /> Delivery Address
+                    </Typography>
+
+                    {isProfileLoading ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', p: 1 }}>
+                        <LoadingSpinner size={20} />
+                      </Box>
+                    ) : (
                       <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          Tax Rate
-                        </Typography>
-                        <Typography>{taxPercentage.toFixed(1)}%</Typography>
+                        <FormControl fullWidth size="small" sx={{ mb: 1 }}>
+                          <InputLabel>Select Address</InputLabel>
+                          {isLoadingAddresses ? (
+                            <Box sx={{ display: 'flex', justifyContent: 'center', p: 1 }}>
+                              <LoadingSpinner size={20} />
+                            </Box>
+                          ) : (
+                            <Select
+                              value={selectedAddressId || ''}
+                              onChange={(e) => setSelectedAddressId(e.target.value)}
+                            >
+                              {addresses && addresses.length > 0 ? (
+                                addresses.map((addr) => (
+                                  <MenuItem key={addr.id} value={addr.id}>
+                                    {addr.address} {addr.isPrimary ? '(Primary)' : ''}
+                                  </MenuItem>
+                                ))
+                              ) : (
+                                <MenuItem disabled>No addresses available</MenuItem>
+                              )}
+                            </Select>
+                          )}
+                        </FormControl>
+
+                        <Button
+                          fullWidth
+                          variant="outlined"
+                          size="small"
+                          startIcon={showAddressForm ? <ExpandLess /> : <ExpandMore />}
+                          onClick={() => setShowAddressForm(!showAddressForm)}
+                          sx={{ mb: 1 }}
+                        >
+                          {showAddressForm ? 'Cancel' : 'Add New Address'}
+                        </Button>
+
+                        <Collapse in={showAddressForm}>
+                          <Box
+                            sx={{
+                              p: 1.5,
+                              border: '1px solid',
+                              borderColor: 'divider',
+                              borderRadius: 1,
+                            }}
+                          >
+                            <Stack spacing={1.5}>
+                              <AddressAutocomplete
+                                value={newAddress}
+                                onChange={setNewAddress}
+                                onValidAddress={setIsValidAddress}
+                              />
+                              <FormControlLabel
+                                control={
+                                  <Checkbox
+                                    checked={isPrimary}
+                                    onChange={(e) => setIsPrimary(e.target.checked)}
+                                    size="small"
+                                  />
+                                }
+                                label="Set as Primary Address"
+                              />
+                              <Button
+                                variant="contained"
+                                size="small"
+                                onClick={handleAddAddress}
+                                disabled={!newAddress.trim() || isAddingAddress || !isValidAddress}
+                                startIcon={
+                                  isAddingAddress ? <LoadingSpinner size={16} /> : <LocationOn />
+                                }
+                              >
+                                {isAddingAddress ? 'Adding...' : 'Add Address'}
+                              </Button>
+                            </Stack>
+                          </Box>
+                        </Collapse>
                       </Box>
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Tax Amount
-                        </Typography>
-                        <Typography>${taxAmount.toFixed(2)}</Typography>
-                      </Box>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="subtitle1" gutterBottom>
-                        Add Tip
+                    )}
+                  </Box>
+                )}
+
+                {/* Delivery Instructions */}
+                {userProfile && (
+                  <>
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                        Delivery Instructions
                       </Typography>
-                      <ToggleButtonGroup
-                        value={tipPercentage}
-                        exclusive
-                        onChange={handleTipChange}
-                        aria-label="tip percentage"
-                        size="small"
-                        fullWidth
-                        sx={{ mb: 1 }}
-                      >
-                        <ToggleButton value={0} aria-label="no tip">
-                          No Tip
-                        </ToggleButton>
-                        <ToggleButton value={10} aria-label="10%">
-                          10%
-                        </ToggleButton>
-                        <ToggleButton value={15} aria-label="15%">
-                          15%
-                        </ToggleButton>
-                        <ToggleButton value={20} aria-label="20%">
-                          20%
-                        </ToggleButton>
-                      </ToggleButtonGroup>
                       <TextField
                         fullWidth
-                        size="small"
-                        label="Custom Tip Amount"
-                        type="number"
-                        value={customTip}
-                        onChange={handleCustomTipChange}
-                        InputProps={{
-                          startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
+                        multiline
+                        minRows={2}
+                        maxRows={15}
+                        value={deliveryInstructions.split('DELIVERY INSTRUCTIONS')[1] || ''}
+                        onChange={(e) => {
+                          const newDeliveryText = e.target.value;
+                          const parts = deliveryInstructions.split('DELIVERY INSTRUCTIONS');
+                          const firstPart = parts[0] || '';
+
+                          const newInstructions = firstPart
+                            ? `${firstPart}DELIVERY INSTRUCTIONS${newDeliveryText}`
+                            : newDeliveryText
+                              ? `DELIVERY INSTRUCTIONS${newDeliveryText}`
+                              : '';
+
+                          setDeliveryInstructions(newInstructions);
                         }}
-                        placeholder="Enter custom amount"
-                        sx={{ mt: 1 }}
+                        placeholder="Add any special instructions for delivery..."
+                        size="small"
                       />
                     </Box>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        bgcolor: 'grey.50',
-                        p: 1,
-                        borderRadius: 1,
-                      }}
-                    >
-                      <Typography>Tip Amount</Typography>
-                      <Typography>${tipAmount.toFixed(2)}</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Divider />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="h6">Total</Typography>
-                      <Typography variant="h6">${total.toFixed(2)}</Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Box>
 
-              {/* Delivery Address Section */}
-              {userProfile && (
-                <Box sx={{ mb: 3 }}>
-                  <Typography
-                    variant="subtitle1"
-                    sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
-                  >
-                    <LocalShipping /> Delivery Address
-                  </Typography>
-
-                  {isProfileLoading ? (
-                    <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                      <LoadingSpinner size={24} />
-                    </Box>
-                  ) : (
                     <Box>
-                      <FormControl fullWidth sx={{ mb: 2 }}>
-                        <InputLabel>Select Address</InputLabel>
-                        {isLoadingAddresses ? (
-                          <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                            <LoadingSpinner size={24} />
-                          </Box>
-                        ) : (
-                          <Select
-                            value={selectedAddressId || ''}
-                            onChange={(e) => setSelectedAddressId(e.target.value)}
-                          >
-                            {addresses && addresses.length > 0 ? (
-                              addresses.map((addr) => (
-                                <MenuItem key={addr.id} value={addr.id}>
-                                  {addr.address} {addr.isPrimary ? '(Primary)' : ''}
-                                </MenuItem>
-                              ))
-                            ) : (
-                              <MenuItem disabled>No addresses available</MenuItem>
-                            )}
-                          </Select>
-                        )}
-                      </FormControl>
-
-                      <Button
+                      <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                        Manually Added Items
+                      </Typography>
+                      <TextField
                         fullWidth
-                        variant="outlined"
-                        startIcon={showAddressForm ? <ExpandLess /> : <ExpandMore />}
-                        onClick={() => setShowAddressForm(!showAddressForm)}
-                        sx={{ mb: 2 }}
-                      >
-                        {showAddressForm ? 'Cancel' : 'Add New Address'}
-                      </Button>
+                        multiline
+                        minRows={2}
+                        maxRows={15}
+                        value={deliveryInstructions.split('DELIVERY INSTRUCTIONS')[0] || ''}
+                        onChange={(e) => {
+                          const newManualText = e.target.value;
+                          const parts = deliveryInstructions.split('DELIVERY INSTRUCTIONS');
+                          const secondPart = parts[1] || '';
 
-                      <Collapse in={showAddressForm}>
-                        <Box
-                          sx={{
-                            p: 2,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            borderRadius: 1,
-                          }}
-                        >
-                          <Stack spacing={2}>
-                            <AddressAutocomplete
-                              value={newAddress}
-                              onChange={setNewAddress}
-                              onValidAddress={setIsValidAddress}
-                            />
-                            <FormControlLabel
-                              control={
-                                <Checkbox
-                                  checked={isPrimary}
-                                  onChange={(e) => setIsPrimary(e.target.checked)}
-                                />
-                              }
-                              label="Set as Primary Address"
-                            />
-                            <Button
-                              variant="contained"
-                              onClick={handleAddAddress}
-                              disabled={!newAddress.trim() || isAddingAddress || !isValidAddress}
-                              startIcon={
-                                isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />
-                              }
-                            >
-                              {isAddingAddress ? 'Adding...' : 'Add Address'}
-                            </Button>
-                          </Stack>
-                        </Box>
-                      </Collapse>
+                          const newInstructions = secondPart
+                            ? `${newManualText}DELIVERY INSTRUCTIONS${secondPart}`
+                            : newManualText;
+
+                          setDeliveryInstructions(newInstructions);
+                        }}
+                        placeholder="Items added from the search field..."
+                        size="small"
+                      />
                     </Box>
-                  )}
-                </Box>
-              )}
-
-              {/* Delivery Instructions */}
-              {userProfile && (
-                <>
-                  <Box sx={{ mb: 3 }}>
-                    <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                      Delivery Instructions
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={2}
-                      value={deliveryInstructions.split('DELIVERY INSTRUCTIONS')[1] || ''}
-                      onChange={(e) => {
-                        const newDeliveryText = e.target.value;
-                        const parts = deliveryInstructions.split('DELIVERY INSTRUCTIONS');
-                        const firstPart = parts[0] || '';
-
-                        // Preserve user's formatting while preventing automatic trailing newlines
-                        const newInstructions = firstPart
-                          ? `${firstPart}DELIVERY INSTRUCTIONS${newDeliveryText}`
-                          : newDeliveryText
-                            ? `DELIVERY INSTRUCTIONS${newDeliveryText}`
-                            : '';
-
-                        setDeliveryInstructions(newInstructions);
-                      }}
-                      placeholder="Add any special instructions for delivery..."
-                    />
-                  </Box>
-
-                  <Box sx={{ mb: 3 }}>
-                    <Typography variant="subtitle1" sx={{ mb: 2 }}>
-                      Manually Added Items
-                    </Typography>
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={2}
-                      value={deliveryInstructions.split('DELIVERY INSTRUCTIONS')[0] || ''}
-                      onChange={(e) => {
-                        const newManualText = e.target.value;
-                        const parts = deliveryInstructions.split('DELIVERY INSTRUCTIONS');
-                        const secondPart = parts[1] || '';
-
-                        // Preserve formatting and only add separator if there's content
-                        const newInstructions = secondPart
-                          ? `${newManualText}DELIVERY INSTRUCTIONS${secondPart}`
-                          : newManualText;
-
-                        setDeliveryInstructions(newInstructions);
-                      }}
-                      placeholder="Items added from the search field..."
-                    />
-                  </Box>
-                </>
-              )}
+                  </>
+                )}
+              </Stack>
 
               {/* Place Order Button */}
               {userProfile ? (
@@ -801,6 +807,7 @@ const CartPage = () => {
                   }
                   startIcon={isPending ? <LoadingSpinner size={20} /> : <Payment />}
                   sx={{
+                    mt: 2,
                     py: 1.5,
                     fontSize: '1.1rem',
                     fontWeight: 600,
@@ -819,6 +826,7 @@ const CartPage = () => {
                   }}
                   startIcon={<ShoppingBag />}
                   sx={{
+                    mt: 2,
                     py: 1.5,
                     fontSize: '1.1rem',
                     fontWeight: 600,
