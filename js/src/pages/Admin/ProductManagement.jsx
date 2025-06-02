@@ -121,12 +121,33 @@ const ProductManagement = () => {
     },
   });
 
-  // Update product mutation
   const updateProductMutation = useMutation({
-    mutationFn: ({ id, data }) => fetchGraphQL(UPDATE_PRODUCT, { id, input: data }),
+    mutationFn: ({ id, data }) => {
+      console.log('Updating product with data:', { id, data }); // Add logging
+      return fetchGraphQL(UPDATE_PRODUCT, {
+        productId: id,
+        name: data.name,
+        description: data.description,
+        categoryId: parseInt(data.categoryId, 10),
+        image: data.image || null,
+      });
+    },
     onSuccess: () => {
       refetch();
       handleCloseDialog();
+      setSnackbar({
+        open: true,
+        message: 'Product updated successfully!',
+        severity: 'success',
+      });
+    },
+    onError: (error) => {
+      console.error('Update error:', error);
+      setSnackbar({
+        open: true,
+        message: `Failed to update product: ${error.message}`,
+        severity: 'error',
+      });
     },
   });
 
@@ -607,7 +628,10 @@ const ProductManagement = () => {
             disabled={createProductMutation.isLoading || updateProductMutation.isLoading}
           >
             {createProductMutation.isLoading || updateProductMutation.isLoading ? (
-              <CircularProgress size={24} />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <CircularProgress size={20} color="inherit" />
+                {editingProduct ? 'Updating...' : 'Creating...'}
+              </Box>
             ) : editingProduct ? (
               'Update'
             ) : (
