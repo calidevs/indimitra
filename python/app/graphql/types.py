@@ -75,3 +75,8 @@ class Store:
 @mapper.type(models.StoreDriverModel)
 class StoreDriver:
     pass
+
+# Generate a GraphQL type for StoreLocationCodeModel
+@mapper.type(models.StoreLocationCodeModel)
+class StoreLocationCode:
+    pass
