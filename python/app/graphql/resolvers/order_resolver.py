@@ -84,10 +84,12 @@ class OrderMutation:
         productItems: List[OrderItemInput],
         totalAmount: float,
         orderTotalAmount: float,
+        pickup_or_delivery: str,
         deliveryFee: Optional[float] = None,
         tipAmount: Optional[float] = None,
         taxAmount: Optional[float] = None,
-        deliveryInstructions: Optional[str] = None
+        deliveryInstructions: Optional[str] = None,
+        custom_order: Optional[str] = None
     ) -> Order:
         """
         Create a new order with multiple order items.
@@ -99,10 +101,12 @@ class OrderMutation:
             productItems (List[OrderItemInput]): List of items with product IDs and quantities.
             totalAmount (float): The subtotal amount of products.
             orderTotalAmount (float): The final total amount including all fees and taxes.
+            pickup_or_delivery (str): Type of order ("pickup" or "delivery").
             deliveryFee (float, optional): Delivery fee.
             tipAmount (float, optional): Tip amount.
             taxAmount (float, optional): Tax amount.
             deliveryInstructions (str, optional): Special instructions for delivery.
+            custom_order (str, optional): Custom order instructions.
         
         Returns:
             Order: The newly created order.
@@ -123,7 +127,9 @@ class OrderMutation:
                 delivery_fee=deliveryFee,
                 tip_amount=tipAmount,
                 tax_amount=taxAmount,
-                delivery_instructions=deliveryInstructions
+                delivery_instructions=deliveryInstructions,
+                pickup_or_delivery=pickup_or_delivery,
+                custom_order=custom_order
             )
         except ValueError as e:
             raise Exception(str(e))
