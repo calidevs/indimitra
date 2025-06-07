@@ -26,3 +26,4 @@ class StoreModel(Base):
     manager = relationship("UserModel", back_populates="stores")
     inventory = relationship("InventoryModel", back_populates="store")
     drivers = relationship("StoreDriverModel", back_populates="store")
+    location_codes = relationship("StoreLocationCodeModel", back_populates="store")
