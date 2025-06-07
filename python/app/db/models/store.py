@@ -20,7 +20,7 @@ class StoreModel(Base):
     storeDeliveryFee = Column(Float, nullable=True)  # Store's default delivery fee
     taxPercentage = Column(Float, nullable=True)  # Store's default tax percentage
     section_headers = Column(ARRAY(String), nullable=True)  # Array of section header strings
-    display_field = Column(String, unique=True, nullable=True)  # Unique display field
+    display_field = Column(String, unique=True, nullable=False)  # Unique display field, required
     
     # Relationships
     manager = relationship("UserModel", back_populates="stores")
