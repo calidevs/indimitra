@@ -12,6 +12,7 @@ from app.graphql.resolvers.store_driver_resolver import StoreDriverQuery, StoreD
 from app.graphql.resolvers.category_resolver import CategoryQuery, CategoryMutation
 from app.graphql.resolvers.store_location_code_resolver import StoreLocationCodeQuery, StoreLocationCodeMutation
 from app.graphql.resolvers.pickup_address_resolver import PickupAddressQuery, PickupAddressMutation
+from app.graphql.resolvers.fee_resolver import FeeQuery, FeeMutation
 
 
 @strawberry.type
@@ -26,7 +27,8 @@ class Query(
     StoreDriverQuery,
     CategoryQuery,
     StoreLocationCodeQuery,
-    PickupAddressQuery
+    PickupAddressQuery,
+    FeeQuery
 ):
     pass
 
@@ -42,7 +44,8 @@ class Mutation(
     StoreDriverMutation,
     CategoryMutation,
     StoreLocationCodeMutation,
-    PickupAddressMutation
+    PickupAddressMutation,
+    FeeMutation
 ):
     pass
 
