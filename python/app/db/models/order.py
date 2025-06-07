@@ -33,6 +33,8 @@ class OrderModel(Base):
     tipAmount = Column(Float, nullable=True)
     orderTotalAmount = Column(Float, nullable=False)
     taxAmount = Column(Float, nullable=True)
+    display_code = Column(String, nullable=True)
+    custom_order = Column(String, nullable=True)
     # Cancellation tracking fields
     cancelMessage = Column(String, nullable=True)
     cancelledByUserId = Column(Integer, ForeignKey("users.id"), nullable=True)
