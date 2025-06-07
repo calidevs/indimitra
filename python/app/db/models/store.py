@@ -27,3 +27,4 @@ class StoreModel(Base):
     inventory = relationship("InventoryModel", back_populates="store")
     drivers = relationship("StoreDriverModel", back_populates="store")
     location_codes = relationship("StoreLocationCodeModel", back_populates="store")
+    pickup_addresses = relationship("PickupAddressModel", back_populates="store")
