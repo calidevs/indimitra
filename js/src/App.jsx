@@ -14,6 +14,7 @@ import Orders from './pages/Orders';
 import Profile from './pages/Profile';
 import NotFound from './components/NotFound';
 import StoreManagerNotFound from './components/StoreManager/NotFound';
+import DeliveryFees from './pages/StoreManager/DeliveryFees';
 
 import { useAuthStore } from './store/useStore';
 import { ROUTES } from './config/constants/routes';
@@ -126,6 +127,14 @@ const App = () => {
           element={
             <ProtectedRoute role="store_manager">
               <Inventory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/store_manager/delivery-fees"
+          element={
+            <ProtectedRoute role="store_manager">
+              <DeliveryFees />
             </ProtectedRoute>
           }
         />

@@ -895,7 +895,7 @@ const Inventory = () => {
     <Layout>
       <>
         <Typography variant="h4" gutterBottom>
-          Inventory Management
+          Store Inventory Management
         </Typography>
 
         {/* Search and Filters */}
