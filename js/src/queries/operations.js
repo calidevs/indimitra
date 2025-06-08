@@ -510,6 +510,8 @@ export const GET_STORE_WITH_INVENTORY = `
       tnc
       storeDeliveryFee
       taxPercentage
+      displayField
+      sectionHeaders
     }
   }
 `;
@@ -581,6 +583,8 @@ export const GET_STORES = `
       tnc
       storeDeliveryFee
       taxPercentage
+      displayField
+      sectionHeaders
       drivers {
         edges {
           node {
