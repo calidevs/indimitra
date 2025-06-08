@@ -53,7 +53,8 @@ class StoreMutation:
         tnc: Optional[str] = None,
         store_delivery_fee: Optional[float] = None,
         tax_percentage: Optional[float] = None,
-        section_headers: Optional[List[str]] = None
+        section_headers: Optional[List[str]] = None,
+        pincodes: Optional[List[str]] = None
     ) -> Store:
         """
         Create a new store
@@ -71,6 +72,7 @@ class StoreMutation:
             store_delivery_fee: Optional store delivery fee
             tax_percentage: Optional store tax percentage
             section_headers: Optional list of section header strings
+            pincodes: Optional list of pincodes
         """
         try:
             return create_store(
@@ -85,7 +87,8 @@ class StoreMutation:
                 tnc,
                 store_delivery_fee,
                 tax_percentage,
-                section_headers=section_headers
+                section_headers=section_headers,
+                pincodes=pincodes
             )
         except ValueError as e:
             raise Exception(str(e))
