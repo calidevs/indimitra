@@ -27,6 +27,7 @@ import StoreManagerOrders from './pages/StoreManager/Orders';
 import DeliveryPartners from './pages/StoreManager/DeliveryPartners';
 import Inventory from './pages/StoreManager/Inventory';
 import LocationCodes from './pages/StoreManager/LocationCodes';
+import PickupAddresses from '@/pages/StoreManager/PickupAddresses';
 
 const App = () => {
   const { user } = useAuthStore();
@@ -144,6 +145,14 @@ const App = () => {
           element={
             <ProtectedRoute role="store_manager">
               <LocationCodes />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/store_manager/pickup-addresses"
+          element={
+            <ProtectedRoute role="store_manager">
+              <PickupAddresses />
             </ProtectedRoute>
           }
         />
