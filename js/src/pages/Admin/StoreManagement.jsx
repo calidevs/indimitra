@@ -101,7 +101,7 @@ const CREATE_STORE = `
   }
 `;
 
-// Add the mutation
+// Update the UPDATE_STORE mutation
 const UPDATE_STORE = `
   mutation UpdateStore(
     $storeId: Int!
@@ -118,6 +118,8 @@ const UPDATE_STORE = `
     $tnc: String
     $storeDeliveryFee: Float
     $taxPercentage: Float
+    $displayField: String
+    $sectionHeaders: [String!]
   ) {
     updateStore(
       storeId: $storeId
@@ -134,6 +136,8 @@ const UPDATE_STORE = `
       tnc: $tnc
       storeDeliveryFee: $storeDeliveryFee
       taxPercentage: $taxPercentage
+      displayField: $displayField
+      sectionHeaders: $sectionHeaders
     ) {
       id
       name
@@ -149,6 +153,8 @@ const UPDATE_STORE = `
       tnc
       storeDeliveryFee
       taxPercentage
+      displayField
+      sectionHeaders
     }
   }
 `;
@@ -425,6 +431,15 @@ const StoreManagement = () => {
           .filter((p) => p.length > 0)
       : [];
 
+    // Get section headers as array
+    const sectionHeadersString = formData.get('sectionHeaders');
+    const sectionHeaders = sectionHeadersString
+      ? sectionHeadersString
+          .split('\n')
+          .map((h) => h.trim())
+          .filter((h) => h.length > 0)
+      : [];
+
     // Convert string values to appropriate types
     const updateData = {
       storeId: editStore.id,
@@ -441,6 +456,8 @@ const StoreManagement = () => {
       tnc: formData.get('tnc') || null,
       storeDeliveryFee: parseFloat(formData.get('storeDeliveryFee')) || null,
       taxPercentage: parseFloat(formData.get('taxPercentage')) || null,
+      displayField: formData.get('displayField'),
+      sectionHeaders: sectionHeaders,
     };
 
     updateStoreMutation.mutate(updateData);
@@ -1510,6 +1527,31 @@ const StoreManagement = () => {
                 />
               </Grid>
 
+              {/* Display Field */}
+              <Grid item xs={12}>
+                <TextField
+                  name="displayField"
+                  label="Display Field"
+                  defaultValue={editStore?.displayField}
+                  required
+                  fullWidth
+                  helperText="Unique identifier for the store"
+                />
+              </Grid>
+
+              {/* Section Headers */}
+              <Grid item xs={12}>
+                <TextField
+                  name="sectionHeaders"
+                  label="Section Headers"
+                  defaultValue={editStore?.sectionHeaders?.join('\n')}
+                  fullWidth
+                  multiline
+                  rows={3}
+                  helperText="Enter each section header on a new line"
+                />
+              </Grid>
+
               {/* Location & Delivery */}
               <Grid item xs={12}>
                 <Typography
@@ -1549,7 +1591,7 @@ const StoreManagement = () => {
                   type="number"
                   defaultValue={editStore?.storeDeliveryFee}
                   fullWidth
-                  inputProps={{ step: 0.01, min: 0 }}
+                  inputProps={{ step: '0.01', min: 0 }}
                   InputProps={{
                     startAdornment: <InputAdornment position="start">$</InputAdornment>,
                   }}
@@ -1562,7 +1604,7 @@ const StoreManagement = () => {
                   type="number"
                   defaultValue={editStore?.taxPercentage}
                   fullWidth
-                  inputProps={{ step: 0.1, min: 0 }}
+                  inputProps={{ step: '0.1', min: 0 }}
                   InputProps={{
                     endAdornment: <InputAdornment position="end">%</InputAdornment>,
                   }}
