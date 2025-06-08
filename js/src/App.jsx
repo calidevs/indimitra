@@ -26,6 +26,7 @@ import Layout from './components/layout/Layout';
 import StoreManagerOrders from './pages/StoreManager/Orders';
 import DeliveryPartners from './pages/StoreManager/DeliveryPartners';
 import Inventory from './pages/StoreManager/Inventory';
+import LocationCodes from './pages/StoreManager/LocationCodes';
 
 const App = () => {
   const { user } = useAuthStore();
@@ -135,6 +136,14 @@ const App = () => {
           element={
             <ProtectedRoute role="store_manager">
               <DeliveryFees />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/store_manager/location-codes"
+          element={
+            <ProtectedRoute role="store_manager">
+              <LocationCodes />
             </ProtectedRoute>
           }
         />
