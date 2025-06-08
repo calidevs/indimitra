@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Box,
@@ -922,6 +922,21 @@ const StoreManagement = () => {
     }
   };
 
+  // Add useEffect to handle success message timeout
+  useEffect(() => {
+    let timeoutId;
+    if (success) {
+      timeoutId = setTimeout(() => {
+        setSuccess(false);
+      }, 5000); // 5 seconds
+    }
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [success]);
+
   return (
     <Box>
       <Paper sx={{ p: 3, mb: 3 }}>
@@ -942,7 +957,21 @@ const StoreManagement = () => {
         )}
 
         {success && (
-          <Alert severity="success" sx={{ mb: 3 }}>
+          <Alert
+            severity="success"
+            sx={{
+              mb: 3,
+              animation: 'fadeOut 0.5s ease-in-out 4.5s forwards',
+              '@keyframes fadeOut': {
+                '0%': {
+                  opacity: 1,
+                },
+                '100%': {
+                  opacity: 0,
+                },
+              },
+            }}
+          >
             Store created successfully!
           </Alert>
         )}
