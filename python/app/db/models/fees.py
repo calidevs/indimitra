@@ -5,9 +5,10 @@ import enum
 import strawberry
 
 @strawberry.enum
-class DBFeeType(enum.Enum):
-    DELIVERY = "delivery"
-    PICKUP = "pickup"
+class FeeType(enum.Enum):
+    DELIVERY = "DELIVERY"
+    PICKUP = "PICKUP"
+
 
 class FeesModel(Base):
     __tablename__ = 'fees'
@@ -16,7 +17,7 @@ class FeesModel(Base):
     store_id = Column(Integer, ForeignKey("store.id"), nullable=False)
     fee_rate = Column(Float, nullable=False)
     fee_currency = Column(String, default="USD", nullable=False)
-    type = Column(Enum(DBFeeType), nullable=False)
+    type = Column(Enum(FeeType), nullable=False)
     limit = Column(Float, nullable=True)
     
     # Relationship

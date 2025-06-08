@@ -4,17 +4,11 @@ from app.db import models
 from typing import Optional, Union
 from datetime import datetime
 from app.db.models.order import OrderStatus
-from app.db.models.fees import DBFeeType
 from enum import Enum
+from app.db.models.fees import FeeType
 
 # Create a single mapper instance.
 mapper = StrawberrySQLAlchemyMapper()
-
-@strawberry.enum
-class FeeType(str, Enum):
-    """GraphQL enum for fee types"""
-    DELIVERY = "delivery"
-    PICKUP = "pickup"
 
 # Generate a GraphQL type for UserModel.
 @mapper.type(models.UserModel)

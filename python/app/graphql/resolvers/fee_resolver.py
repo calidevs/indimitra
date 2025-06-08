@@ -8,13 +8,6 @@ from app.services.fees_service import (
     delete_fee,
     get_fees_by_store
 )
-import enum
-
-@strawberry.enum
-class FeeTypeEnum(enum.Enum):
-    """Enum for fee types"""
-    DELIVERY = "delivery"
-    PICKUP = "pickup"
 
 # Error and Response types
 @strawberry.type
@@ -34,7 +27,7 @@ class CreateFeeInput:
     store_id: int
     fee_rate: float
     fee_currency: str
-    type: FeeTypeEnum
+    type: FeeType
     limit: Optional[float] = None
 
 @strawberry.input
@@ -42,7 +35,7 @@ class UpdateFeeInput:
     id: int
     fee_rate: Optional[float] = None
     fee_currency: Optional[str] = None
-    type: Optional[FeeTypeEnum] = None
+    type: Optional[FeeType] = None
     limit: Optional[float] = None
 
 # Queries
@@ -72,7 +65,7 @@ class FeeMutation:
                 store_id=input.store_id,
                 fee_rate=input.fee_rate,
                 fee_currency=input.fee_currency,
-                type=input.type.value,
+                type=input.type,
                 limit=input.limit
             )
             return FeeResponse(fee=fee)
