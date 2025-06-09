@@ -160,13 +160,6 @@ const Products = ({ setStoreModalOpen }) => {
                   {selectedStore.address}
                 </Typography>
               </Box>
-              <Button
-                variant="outlined"
-                startIcon={<StoreIcon />}
-                onClick={() => setStoreModalOpen(true)}
-              >
-                Change Store
-              </Button>
             </Box>
             <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between' }}>
               <Typography variant="body2" color="text.secondary">
