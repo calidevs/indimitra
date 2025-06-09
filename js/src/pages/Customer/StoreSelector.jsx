@@ -12,8 +12,8 @@ const StoreSelector = ({ open, onClose }) => {
 
   // Handle store selection
   const handleStoreSelect = (store) => {
-    // Store the selected store in local storage (stringify because localStorage stores strings)
-    localStorage.setItem('selectedStore', JSON.stringify(store));
+    // Store only the store id in local storage
+    localStorage.setItem('selectedStoreId', String(store.id));
     setSelectedStore(store);
     clearCart();
     onClose();
