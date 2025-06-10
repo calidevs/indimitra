@@ -68,21 +68,9 @@ const StoreSelector = ({ open, onClose }) => {
       setDeliveryMessage('');
       return;
     }
-    // Robustly extract pincode (US ZIP code style: 5 digits, anywhere in the address)
-    let pincode = null;
-    let match = deliveryAddress.match(/\b(\d{5})(?:-\d{4})?\b/);
-    if (match) {
-      pincode = match[1];
-    } else {
-      const parts = deliveryAddress.split(',');
-      for (let i = parts.length - 1; i >= 0; i--) {
-        const zipMatch = parts[i].match(/\b(\d{5})\b/);
-        if (zipMatch) {
-          pincode = zipMatch[1];
-          break;
-        }
-      }
-    }
+    // Extract the last 5-digit number (ZIP code) from the address
+    const matches = deliveryAddress.match(/\b(\d{5})(?:-\d{4})?\b/g);
+    const pincode = matches ? matches[matches.length - 1] : null;
     // Ensure both pincode and store pincodes are strings and trimmed
     const pincodes = (tempStore?.pincodes || []).map((p) => String(p).trim());
     const pincodeStr = pincode ? String(pincode).trim() : '';
