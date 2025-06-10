@@ -2,7 +2,9 @@
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Box, LoadingSpinner, Container, Typography, Button } from '@components';
+import { Paper, FormControlLabel, Switch } from '@mui/material';
 import Products from '../Products';
+import ListInput from './ListInput';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_ALL_STORES } from '@/queries/operations';
 import useStore from '@/store/useStore';
@@ -11,6 +13,9 @@ import StoreSelector from './StoreSelector';
 const Dashbaord = () => {
   const [storeModalOpen, setStoreModalOpen] = useState(false);
   const [storeSelectorStep2Open, setStoreSelectorStep2Open] = useState(false);
+  const [isManualMode, setIsManualMode] = useState(false);
+  const [listInputAnswers, setListInputAnswers] = useState({});
+  const [customOrder, setCustomOrder] = useState('');
   const { selectedStore, setAvailableStores, setSelectedStore, pickupAddress } = useStore();
 
   // Fetch all stores
@@ -47,6 +52,10 @@ const Dashbaord = () => {
     }
   }, [storesData, selectedStore, setAvailableStores]);
 
+  const handleToggleView = () => {
+    setIsManualMode(!isManualMode);
+  };
+
   if (storesLoading) {
     return (
       <Box
@@ -56,6 +65,8 @@ const Dashbaord = () => {
       </Box>
     );
   }
+
+  const hasSectionHeaders = selectedStore?.sectionHeaders?.length > 0;
 
   return (
     <>
@@ -127,7 +138,72 @@ const Dashbaord = () => {
             forceStep="pickup"
             initialStore={selectedStore}
           />
-          <Products />
+          <Container>
+            {hasSectionHeaders && (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2,
+                  mb: 3,
+                  backgroundColor: 'rgba(0, 0, 0, 0.03)',
+                  borderRadius: 2,
+                  minHeight: 72,
+                }}
+              >
+                <Box
+                  sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                >
+                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                    {isManualMode ? 'Manual Product Selection' : 'Enter your shopping list'}
+                  </Typography>
+                  <Box
+                    sx={{
+                      minWidth: 200,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'flex-end',
+                    }}
+                  >
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={isManualMode}
+                          onChange={handleToggleView}
+                          color="primary"
+                        />
+                      }
+                      label={
+                        <Typography
+                          variant="body2"
+                          color="text.secondary"
+                          sx={{
+                            width: 120,
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                          }}
+                        >
+                          Switch mode
+                        </Typography>
+                      }
+                      labelPlacement="end"
+                      sx={{ marginLeft: 2 }}
+                    />
+                  </Box>
+                </Box>
+              </Paper>
+            )}
+            {hasSectionHeaders && !isManualMode ? (
+              <ListInput
+                sectionHeaders={selectedStore.sectionHeaders}
+                answers={listInputAnswers}
+                onChangeAnswers={setListInputAnswers}
+                onSubmit={setCustomOrder}
+              />
+            ) : (
+              <Products />
+            )}
+          </Container>
         </>
       )}
     </>
