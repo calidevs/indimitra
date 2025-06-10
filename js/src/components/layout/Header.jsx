@@ -224,7 +224,17 @@ const Header = () => {
                       },
                     }}
                   >
-                    <Badge badgeContent={cartCount}>
+                    <Badge
+                      badgeContent={cartCount}
+                      color="error"
+                      sx={{
+                        '& .MuiBadge-badge': {
+                          backgroundColor: '#FF6B6B',
+                          color: 'white',
+                          fontWeight: 'bold',
+                        },
+                      }}
+                    >
                       <ShoppingCart />
                     </Badge>
                   </IconButton>
@@ -242,7 +252,17 @@ const Header = () => {
                     },
                   }}
                 >
-                  <Badge badgeContent={cartCount}>
+                  <Badge
+                    badgeContent={cartCount}
+                    color="error"
+                    sx={{
+                      '& .MuiBadge-badge': {
+                        backgroundColor: '#FF6B6B',
+                        color: 'white',
+                        fontWeight: 'bold',
+                      },
+                    }}
+                  >
                     <ShoppingCart />
                   </Badge>
                 </IconButton>
