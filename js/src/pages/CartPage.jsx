@@ -221,6 +221,7 @@ const CartPage = () => {
     selectedStore,
     getCartTotals,
     setTipAmount,
+    customOrder,
   } = useStore();
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
@@ -629,6 +630,39 @@ const CartPage = () => {
                   </Grid>
                 </Grid>
               </Box>
+
+              {/* Custom Order Details */}
+              {customOrder && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+                  >
+                    <ShoppingBag /> Custom Order Details
+                  </Typography>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      backgroundColor: 'background.paper',
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        whiteSpace: 'pre-line',
+                        color: 'text.secondary',
+                        fontFamily: 'monospace',
+                      }}
+                    >
+                      {customOrder}
+                    </Typography>
+                  </Paper>
+                </Box>
+              )}
 
               {/* Delivery Address Section */}
               {userProfile && (

@@ -96,6 +96,12 @@ const useStore = create((set, get) => ({
 
   // Add tip amount to the store
   setTipAmount: (amount) => set({ tipAmount: amount }),
+
+  customOrder: '',
+  setCustomOrder: (order) => set({ customOrder: order }),
+
+  listInputAnswers: {},
+  setListInputAnswers: (answers) => set({ listInputAnswers: answers }),
 }));
 
 export const useAuthStore = create((set, get) => ({
