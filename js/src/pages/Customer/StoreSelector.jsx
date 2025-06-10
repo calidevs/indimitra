@@ -1,5 +1,20 @@
-import React, { useState } from 'react';
-import { Typography, Radio, RadioGroup, FormControlLabel, Button, Box, Alert } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import {
+  Typography,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  Button,
+  Box,
+  Alert,
+  Paper,
+  Divider,
+  Stack,
+} from '@mui/material';
+import StoreIcon from '@mui/icons-material/Store';
+import HomeIcon from '@mui/icons-material/Home';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import LocalShippingIcon from '@mui/icons-material/LocalShipping';
 
 import Dialog from '@/components/Dialog/Dialog';
 import useStore from '@/store/useStore';
@@ -18,6 +33,7 @@ const StoreSelector = ({ open, onClose }) => {
   const [isValidDeliveryAddress, setIsValidDeliveryAddress] = useState(false);
   const [deliveryStatus, setDeliveryStatus] = useState(null); // 'success' | 'error' | null
   const [deliveryMessage, setDeliveryMessage] = useState('');
+  const [activeOption, setActiveOption] = useState(null); // 'pickup' or 'delivery' or null
 
   // Handle store selection
   const handleStoreSelect = (store) => {
@@ -40,11 +56,16 @@ const StoreSelector = ({ open, onClose }) => {
     onClose();
   };
 
-  // Handle home delivery address validation
-  const handleDeliveryConfirm = () => {
-    if (!deliveryAddress || !isValidDeliveryAddress) {
-      setDeliveryStatus('error');
-      setDeliveryMessage('Please select a valid address from the suggestions.');
+  // New: validate delivery address as soon as it's valid
+  const handleValidDeliveryAddress = (isValid) => {
+    setIsValidDeliveryAddress(isValid);
+  };
+
+  // Add useEffect for validation
+  useEffect(() => {
+    if (!isValidDeliveryAddress || !deliveryAddress) {
+      setDeliveryStatus(null);
+      setDeliveryMessage('');
       return;
     }
     // Robustly extract pincode (US ZIP code style: 5 digits, anywhere in the address)
@@ -53,7 +74,6 @@ const StoreSelector = ({ open, onClose }) => {
     if (match) {
       pincode = match[1];
     } else {
-      // Try splitting by comma and searching for a 5-digit number
       const parts = deliveryAddress.split(',');
       for (let i = parts.length - 1; i >= 0; i--) {
         const zipMatch = parts[i].match(/\b(\d{5})\b/);
@@ -63,12 +83,26 @@ const StoreSelector = ({ open, onClose }) => {
         }
       }
     }
-    const pincodes = tempStore?.pincodes || [];
-    if (pincode && pincodes.includes(pincode)) {
+    // Ensure both pincode and store pincodes are strings and trimmed
+    const pincodes = (tempStore?.pincodes || []).map((p) => String(p).trim());
+    const pincodeStr = pincode ? String(pincode).trim() : '';
+    // Debug logs
+    console.log('Extracted pincode:', pincodeStr);
+    console.log('Store pincodes:', pincodes);
+    console.log('Match:', pincodes.includes(pincodeStr));
+    if (pincodeStr && pincodes.includes(pincodeStr)) {
       setDeliveryStatus('success');
       setDeliveryMessage('Store delivers here');
+    } else {
+      setDeliveryStatus('error');
+      setDeliveryMessage('Store does not deliver here.');
+    }
+  }, [isValidDeliveryAddress, deliveryAddress, tempStore]);
+
+  // Handle home delivery address validation
+  const handleDeliveryConfirm = () => {
+    if (deliveryStatus === 'success') {
       setSelectedStore(tempStore);
-      // Optionally, store delivery address in Zustand (add setDeliveryAddress if needed)
       setTimeout(() => {
         setStep('store');
         setTempStore(null);
@@ -92,6 +126,26 @@ const StoreSelector = ({ open, onClose }) => {
     setIsValidDeliveryAddress(false);
     setDeliveryStatus(null);
     setDeliveryMessage('');
+  };
+
+  // In handlePickup selection:
+  const handlePickupRadioChange = (e) => {
+    setSelectedPickupId(e.target.value);
+    setActiveOption('pickup');
+    setDeliveryAddress('');
+    setIsValidDeliveryAddress(false);
+  };
+
+  // In AddressAutocomplete onChange:
+  const handleDeliveryAddressChange = (value) => {
+    setDeliveryAddress(value);
+    if (value && value.trim() !== '') {
+      setActiveOption('delivery');
+      setSelectedPickupId(null);
+    } else {
+      // If delivery field is cleared, allow both sections to be active
+      setActiveOption(selectedPickupId ? 'pickup' : null);
+    }
   };
 
   // Step 1: Store selection
@@ -136,69 +190,105 @@ const StoreSelector = ({ open, onClose }) => {
           Please select a pickup address or enter your home delivery address for{' '}
           <b>{tempStore?.name}</b>
         </Typography>
-        {/* Pickup Address Section */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="subtitle1" sx={{ mb: 1 }}>
-            Pickup Address
-          </Typography>
-          {addresses.length === 0 ? (
-            <Typography color="error" align="center">
-              No pickup addresses available for this store.
-            </Typography>
-          ) : (
-            <RadioGroup
-              value={selectedPickupId || ''}
-              onChange={(e) => setSelectedPickupId(e.target.value)}
+        <Stack spacing={3}>
+          {/* Pickup Address Section */}
+          <Paper
+            elevation={activeOption === 'pickup' ? 4 : 1}
+            sx={{
+              p: 2,
+              bgcolor: activeOption === 'pickup' ? 'primary.lighter' : 'grey.50',
+              opacity: activeOption === 'delivery' && deliveryAddress ? 0.5 : 1,
+              border: activeOption === 'pickup' ? '2px solid #1976d2' : '1px solid #eee',
+              transition: 'all 0.2s',
+            }}
+          >
+            <Typography
+              variant="subtitle1"
+              sx={{ mb: 1, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
             >
-              {addresses.map((addr) => (
-                <FormControlLabel
-                  key={addr.id}
-                  value={String(addr.id)}
-                  control={<Radio />}
-                  label={addr.address}
-                />
-              ))}
-            </RadioGroup>
-          )}
-          <Button
-            onClick={handlePickupConfirm}
-            variant="contained"
-            disabled={!selectedPickupId}
-            sx={{ mt: 2 }}
+              <StoreIcon fontSize="small" color="primary" /> Pickup Address
+            </Typography>
+            {addresses.length === 0 ? (
+              <Typography color="error" align="center">
+                No pickup addresses available for this store.
+              </Typography>
+            ) : (
+              <RadioGroup value={selectedPickupId || ''} onChange={handlePickupRadioChange}>
+                {addresses.map((addr) => (
+                  <FormControlLabel
+                    key={addr.id}
+                    value={String(addr.id)}
+                    control={<Radio color="primary" />}
+                    label={addr.address}
+                  />
+                ))}
+              </RadioGroup>
+            )}
+            <Button
+              onClick={handlePickupConfirm}
+              variant="contained"
+              color="primary"
+              fullWidth
+              startIcon={<LocalShippingIcon />}
+              disabled={activeOption !== 'pickup' || !selectedPickupId}
+              sx={{ mt: 2, fontWeight: 600, py: 1.2, fontSize: '1rem' }}
+            >
+              Confirm Pickup
+            </Button>
+          </Paper>
+          <Divider>OR</Divider>
+          {/* Home Delivery Section */}
+          <Paper
+            elevation={activeOption === 'delivery' ? 4 : 1}
+            sx={{
+              p: 2,
+              bgcolor: activeOption === 'delivery' ? 'secondary.lighter' : 'grey.50',
+              opacity: activeOption === 'pickup' && selectedPickupId ? 0.5 : 1,
+              border: activeOption === 'delivery' ? '2px solid #9c27b0' : '1px solid #eee',
+              transition: 'all 0.2s',
+            }}
           >
-            Confirm Pickup
-          </Button>
-        </Box>
-        {/* Home Delivery Section */}
-        <Box sx={{ mb: 2 }}>
-          <Typography variant="subtitle1" sx={{ mb: 1 }}>
-            Home Delivery Address
-          </Typography>
-          <AddressAutocomplete
-            value={deliveryAddress}
-            onChange={setDeliveryAddress}
-            onValidAddress={setIsValidDeliveryAddress}
-          />
-          {deliveryStatus && (
-            <Alert severity={deliveryStatus} sx={{ mt: 1 }}>
-              {deliveryMessage}
-            </Alert>
-          )}
-          <Button
-            onClick={handleDeliveryConfirm}
-            variant="contained"
-            color="secondary"
-            disabled={!isValidDeliveryAddress}
-            sx={{ mt: 2 }}
-          >
-            Confirm Delivery
-          </Button>
-        </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 1 }}>
-          <Button onClick={handleBack} variant="outlined">
-            Back
-          </Button>
-        </Box>
+            <Typography
+              variant="subtitle1"
+              sx={{ mb: 1, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
+            >
+              <HomeIcon fontSize="small" color="secondary" /> Home Delivery Address
+            </Typography>
+            <AddressAutocomplete
+              value={deliveryAddress}
+              onChange={handleDeliveryAddressChange}
+              onValidAddress={handleValidDeliveryAddress}
+            />
+            {deliveryStatus && (
+              <Alert severity={deliveryStatus} sx={{ mt: 1 }}>
+                {deliveryMessage}
+              </Alert>
+            )}
+            <Button
+              onClick={handleDeliveryConfirm}
+              variant="contained"
+              color="secondary"
+              fullWidth
+              startIcon={<HomeIcon />}
+              disabled={activeOption !== 'delivery' || !isValidDeliveryAddress}
+              sx={{ mt: 2, fontWeight: 600, py: 1.2, fontSize: '1rem' }}
+            >
+              Confirm Delivery
+            </Button>
+          </Paper>
+          <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 1 }}>
+            <Button
+              onClick={handleBack}
+              variant="outlined"
+              color="inherit"
+              size="small"
+              startIcon={<ArrowBackIcon />}
+              sx={{ fontWeight: 500, borderRadius: 2 }}
+            >
+              Back
+            </Button>
+          </Box>
+        </Stack>
       </Dialog>
     );
   }
