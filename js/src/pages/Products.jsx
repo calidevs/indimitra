@@ -23,6 +23,7 @@ import kesar from '@/assets/images/products/kesar.jpg';
 import chinnaRasalu from '@/assets/images/products/chinna-rasalu.png';
 import alphonso from '@/assets/images/products/alphonso.png';
 import malgova from '@/assets/images/products/malgova.jpg';
+import StoreSelector from './Customer/StoreSelector';
 
 // Store-specific product images mapping
 const STORE_PRODUCT_IMAGES = {
@@ -59,6 +60,8 @@ const Products = ({ setStoreModalOpen }) => {
   const [rowsPerPage, setRowsPerPage] = useState(12); // Default rows per page
 
   const { selectedStore, availableStores } = useStore();
+  const pickupAddress = useStore((state) => state.pickupAddress);
+  const [storeSelectorStep2Open, setStoreSelectorStep2Open] = useState(false);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -160,6 +163,29 @@ const Products = ({ setStoreModalOpen }) => {
                   {selectedStore.address}
                 </Typography>
               </Box>
+              {pickupAddress && (
+                <Button
+                  variant="outlined"
+                  color="primary"
+                  sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'flex-end',
+                    minWidth: 180,
+                    borderRadius: 2,
+                    fontWeight: 600,
+                    textTransform: 'none',
+                  }}
+                  onClick={() => setStoreSelectorStep2Open(true)}
+                >
+                  <Typography variant="subtitle2" color="primary">
+                    Pickup Location
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {pickupAddress.address}
+                  </Typography>
+                </Button>
+              )}
             </Box>
             <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between' }}>
               <Typography variant="body2" color="text.secondary">
@@ -176,6 +202,13 @@ const Products = ({ setStoreModalOpen }) => {
           </Box>
         </Container>
       )}
+      {/* StoreSelector modal for editing pickup/delivery */}
+      <StoreSelector
+        open={storeSelectorStep2Open}
+        onClose={() => setStoreSelectorStep2Open(false)}
+        forceStep="pickup"
+        initialStore={selectedStore}
+      />
       <Container>
         {/* Search Field */}
         <TextField

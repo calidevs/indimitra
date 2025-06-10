@@ -23,7 +23,7 @@ import StoreSelectorTitle from './StoreSelectorTitle';
 import NoStoresMessage from './NoStoresMessage';
 import AddressAutocomplete from '@/components/AddressAutocomplete/AddressAutocomplete';
 
-const StoreSelector = ({ open, onClose }) => {
+const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   const { selectedStore, setSelectedStore, availableStores, clearCart, setPickupAddress } =
     useStore();
   const [step, setStep] = useState('store'); // 'store' or 'pickup'
@@ -34,6 +34,20 @@ const StoreSelector = ({ open, onClose }) => {
   const [deliveryStatus, setDeliveryStatus] = useState(null); // 'success' | 'error' | null
   const [deliveryMessage, setDeliveryMessage] = useState('');
   const [activeOption, setActiveOption] = useState(null); // 'pickup' or 'delivery' or null
+
+  // If forceStep is provided and modal is opened, set the step accordingly
+  useEffect(() => {
+    if (open && forceStep) {
+      setStep(forceStep);
+      if (initialStore) {
+        setTempStore(initialStore);
+      }
+    }
+    if (!open) {
+      setStep('store');
+      setTempStore(null);
+    }
+  }, [open, forceStep, initialStore]);
 
   // Handle store selection
   const handleStoreSelect = (store) => {
@@ -91,6 +105,7 @@ const StoreSelector = ({ open, onClose }) => {
   const handleDeliveryConfirm = () => {
     if (deliveryStatus === 'success') {
       setSelectedStore(tempStore);
+      setPickupAddress(null);
       setTimeout(() => {
         setStep('store');
         setTempStore(null);
