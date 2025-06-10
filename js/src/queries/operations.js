@@ -533,6 +533,17 @@ export const GET_ALL_STORES = `
       tnc
       storeDeliveryFee
       taxPercentage
+      displayField
+      sectionHeaders
+      pickupAddresses {
+      edges {
+        node {
+          address
+          id
+          storeId
+        }
+      }
+    }
     }
   }
 `;

@@ -21,6 +21,10 @@ const useStore = create((set, get) => ({
 
   getSelectedStore: () => get().selectedStore,
 
+  // New: Pickup address state
+  pickupAddress: null,
+  setPickupAddress: (address) => set({ pickupAddress: address }),
+
   addToCart: (product) =>
     set((state) => ({
       cart: {
