@@ -14,9 +14,15 @@ const Dashbaord = () => {
   const [storeModalOpen, setStoreModalOpen] = useState(false);
   const [storeSelectorStep2Open, setStoreSelectorStep2Open] = useState(false);
   const [isManualMode, setIsManualMode] = useState(false);
-  const [listInputAnswers, setListInputAnswers] = useState({});
-  const [customOrder, setCustomOrder] = useState('');
-  const { selectedStore, setAvailableStores, setSelectedStore, pickupAddress } = useStore();
+  const {
+    selectedStore,
+    setAvailableStores,
+    setSelectedStore,
+    pickupAddress,
+    setCustomOrder,
+    listInputAnswers,
+    setListInputAnswers,
+  } = useStore();
 
   // Fetch all stores
   const {
