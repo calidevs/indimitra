@@ -49,7 +49,16 @@ const useStore = create((set, get) => ({
       return { cart: updatedCart };
     }),
 
-  cartCount: () => Object.values(get().cart).reduce((acc, item) => acc + (item.quantity || 0), 0),
+  cartCount: () => {
+    const state = get();
+    const regularItemsCount = Object.values(state.cart).reduce(
+      (acc, item) => acc + (item.quantity || 0),
+      0
+    );
+    // If there's a custom order, add 1 to the count
+    const customOrderCount = state.customOrder ? 1 : 0;
+    return regularItemsCount + customOrderCount;
+  },
 
   cartTotal: () =>
     Object.values(get().cart).reduce(
