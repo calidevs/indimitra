@@ -155,8 +155,19 @@ def create_order(user_id: int, store_id: int, product_items: List[dict],
             if not pickup_address:
                 raise ValueError(f"Pickup address with ID {pickup_id} not found or does not belong to store {store_id}")
             
-            # For pickup orders, use a default location code
-            location_code = "00"
+            # Get location code for pickup address
+            location_code = "00"  # Default code
+            if pickup_address.address:
+                address_parts = pickup_address.address.split(',')
+                if len(address_parts) >= 2:
+                    city_name = address_parts[1].strip()
+                    # Query StoreLocationCodeModel for the city code
+                    location_code_record = db.query(StoreLocationCodeModel).filter(
+                        StoreLocationCodeModel.store_id == store_id,
+                        StoreLocationCodeModel.location == city_name
+                    ).first()
+                    if location_code_record:
+                        location_code = location_code_record.code
         
         # Extract all product IDs from the items
         product_ids = [item["product_id"] for item in product_items]
@@ -193,7 +204,11 @@ def create_order(user_id: int, store_id: int, product_items: List[dict],
         )
         
         db.add(order)
-        db.flush()
+        db.flush()  # This will generate the order ID
+        
+        # Set display code and custom order
+        order.display_code = f"{location_code}{order.id}{pickup_or_delivery[0].upper()}"
+        order.custom_order = custom_order
         
         # Create order items with inventory prices
         for item in product_items:
@@ -207,10 +222,6 @@ def create_order(user_id: int, store_id: int, product_items: List[dict],
             )
             db.add(order_item)
             
-        # Set display code and custom order
-        order.display_code = f"{location_code}{order.id}{pickup_or_delivery[0].upper()}"
-        order.custom_order = custom_order
-        
         db.commit()
         db.refresh(order)
         
