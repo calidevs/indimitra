@@ -23,6 +23,8 @@ import {
   CircularProgress,
   ToggleButton,
   ToggleButtonGroup,
+  RadioGroup,
+  Radio,
 } from '@mui/material';
 import {
   Remove,
@@ -34,6 +36,8 @@ import {
   ShoppingBag,
   LocalShipping,
   Payment,
+  Store,
+  Home,
 } from '@mui/icons-material';
 import useStore, { useAuthStore, useAddressStore } from './../store/useStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -222,6 +226,7 @@ const CartPage = () => {
     getCartTotals,
     setTipAmount,
     customOrder,
+    setCustomOrder,
   } = useStore();
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
@@ -232,6 +237,8 @@ const CartPage = () => {
   const queryClient = useQueryClient();
   const [tipPercentage, setTipPercentage] = useState(0);
   const [customTip, setCustomTip] = useState('');
+  const [activeOption, setActiveOption] = useState('pickup');
+  const [selectedPickupId, setSelectedPickupId] = useState(null);
 
   // Fetch user profile when component mounts
   useEffect(() => {
@@ -298,6 +305,7 @@ const CartPage = () => {
       }
       console.log('Order placed successfully:', response);
       clearCart();
+      setCustomOrder(''); // Clear the custom order
       setIsOrderPlaced(true);
       setTimeout(() => {
         setIsOrderPlaced(false);
@@ -314,8 +322,9 @@ const CartPage = () => {
   const handleOrderPlacement = async () => {
     setError(''); // Clear any previous errors
 
-    if (!selectedAddressId) {
-      setError('Please select a delivery address');
+    // Validate that either pickup or delivery is selected
+    if (!selectedPickupId && !selectedAddressId) {
+      setError('Please select either a pickup location or delivery address');
       return;
     }
 
@@ -327,18 +336,34 @@ const CartPage = () => {
     // Get all the totals from the store
     const { subtotal, deliveryFee, taxAmount, tipAmount, total } = getCartTotals();
 
-    mutate({
+    // Get the selected pickup address if pickup is selected
+    let pickupAddress = null;
+    if (selectedPickupId) {
+      const addresses = selectedStore.pickupAddresses.edges.map((e) => e.node);
+      pickupAddress = addresses.find((addr) => String(addr.id) === String(selectedPickupId));
+    }
+
+    // Get the selected delivery address if delivery is selected
+    let deliveryAddress = null;
+    if (selectedAddressId) {
+      deliveryAddress = addresses.find((addr) => addr.id === selectedAddressId);
+    }
+
+    const variables = {
       userId: userProfile.id,
       addressId: selectedAddressId,
       storeId: selectedStore.id,
       productItems: orderItems,
       totalAmount: subtotal,
       orderTotalAmount: total,
-      deliveryFee: deliveryFee,
+      pickupOrDelivery: selectedPickupId ? 'pickup' : 'delivery',
+      deliveryFee: selectedPickupId ? 0 : deliveryFee,
       tipAmount: tipAmount,
       taxAmount: taxAmount,
-      deliveryInstructions: deliveryInstructions,
-    });
+      deliveryInstructions: selectedPickupId ? null : deliveryInstructions,
+    };
+
+    mutate(variables);
   };
 
   const handleAddAddress = async () => {
@@ -664,14 +689,14 @@ const CartPage = () => {
                 </Box>
               )}
 
-              {/* Delivery Address Section */}
+              {/* Delivery/Pickup Address Section */}
               {userProfile && (
                 <Box sx={{ mb: 3 }}>
                   <Typography
                     variant="subtitle1"
                     sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
                   >
-                    <LocalShipping /> Delivery Address
+                    <LocalShipping /> Delivery/Pickup Options
                   </Typography>
 
                   {isProfileLoading ? (
@@ -679,79 +704,157 @@ const CartPage = () => {
                       <LoadingSpinner size={24} />
                     </Box>
                   ) : (
-                    <Box>
-                      <FormControl fullWidth sx={{ mb: 2 }}>
-                        <InputLabel>Select Address</InputLabel>
-                        {isLoadingAddresses ? (
-                          <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                            <LoadingSpinner size={24} />
-                          </Box>
-                        ) : (
-                          <Select
-                            value={selectedAddressId || ''}
-                            onChange={(e) => setSelectedAddressId(e.target.value)}
-                          >
-                            {addresses && addresses.length > 0 ? (
-                              addresses.map((addr) => (
-                                <MenuItem key={addr.id} value={addr.id}>
-                                  {addr.address} {addr.isPrimary ? '(Primary)' : ''}
-                                </MenuItem>
-                              ))
-                            ) : (
-                              <MenuItem disabled>No addresses available</MenuItem>
-                            )}
-                          </Select>
-                        )}
-                      </FormControl>
-
-                      <Button
-                        fullWidth
-                        variant="outlined"
-                        startIcon={showAddressForm ? <ExpandLess /> : <ExpandMore />}
-                        onClick={() => setShowAddressForm(!showAddressForm)}
-                        sx={{ mb: 2 }}
-                      >
-                        {showAddressForm ? 'Cancel' : 'Add New Address'}
-                      </Button>
-
-                      <Collapse in={showAddressForm}>
-                        <Box
+                    <Stack spacing={3}>
+                      {/* Pickup Address Section */}
+                      {selectedStore?.pickupAddresses?.edges?.length > 0 && (
+                        <Paper
+                          elevation={activeOption === 'pickup' ? 4 : 1}
                           sx={{
                             p: 2,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            borderRadius: 1,
+                            bgcolor: activeOption === 'pickup' ? 'primary.lighter' : 'grey.50',
+                            opacity: activeOption === 'delivery' && selectedAddressId ? 0.5 : 1,
+                            border:
+                              activeOption === 'pickup' ? '2px solid #1976d2' : '1px solid #eee',
+                            transition: 'all 0.2s',
                           }}
                         >
-                          <Stack spacing={2}>
-                            <AddressAutocomplete
-                              value={newAddress}
-                              onChange={setNewAddress}
-                              onValidAddress={setIsValidAddress}
-                            />
-                            <FormControlLabel
-                              control={
-                                <Checkbox
-                                  checked={isPrimary}
-                                  onChange={(e) => setIsPrimary(e.target.checked)}
-                                />
-                              }
-                              label="Set as Primary Address"
-                            />
-                            <Button
-                              variant="contained"
-                              onClick={handleAddAddress}
-                              disabled={!newAddress.trim() || isAddingAddress || !isValidAddress}
-                              startIcon={
-                                isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />
-                              }
+                          <Typography
+                            variant="subtitle1"
+                            sx={{
+                              mb: 1,
+                              fontWeight: 600,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
+                            <Store fontSize="small" color="primary" /> Pickup Address
+                          </Typography>
+                          <RadioGroup
+                            value={selectedPickupId || ''}
+                            onChange={(e) => {
+                              setSelectedPickupId(e.target.value);
+                              setActiveOption('pickup');
+                              setSelectedAddressId(null);
+                            }}
+                          >
+                            {selectedStore.pickupAddresses.edges.map(({ node: addr }) => (
+                              <FormControlLabel
+                                key={addr.id}
+                                value={String(addr.id)}
+                                control={<Radio color="primary" />}
+                                label={addr.address}
+                              />
+                            ))}
+                          </RadioGroup>
+                        </Paper>
+                      )}
+
+                      {/* Home Delivery Section */}
+                      <Paper
+                        elevation={activeOption === 'delivery' ? 4 : 1}
+                        sx={{
+                          p: 2,
+                          bgcolor: activeOption === 'delivery' ? 'secondary.lighter' : 'grey.50',
+                          opacity: activeOption === 'pickup' && selectedPickupId ? 0.5 : 1,
+                          border:
+                            activeOption === 'delivery' ? '2px solid #9c27b0' : '1px solid #eee',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle1"
+                          sx={{
+                            mb: 1,
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                          }}
+                        >
+                          <Home fontSize="small" color="secondary" /> Home Delivery Address
+                        </Typography>
+                        <Box>
+                          <FormControl fullWidth sx={{ mb: 2 }}>
+                            <InputLabel>Select Address</InputLabel>
+                            {isLoadingAddresses ? (
+                              <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                                <LoadingSpinner size={24} />
+                              </Box>
+                            ) : (
+                              <Select
+                                value={selectedAddressId || ''}
+                                onChange={(e) => {
+                                  setSelectedAddressId(e.target.value);
+                                  setActiveOption('delivery');
+                                  setSelectedPickupId(null);
+                                }}
+                              >
+                                {addresses && addresses.length > 0 ? (
+                                  addresses.map((addr) => (
+                                    <MenuItem key={addr.id} value={addr.id}>
+                                      {addr.address} {addr.isPrimary ? '(Primary)' : ''}
+                                    </MenuItem>
+                                  ))
+                                ) : (
+                                  <MenuItem disabled>No addresses available</MenuItem>
+                                )}
+                              </Select>
+                            )}
+                          </FormControl>
+
+                          <Button
+                            fullWidth
+                            variant="outlined"
+                            startIcon={showAddressForm ? <ExpandLess /> : <ExpandMore />}
+                            onClick={() => setShowAddressForm(!showAddressForm)}
+                            sx={{ mb: 2 }}
+                          >
+                            {showAddressForm ? 'Cancel' : 'Add New Address'}
+                          </Button>
+
+                          <Collapse in={showAddressForm}>
+                            <Box
+                              sx={{
+                                p: 2,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                borderRadius: 1,
+                              }}
                             >
-                              {isAddingAddress ? 'Adding...' : 'Add Address'}
-                            </Button>
-                          </Stack>
+                              <Stack spacing={2}>
+                                <AddressAutocomplete
+                                  value={newAddress}
+                                  onChange={setNewAddress}
+                                  onValidAddress={setIsValidAddress}
+                                />
+                                <FormControlLabel
+                                  control={
+                                    <Checkbox
+                                      checked={isPrimary}
+                                      onChange={(e) => setIsPrimary(e.target.checked)}
+                                    />
+                                  }
+                                  label="Set as Primary Address"
+                                />
+                                <Button
+                                  variant="contained"
+                                  onClick={handleAddAddress}
+                                  disabled={
+                                    !newAddress.trim() || isAddingAddress || !isValidAddress
+                                  }
+                                  startIcon={
+                                    isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />
+                                  }
+                                >
+                                  {isAddingAddress ? 'Adding...' : 'Add Address'}
+                                </Button>
+                              </Stack>
+                            </Box>
+                          </Collapse>
                         </Box>
-                      </Collapse>
-                    </Box>
+                      </Paper>
+                    </Stack>
                   )}
                 </Box>
               )}
