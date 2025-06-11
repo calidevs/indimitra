@@ -227,6 +227,8 @@ const CartPage = () => {
     setTipAmount,
     customOrder,
     setCustomOrder,
+    pickupAddress,
+    setPickupAddress,
   } = useStore();
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
@@ -285,6 +287,15 @@ const CartPage = () => {
     console.log('Addresses from store:', addresses);
     console.log('Selected address ID:', selectedAddressId);
   }, [addresses, selectedAddressId]);
+
+  // Set initial pickup address if available in store
+  useEffect(() => {
+    if (pickupAddress) {
+      setSelectedPickupId(String(pickupAddress.id));
+      setActiveOption('pickup');
+      setSelectedAddressId(null);
+    }
+  }, [pickupAddress]);
 
   const { mutate, isPending } = useMutation({
     mutationKey: ['createOrder'],
@@ -733,9 +744,21 @@ const CartPage = () => {
                           <RadioGroup
                             value={selectedPickupId || ''}
                             onChange={(e) => {
-                              setSelectedPickupId(e.target.value);
+                              const pickupId = e.target.value;
+                              setSelectedPickupId(pickupId);
                               setActiveOption('pickup');
                               setSelectedAddressId(null);
+
+                              // Find and set the selected pickup address in the store
+                              const addresses = selectedStore.pickupAddresses.edges.map(
+                                (e) => e.node
+                              );
+                              const selectedAddress = addresses.find(
+                                (addr) => String(addr.id) === String(pickupId)
+                              );
+                              if (selectedAddress) {
+                                setPickupAddress(selectedAddress);
+                              }
                             }}
                           >
                             {selectedStore.pickupAddresses.edges.map(({ node: addr }) => (
@@ -788,6 +811,7 @@ const CartPage = () => {
                                   setSelectedAddressId(e.target.value);
                                   setActiveOption('delivery');
                                   setSelectedPickupId(null);
+                                  console.log('Selected Address ID:', e.target.value); // Debug log
                                 }}
                               >
                                 {addresses && addresses.length > 0 ? (
@@ -886,7 +910,7 @@ const CartPage = () => {
                   disabled={
                     Object.values(cart).length === 0 ||
                     isPending ||
-                    !selectedAddressId ||
+                    (!selectedAddressId && !selectedPickupId) ||
                     isProfileLoading
                   }
                   startIcon={isPending ? <LoadingSpinner size={20} /> : <Payment />}
