@@ -43,6 +43,8 @@ import {
   Upload as UploadIcon,
   Visibility as VisibilityIcon,
   Delete as DeleteIcon,
+  ShoppingBag,
+  LocalShipping,
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/useStore';
 import { useStore } from '@/store/useStore';
@@ -794,7 +796,6 @@ const StoreOrders = () => {
                       />
                     </Box>
                   </TableCell>
-                  <TableCell>Delivery Instructions</TableCell>
                   <TableCell>
                     <Box
                       sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
@@ -822,7 +823,6 @@ const StoreOrders = () => {
                   <React.Fragment key={order.id}>
                     <TableRow>
                       <TableCell>{order.id}</TableCell>
-                      <TableCell>{order.deliveryInstructions || 'N/A'}</TableCell>
                       <TableCell>${order.orderTotalAmount}</TableCell>
                       <TableCell>
                         <Chip
@@ -884,6 +884,54 @@ const StoreOrders = () => {
                         <TableCell colSpan={6}>
                           <Box sx={{ p: 2 }}>
                             <Grid container spacing={2}>
+                              {/* Order Information */}
+                              <Grid item xs={12}>
+                                <Typography
+                                  variant="subtitle1"
+                                  gutterBottom
+                                  sx={{ fontWeight: 'bold' }}
+                                >
+                                  Order Information
+                                </Typography>
+                                <Grid container spacing={2}>
+                                  <Grid item xs={12} md={4}>
+                                    <Typography>
+                                      <strong>Order Code:</strong> {order.displayCode || 'N/A'}
+                                    </Typography>
+                                  </Grid>
+                                  <Grid item xs={12} md={4}>
+                                    <Typography>
+                                      <strong>Type:</strong>{' '}
+                                      {order.type === 'PICKUP' ? (
+                                        <Box
+                                          component="span"
+                                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                                        >
+                                          <ShoppingBag fontSize="small" />
+                                          Pickup Order
+                                        </Box>
+                                      ) : (
+                                        <Box
+                                          component="span"
+                                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                                        >
+                                          <LocalShipping fontSize="small" />
+                                          Delivery Order
+                                        </Box>
+                                      )}
+                                    </Typography>
+                                  </Grid>
+                                  <Grid item xs={12} md={4}>
+                                    <Typography>
+                                      <strong>Address:</strong>{' '}
+                                      {order.type === 'PICKUP'
+                                        ? order.pickupAddress?.address || 'No pickup address'
+                                        : order.address?.address || 'No delivery address'}
+                                    </Typography>
+                                  </Grid>
+                                </Grid>
+                              </Grid>
+
                               {/* Customer Information */}
                               <Grid item xs={12}>
                                 <Typography
@@ -900,11 +948,6 @@ const StoreOrders = () => {
                                   <Grid item xs={12} md={6}>
                                     <Typography>
                                       Phone: {order?.creator?.mobile || 'N/A'}
-                                    </Typography>
-                                  </Grid>
-                                  <Grid item xs={12}>
-                                    <Typography>
-                                      Delivery Address: {order?.address?.address || 'N/A'}
                                     </Typography>
                                   </Grid>
                                 </Grid>

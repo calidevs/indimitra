@@ -280,26 +280,40 @@ export const GET_ORDERS_BY_STORE = `
     getOrdersByStore(storeId: $storeId) {
       id
       addressId
+      billUrl
+      cancelMessage
       cancelledAt
       cancelledByUserId
       createdByUserId
+      customOrder
       deliveryDate
+      deliveryFee
       deliveryInstructions
+      displayCode
       id
+      orderTotalAmount
       paymentId
+      pickupId
       status
       storeId
-      totalAmount
-      orderTotalAmount
-      deliveryFee
-      tipAmount
       taxAmount
+      tipAmount
+      totalAmount
+      type
+      pickupAddress {
+        address
+        id
+        storeId
+      }
       address {
         address
+        id
+        userId
       }
       creator {
-        mobile
         email
+        id
+        mobile
       }
       delivery {
         driverId
