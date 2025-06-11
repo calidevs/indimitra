@@ -31,6 +31,8 @@ import {
   InputLabel,
   Select,
   Snackbar,
+  Menu,
+  ButtonGroup,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -43,6 +45,8 @@ import {
   Upload as UploadIcon,
   Visibility as VisibilityIcon,
   Delete as DeleteIcon,
+  Download as DownloadIcon,
+  ArrowDropDown as ArrowDropDownIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/useStore';
 import { useStore } from '@/store/useStore';
@@ -59,6 +63,16 @@ import Layout from '@/components/StoreManager/Layout';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { fetchUserAttributes } from 'aws-amplify/auth';
 import graphqlService from '@/config/graphql/graphqlService';
+import jsPDF from 'jspdf';
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  Table as DocxTable,
+  TableRow as DocxTableRow,
+  TableCell as DocxTableCell,
+} from 'docx';
 
 const client = generateClient();
 
@@ -164,6 +178,7 @@ const StoreOrders = () => {
   const [editItemDialogOpen, setEditItemDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [newQuantity, setNewQuantity] = useState(1);
+  const [downloadMenuAnchor, setDownloadMenuAnchor] = useState(null);
 
   // Fetch Cognito ID on component mount
   useEffect(() => {
@@ -685,6 +700,136 @@ const StoreOrders = () => {
     }
   };
 
+  // Handler to open download menu (dropdown)
+  const handleDownloadMenuOpen = (event) => {
+    setDownloadMenuAnchor(event.currentTarget);
+  };
+
+  // Handler to close download menu
+  const handleDownloadMenuClose = () => {
+    setDownloadMenuAnchor(null);
+  };
+
+  // Generate PDF report for filteredOrders
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    const marginLeft = 15;
+    const marginRight = 15;
+    const marginTop = 5;
+    const marginBottom = 5;
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const usableWidth = pageWidth - marginLeft - marginRight;
+    doc.setFontSize(16);
+    doc.text('Store Orders Report', marginLeft, marginTop + 10);
+    doc.setFontSize(10);
+    let y = marginTop + 20;
+
+    filteredOrders.forEach((order, idx) => {
+      // Prepare all lines for this order
+      const lines = [
+        `Order #${order.id}`,
+        `Customer Email: ${order.creator?.email || 'N/A'}`,
+        `Customer Phone: ${order.creator?.mobile || 'N/A'}`,
+        `Delivery Address: ${order.address?.address || 'N/A'}`,
+        `Delivery Instructions: ${order.deliveryInstructions || 'N/A'}`,
+        `Status: ${order.status}`,
+        `Total: $${order.orderTotalAmount}`,
+      ];
+      let wrappedLines = [];
+      lines.forEach((line) => {
+        wrappedLines = wrappedLines.concat(doc.splitTextToSize(line, usableWidth));
+      });
+      let orderBlockHeight = wrappedLines.length * 6;
+
+      let itemsBlockHeight = 0;
+      let itemsLines = [];
+      if (order.orderItems?.edges?.length > 0) {
+        itemsLines.push('Items:');
+        order.orderItems.edges.forEach(({ node }) => {
+          const itemLine = `- ${node.product?.name || 'N/A'} | Qty: ${node.quantity} | Price: $${node.product?.inventoryItems?.edges[0]?.node?.price || 0}`;
+          const wrappedItemLines = doc.splitTextToSize(itemLine, usableWidth - 8);
+          wrappedItemLines.forEach((l) => itemsLines.push('  ' + l));
+        });
+        itemsBlockHeight = itemsLines.length * 6;
+      }
+
+      const totalBlockHeight = orderBlockHeight + itemsBlockHeight + 10; // 10 for extra space
+
+      // If not enough space, add a new page
+      if (y + totalBlockHeight > pageHeight - marginBottom) {
+        doc.addPage();
+        y = marginTop + 10;
+      }
+
+      doc.text(wrappedLines, marginLeft, y);
+      y += wrappedLines.length * 6;
+
+      if (itemsLines.length > 0) {
+        doc.text(itemsLines, marginLeft, y);
+        y += itemsLines.length * 6;
+      }
+
+      y += 10; // Extra space between orders
+    });
+
+    doc.save('store_orders_report.pdf');
+    handleDownloadMenuClose();
+  };
+
+  // Generate DOCX report for filteredOrders
+  const handleDownloadDOCX = async () => {
+  const children = [
+    new Paragraph({ text: 'Store Orders Report', heading: 'Heading1' }),
+  ];
+
+  filteredOrders.forEach((order) => {
+    const creator = order.creator || {};
+    const address = order.address || {};
+    children.push(new Paragraph({ text: `Order #${order.id}`, heading: 'Heading2' }));
+    children.push(new Paragraph(`Customer Email: ${creator.email || 'N/A'}`));
+    children.push(new Paragraph(`Customer Phone: ${creator.mobile || 'N/A'}`));
+    children.push(new Paragraph(`Delivery Address: ${address.address || 'N/A'}`));
+    children.push(new Paragraph(`Delivery Instructions: ${order.deliveryInstructions || 'N/A'}`));
+    children.push(new Paragraph(`Status: ${order.status}`));
+    children.push(new Paragraph(`Total: $${order.orderTotalAmount}`));
+    if (order.orderItems?.edges?.length > 0) {
+      children.push(new Paragraph('Items:'));
+      order.orderItems.edges.forEach(({ node }) => {
+        children.push(
+          new Paragraph(
+            `- ${node.product?.name || 'N/A'} | Qty: ${node.quantity} | Price: $${node.product?.inventoryItems?.edges[0]?.node?.price || 0}`
+          )
+        );
+      });
+    }
+    children.push(new Paragraph(''));
+  });
+
+  // ✅ Correct usage
+  const doc = new Document({
+    creator: "Store Admin",
+    title: "Store Orders Report",
+    description: "Auto-generated DOCX report",
+    sections: [
+      {
+        children,
+      },
+    ],
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'store_orders_report.docx';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+  handleDownloadMenuClose();
+};
+
   if (profileLoading || ordersLoading || driversLoading) {
     return (
       <Layout>
@@ -761,10 +906,42 @@ const StoreOrders = () => {
                   ))}
                 </TextField>
               </Grid>
-              <Grid item xs={12} md={4}>
-                <Typography variant="body2" color="textSecondary">
+              <Grid
+                item
+                xs={12}
+                md={4}
+                sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}
+              >
+                <Typography variant="body2" color="textSecondary" sx={{ mr: 2 }}>
                   Total Orders: {filteredOrders.length}
                 </Typography>
+                <ButtonGroup variant="contained" disabled={filteredOrders.length === 0}>
+                  <Button onClick={handleDownloadPDF} startIcon={<DownloadIcon />}>
+                    Download Report
+                  </Button>
+                  <Button
+                    size="small"
+                    aria-controls={downloadMenuAnchor ? 'download-menu' : undefined}
+                    aria-haspopup="true"
+                    aria-expanded={downloadMenuAnchor ? 'true' : undefined}
+                    onClick={handleDownloadMenuOpen}
+                  >
+                    <ArrowDropDownIcon />
+                  </Button>
+                </ButtonGroup>
+                <Menu
+                  id="download-menu"
+                  anchorEl={downloadMenuAnchor}
+                  open={Boolean(downloadMenuAnchor)}
+                  onClose={handleDownloadMenuClose}
+                >
+                  <MenuItem onClick={handleDownloadPDF} disabled={filteredOrders.length === 0}>
+                    Download as PDF
+                  </MenuItem>
+                  <MenuItem onClick={handleDownloadDOCX} disabled={filteredOrders.length === 0}>
+                    Download as DOCX
+                  </MenuItem>
+                </Menu>
               </Grid>
             </Grid>
           </CardContent>
