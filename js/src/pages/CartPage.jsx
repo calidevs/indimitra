@@ -363,6 +363,7 @@ const CartPage = () => {
     const variables = {
       userId: userProfile.id,
       addressId: selectedAddressId,
+      pickupId: selectedPickupId ? parseInt(selectedPickupId, 10) : null,
       storeId: selectedStore.id,
       productItems: orderItems,
       totalAmount: subtotal,
@@ -372,6 +373,7 @@ const CartPage = () => {
       tipAmount: tipAmount,
       taxAmount: taxAmount,
       deliveryInstructions: selectedPickupId ? null : deliveryInstructions,
+      customOrder: customOrder,
     };
 
     mutate(variables);
@@ -908,10 +910,10 @@ const CartPage = () => {
                   size="large"
                   onClick={handleOrderPlacement}
                   disabled={
-                    Object.values(cart).length === 0 ||
                     isPending ||
+                    isProfileLoading ||
                     (!selectedAddressId && !selectedPickupId) ||
-                    isProfileLoading
+                    (Object.values(cart).length === 0 && !customOrder)
                   }
                   startIcon={isPending ? <LoadingSpinner size={20} /> : <Payment />}
                   sx={{

@@ -16,29 +16,33 @@ export const PRODUCTS_QUERY = `
 export const CREATE_ORDER_MUTATION = `
   mutation CreateOrder(
     $userId: Int!
-    $addressId: Int!
     $storeId: Int!
     $productItems: [OrderItemInput!]!
     $totalAmount: Float!
     $orderTotalAmount: Float!
     $pickupOrDelivery: String!
+    $addressId: Int
+    $pickupId: Int
     $deliveryFee: Float
     $tipAmount: Float
     $taxAmount: Float
     $deliveryInstructions: String
+    $customOrder: String
   ) {
     createOrder(
       userId: $userId
-      addressId: $addressId
       storeId: $storeId
       productItems: $productItems
       totalAmount: $totalAmount
       orderTotalAmount: $orderTotalAmount
       pickupOrDelivery: $pickupOrDelivery
+      addressId: $addressId
+      pickupId: $pickupId
       deliveryFee: $deliveryFee
       tipAmount: $tipAmount
       taxAmount: $taxAmount
       deliveryInstructions: $deliveryInstructions
+      customOrder: $customOrder
     ) {
       id
       status
@@ -90,6 +94,13 @@ export const GET_USER_ORDERS = `
       taxAmount
       tipAmount
       totalAmount
+      type
+      pickupId
+      pickupAddress {
+        id
+        address
+        storeId
+      }
       address { 
         id
         address

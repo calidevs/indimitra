@@ -411,6 +411,9 @@ const Orders = () => {
 
   const orders = ordersData?.getOrdersByUser || [];
 
+  // Sort orders by ID in descending order (newest first)
+  const sortedOrders = [...orders].sort((a, b) => b.id - a.id);
+
   return (
     <Container maxWidth="xl" sx={{ mt: 4, px: { xs: 1, sm: 2, md: 3 } }}>
       <Typography
@@ -424,7 +427,7 @@ const Orders = () => {
         My Orders
       </Typography>
 
-      {orders.length === 0 ? (
+      {sortedOrders.length === 0 ? (
         <Typography>No orders found!</Typography>
       ) : (
         <TableContainer
@@ -454,21 +457,26 @@ const Orders = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {orders.map((order) => (
+              {sortedOrders.map((order) => (
                 <React.Fragment key={order.id}>
                   <TableRow onClick={() => handleExpandClick(order.id)} sx={{ cursor: 'pointer' }}>
                     <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>
                       {order.id}
                     </TableCell>
-                    <TableCell
-                      sx={{
-                        maxWidth: { xs: '120px', sm: '200px', md: '300px' },
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      {order.address.address}
+                    <TableCell>
+                      <Typography variant="body2" color="text.secondary">
+                        {order.type === 'PICKUP' ? (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <ShoppingBag fontSize="small" />
+                            {order.pickupAddress?.address || 'Pickup location not specified'}
+                          </Box>
+                        ) : (
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <LocalShipping fontSize="small" />
+                            {order.address?.address || 'No address provided'}
+                          </Box>
+                        )}
+                      </Typography>
                     </TableCell>
                     <TableCell>
                       <Chip
@@ -1006,10 +1014,15 @@ const Orders = () => {
                                           color="text.secondary"
                                           fontWeight={700}
                                         >
-                                          Delivery Address
+                                          {order.type === 'PICKUP'
+                                            ? 'Pickup Location'
+                                            : 'Delivery Address'}
                                         </Typography>
                                         <Typography variant="body2" fontWeight={500}>
-                                          {order.address.address}
+                                          {order.type === 'PICKUP'
+                                            ? order.pickupAddress?.address ||
+                                              'Pickup location not specified'
+                                            : order.address?.address || 'No address provided'}
                                         </Typography>
                                       </Box>
 
