@@ -700,7 +700,7 @@ const StoreOrders = () => {
     }
   };
 
-  // Handler to open download menu (dropdown)
+  // Handler to open download menu
   const handleDownloadMenuOpen = (event) => {
     setDownloadMenuAnchor(event.currentTarget);
   };
