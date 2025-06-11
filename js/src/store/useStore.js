@@ -21,6 +21,10 @@ const useStore = create((set, get) => ({
 
   getSelectedStore: () => get().selectedStore,
 
+  // New: Pickup address state
+  pickupAddress: null,
+  setPickupAddress: (address) => set({ pickupAddress: address }),
+
   addToCart: (product) =>
     set((state) => ({
       cart: {
@@ -45,7 +49,16 @@ const useStore = create((set, get) => ({
       return { cart: updatedCart };
     }),
 
-  cartCount: () => Object.values(get().cart).reduce((acc, item) => acc + (item.quantity || 0), 0),
+  cartCount: () => {
+    const state = get();
+    const regularItemsCount = Object.values(state.cart).reduce(
+      (acc, item) => acc + (item.quantity || 0),
+      0
+    );
+    // If there's a custom order, add 1 to the count
+    const customOrderCount = state.customOrder ? 1 : 0;
+    return regularItemsCount + customOrderCount;
+  },
 
   cartTotal: () =>
     Object.values(get().cart).reduce(
@@ -92,6 +105,12 @@ const useStore = create((set, get) => ({
 
   // Add tip amount to the store
   setTipAmount: (amount) => set({ tipAmount: amount }),
+
+  customOrder: '',
+  setCustomOrder: (order) => set({ customOrder: order }),
+
+  listInputAnswers: {},
+  setListInputAnswers: (answers) => set({ listInputAnswers: answers }),
 }));
 
 export const useAuthStore = create((set, get) => ({

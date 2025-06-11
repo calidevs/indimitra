@@ -1,6 +1,7 @@
 from typing import List, Optional
 from app.db.session import SessionLocal
 from app.db.models.fees import FeesModel
+from app.db.models.fees import FeeType
 
 def create_fee(store_id: int, fee_rate: float, fee_currency: str, type: str, limit: Optional[float] = None) -> FeesModel:
     """
@@ -16,7 +17,8 @@ def create_fee(store_id: int, fee_rate: float, fee_currency: str, type: str, lim
     Returns:
         The created FeesModel instance
     """
-    if type not in ['delivery', 'pickup']:
+    print('type', type)
+    if type not in FeeType:
         raise ValueError("Fee type must be either 'delivery' or 'pickup'")
         
     db = SessionLocal()
@@ -50,7 +52,7 @@ def update_fee(id: int, fee_rate: Optional[float] = None, fee_currency: Optional
     Returns:
         The updated FeesModel instance, or None if not found
     """
-    if type is not None and type not in ['delivery', 'pickup']:
+    if type is not None and type not in FeeType:
         raise ValueError("Fee type must be either 'delivery' or 'pickup'")
         
     db = SessionLocal()

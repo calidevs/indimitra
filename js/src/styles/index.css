@@ -14,4 +14,9 @@
 body {
   min-width: 320px;
   min-height: 100vh;
+}
+
+/* Ensure Google Places dropdown appears above modals/dialogs */
+.pac-container {
+  z-index: 2000 !important;
 } 

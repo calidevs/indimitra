@@ -40,7 +40,7 @@ def create_store(
     name: str, 
     address: str, 
     manager_user_id: int, 
-    email: str,
+    email: str, 
     display_field: str,
     radius: Optional[float] = None, 
     mobile: Optional[str] = None,

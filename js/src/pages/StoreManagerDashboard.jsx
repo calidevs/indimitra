@@ -41,6 +41,7 @@ import {
   KeyboardArrowUp,
   Add,
   Store as StoreIcon,
+  Delete,
 } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { useAuthStore } from '@/store/useStore';
@@ -53,7 +54,7 @@ import {
 } from '@/queries/operations';
 import Layout from '@/components/StoreManager/Layout';
 
-// Add the UPDATE_STORE mutation
+// Update the UPDATE_STORE mutation
 const UPDATE_STORE = `
   mutation UpdateStore(
     $storeId: Int!
@@ -68,6 +69,8 @@ const UPDATE_STORE = `
     $tnc: String
     $storeDeliveryFee: Float
     $taxPercentage: Float
+    $displayField: String
+    $sectionHeaders: [String!]
   ) {
     updateStore(
       storeId: $storeId
@@ -82,6 +85,8 @@ const UPDATE_STORE = `
       tnc: $tnc
       storeDeliveryFee: $storeDeliveryFee
       taxPercentage: $taxPercentage
+      displayField: $displayField
+      sectionHeaders: $sectionHeaders
     ) {
       id
       name
@@ -95,6 +100,8 @@ const UPDATE_STORE = `
       tnc
       storeDeliveryFee
       taxPercentage
+      displayField
+      sectionHeaders
     }
   }
 `;
@@ -126,25 +133,33 @@ const StoreManagerDashboard = () => {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [editStore, setEditStore] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [editSectionHeaders, setEditSectionHeaders] = useState([]);
+  const [storeStatus, setStoreStatus] = useState(true);
 
   // Fetch Cognito ID on component mount
   useEffect(() => {
+    let mounted = true;
     const getUserInfo = async () => {
       try {
         const userAttributes = await fetchUserAttributes();
-        setCognitoId(userAttributes.sub);
+        if (mounted) {
+          setCognitoId(userAttributes.sub);
+        }
       } catch (error) {
         console.error('Error fetching user info:', error);
       }
     };
     getUserInfo();
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   // Set isInitialLoad to false after component mounts
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsInitialLoad(false);
-    }, 500); // 500ms delay
+    }, 500);
 
     return () => clearTimeout(timer);
   }, []);
@@ -153,16 +168,19 @@ const StoreManagerDashboard = () => {
   const { data: profileData, isLoading: profileLoading } = useQuery({
     queryKey: ['getUserProfile', cognitoId],
     queryFn: async () => {
+      if (!cognitoId) return null;
       const response = await fetchGraphQL(GET_USER_PROFILE, { userId: cognitoId });
-
-      if (response?.getUserProfile) {
-        setUserProfile(response.getUserProfile);
-      }
-
       return response;
     },
     enabled: !!cognitoId,
   });
+
+  // Update user profile when profile data changes
+  useEffect(() => {
+    if (profileData?.getUserProfile && !userProfile) {
+      setUserProfile(profileData.getUserProfile);
+    }
+  }, [profileData, userProfile, setUserProfile]);
 
   // Fetch store, inventory, and products data in a single query
   const {
@@ -172,17 +190,22 @@ const StoreManagerDashboard = () => {
     refetch: refetchStoreData,
   } = useQuery({
     queryKey: ['storeWithInventory', userProfile?.id],
-    queryFn: () => fetchGraphQL(GET_STORE_WITH_INVENTORY, { managerId: userProfile.id }),
+    queryFn: async () => {
+      if (!userProfile?.id) return null;
+      return fetchGraphQL(GET_STORE_WITH_INVENTORY, { managerId: userProfile.id });
+    },
     enabled: !!userProfile?.id,
   });
 
   // Extract store, inventory, and products from the combined query response
-  const store = storeData?.storesByManager && storeData.storesByManager[0];
+  const store = storeData?.storesByManager?.[0] || null;
   const inventory = store?.inventory?.edges?.map((edge) => edge.node) || [];
   const availableProducts = storeData?.products || [];
 
   // Update filtered products when search input or available products change
   useEffect(() => {
+    if (!availableProducts.length) return;
+
     if (searchInput.trim() === '') {
       setFilteredProducts(availableProducts);
     } else {
@@ -217,15 +240,42 @@ const StoreManagerDashboard = () => {
   });
 
   const handleEditClick = () => {
+    if (!store) return;
     setEditStore(store);
+    setEditSectionHeaders(store.sectionHeaders || []);
+    setStoreStatus(store.isActive);
   };
 
   const handleCloseEdit = () => {
     setEditStore(null);
+    setEditSectionHeaders([]);
+    setStoreStatus(true);
+  };
+
+  const handleSectionHeaderChange = (index, value) => {
+    setEditSectionHeaders((prev) => {
+      const newHeaders = [...prev];
+      newHeaders[index] = value;
+      return newHeaders;
+    });
+  };
+
+  const addSectionHeader = () => {
+    setEditSectionHeaders((prev) => [...prev, '']);
+  };
+
+  const removeSectionHeader = (index) => {
+    setEditSectionHeaders((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleStoreStatusChange = (event) => {
+    setStoreStatus(event.target.value);
   };
 
   const handleUpdateStore = (e) => {
     e.preventDefault();
+    if (!editStore) return;
+
     const formData = new FormData(e.target);
 
     // Convert pincodes string to array and ensure no empty strings
@@ -251,6 +301,8 @@ const StoreManagerDashboard = () => {
       tnc: formData.get('tnc') || null,
       storeDeliveryFee: parseFloat(formData.get('storeDeliveryFee')) || null,
       taxPercentage: parseFloat(formData.get('taxPercentage')) || null,
+      displayField: formData.get('displayField'),
+      sectionHeaders: editSectionHeaders.filter((header) => header.trim().length > 0),
     };
 
     updateStoreMutation.mutate(updateData);
@@ -345,6 +397,11 @@ const StoreManagerDashboard = () => {
                 <strong>Total Products:</strong> {inventory.length}
               </Typography>
             </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle1">
+                <strong>Display Field:</strong> {store.displayField}
+              </Typography>
+            </Grid>
             {store.description && (
               <Grid item xs={12}>
                 <Typography variant="subtitle1">
@@ -357,6 +414,20 @@ const StoreManagerDashboard = () => {
                 <Typography variant="subtitle1">
                   <strong>Delivery Pincodes:</strong> {store.pincodes.join(', ')}
                 </Typography>
+              </Grid>
+            )}
+            {store.sectionHeaders && store.sectionHeaders.length > 0 && (
+              <Grid item xs={12}>
+                <Typography variant="subtitle1" gutterBottom>
+                  <strong>Section Headers:</strong>
+                </Typography>
+                <Box sx={{ pl: 2 }}>
+                  {store.sectionHeaders.map((header, index) => (
+                    <Typography key={index} variant="body2" sx={{ mb: 1 }}>
+                      • {header}
+                    </Typography>
+                  ))}
+                </Box>
               </Grid>
             )}
           </Grid>
@@ -507,6 +578,56 @@ const StoreManagerDashboard = () => {
                   />
                 </Grid>
 
+                {/* Display Field */}
+                <Grid item xs={12}>
+                  <TextField
+                    name="displayField"
+                    label="Display Field"
+                    defaultValue={editStore?.displayField}
+                    required
+                    fullWidth
+                    helperText="Unique identifier for the store"
+                  />
+                </Grid>
+
+                {/* Section Headers */}
+                <Grid item xs={12}>
+                  <Typography variant="subtitle1" gutterBottom>
+                    Section Headers
+                  </Typography>
+                  <Box sx={{ mb: 2 }}>
+                    {editSectionHeaders.map((header, index) => (
+                      <Box key={index} sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                        <TextField
+                          fullWidth
+                          label={`Question ${index + 1}`}
+                          value={header}
+                          onChange={(e) => handleSectionHeaderChange(index, e.target.value)}
+                          placeholder="Enter question text"
+                          inputProps={{ 'aria-label': `Question ${index + 1}` }}
+                        />
+                        <IconButton
+                          color="error"
+                          onClick={() => removeSectionHeader(index)}
+                          sx={{ alignSelf: 'center' }}
+                          aria-label="Remove question"
+                        >
+                          <Delete />
+                        </IconButton>
+                      </Box>
+                    ))}
+                    <Button
+                      startIcon={<Add />}
+                      onClick={addSectionHeader}
+                      variant="outlined"
+                      sx={{ mt: 1 }}
+                      aria-label="Add question"
+                    >
+                      Add Question
+                    </Button>
+                  </Box>
+                </Grid>
+
                 {/* Store Status */}
                 <Grid item xs={12}>
                   <Typography
@@ -520,7 +641,12 @@ const StoreManagerDashboard = () => {
                 <Grid item xs={12}>
                   <FormControl fullWidth>
                     <InputLabel>Store Status</InputLabel>
-                    <Select name="isActive" label="Store Status" defaultValue={editStore?.isActive}>
+                    <Select
+                      name="isActive"
+                      label="Store Status"
+                      value={storeStatus}
+                      onChange={handleStoreStatusChange}
+                    >
                       <MenuItem value={true}>Active</MenuItem>
                       <MenuItem value={false}>Inactive</MenuItem>
                     </Select>

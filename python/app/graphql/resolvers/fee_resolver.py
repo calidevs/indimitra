@@ -1,7 +1,7 @@
 import strawberry
 from typing import List, Optional
 from app.db.session import SessionLocal
-from app.graphql.types import Fee
+from app.graphql.types import Fee, FeeType
 from app.services.fees_service import (
     create_fee,
     update_fee,
@@ -21,19 +21,13 @@ class FeeResponse:
     fee: Optional[Fee] = None
     error: Optional[FeeError] = None
 
-# Enum for fee type
-@strawberry.enum
-class FeeTypeEnum:
-    DELIVERY = "delivery"
-    PICKUP = "pickup"
-
 # Input types for mutations
 @strawberry.input
-class FeeInput:
+class CreateFeeInput:
     store_id: int
     fee_rate: float
     fee_currency: str
-    type: FeeTypeEnum
+    type: FeeType
     limit: Optional[float] = None
 
 @strawberry.input
@@ -41,7 +35,7 @@ class UpdateFeeInput:
     id: int
     fee_rate: Optional[float] = None
     fee_currency: Optional[str] = None
-    type: Optional[FeeTypeEnum] = None
+    type: Optional[FeeType] = None
     limit: Optional[float] = None
 
 # Queries
@@ -56,7 +50,7 @@ class FeeQuery:
 @strawberry.type
 class FeeMutation:
     @strawberry.mutation
-    def createFee(self, input: FeeInput) -> FeeResponse:
+    def createFee(self, input: CreateFeeInput) -> FeeResponse:
         """
         Create a new fee
         
@@ -71,7 +65,7 @@ class FeeMutation:
                 store_id=input.store_id,
                 fee_rate=input.fee_rate,
                 fee_currency=input.fee_currency,
-                type=input.type.value,
+                type=input.type,
                 limit=input.limit
             )
             return FeeResponse(fee=fee)
@@ -84,7 +78,7 @@ class FeeMutation:
         Update an existing fee
         
         Args:
-            input: Contains id and optional fields to update
+            input: Contains id and optional fee_rate, fee_currency, type, and limit
             
         Returns:
             Response with either the updated fee or an error message

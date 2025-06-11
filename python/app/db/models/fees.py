@@ -6,8 +6,9 @@ import strawberry
 
 @strawberry.enum
 class FeeType(enum.Enum):
-    DELIVERY = "delivery"
-    PICKUP = "pickup"
+    DELIVERY = "DELIVERY"
+    PICKUP = "PICKUP"
+
 
 class FeesModel(Base):
     __tablename__ = 'fees'

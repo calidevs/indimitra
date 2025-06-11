@@ -11,7 +11,7 @@ import {
   Tooltip,
   Button,
 } from '@components';
-import { ShoppingCart, Person } from '@mui/icons-material';
+import { ShoppingCart, Person, Storefront } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'aws-amplify/auth';
 import { useMediaQuery } from '@mui/material';
@@ -21,6 +21,7 @@ import { ROUTES } from '@/config/constants/routes';
 import LoginModal from '@/pages/Login/LoginModal';
 import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth';
 import { defineUserAbility } from '@/ability/defineAbility';
+import StoreSelector from '@/pages/Customer/StoreSelector';
 
 const Logo = ({ navigate, userRole }) => {
   const { setUser } = useAuthStore();
@@ -77,6 +78,7 @@ const Header = () => {
   const [menuAnchor, setMenuAnchor] = React.useState(null);
   const { modalOpen, setModalOpen, currentForm, setCurrentForm } = useAuthStore();
   const [cognitoId, setCognitoId] = useState(null);
+  const [storeModalOpen, setStoreModalOpen] = useState(false);
 
   useEffect(() => {
     const getUserInfo = async () => {
@@ -107,7 +109,7 @@ const Header = () => {
       await signOut();
       logout();
       setCognitoId(null);
-      setUserRole(null)
+      setUserRole(null);
       navigate('/');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -189,6 +191,25 @@ const Header = () => {
               </Button>
             )}
 
+            {/* Change Store */}
+            <Button
+              variant="outlined"
+              startIcon={<Storefront />}
+              onClick={() => setStoreModalOpen(true)}
+              sx={{
+                color: '#2A2F4F',
+                borderColor: '#2A2F4F',
+                textTransform: 'none',
+                fontSize: '1rem',
+                fontWeight: 500,
+                px: 2,
+                mr: 1,
+                '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
+              }}
+            >
+              Change Store
+            </Button>
+
             {/* Cart */}
             {user ? (
               userAbility?.can('view', 'cart') && (
@@ -203,7 +224,17 @@ const Header = () => {
                       },
                     }}
                   >
-                    <Badge badgeContent={cartCount}>
+                    <Badge
+                      badgeContent={cartCount}
+                      color="error"
+                      sx={{
+                        '& .MuiBadge-badge': {
+                          backgroundColor: '#FF6B6B',
+                          color: 'white',
+                          fontWeight: 'bold',
+                        },
+                      }}
+                    >
                       <ShoppingCart />
                     </Badge>
                   </IconButton>
@@ -221,7 +252,17 @@ const Header = () => {
                     },
                   }}
                 >
-                  <Badge badgeContent={cartCount}>
+                  <Badge
+                    badgeContent={cartCount}
+                    color="error"
+                    sx={{
+                      '& .MuiBadge-badge': {
+                        backgroundColor: '#FF6B6B',
+                        color: 'white',
+                        fontWeight: 'bold',
+                      },
+                    }}
+                  >
                     <ShoppingCart />
                   </Badge>
                 </IconButton>
@@ -314,6 +355,9 @@ const Header = () => {
           <Typography variant="body1">Logout</Typography>
         </MenuItem>
       </Menu>
+
+      {/* Store Selector Modal */}
+      <StoreSelector open={storeModalOpen} onClose={() => setStoreModalOpen(false)} />
 
       {/* Spacer for fixed header */}
       <Box sx={{ height: { xs: '64px', sm: '70px' } }} />

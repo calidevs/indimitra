@@ -79,47 +79,55 @@ class OrderMutation:
     def createOrder(
         self,
         userId: int,
-        addressId: int,
         storeId: int,
         productItems: List[OrderItemInput],
         totalAmount: float,
         orderTotalAmount: float,
-        pickup_or_delivery: str,
+        pickupOrDelivery: str,
+        addressId: Optional[int] = None,
+        pickupId: Optional[int] = None,
         deliveryFee: Optional[float] = None,
         tipAmount: Optional[float] = None,
         taxAmount: Optional[float] = None,
         deliveryInstructions: Optional[str] = None,
-        custom_order: Optional[str] = None
+        customOrder: Optional[str] = None
     ) -> Order:
         """
         Create a new order with multiple order items.
         
         Args:
             userId (int): The ID of the user placing the order.
-            addressId (int): The ID of the delivery address.
             storeId (int): The ID of the store the order is being placed from.
             productItems (List[OrderItemInput]): List of items with product IDs and quantities.
             totalAmount (float): The subtotal amount of products.
             orderTotalAmount (float): The final total amount including all fees and taxes.
-            pickup_or_delivery (str): Type of order ("pickup" or "delivery").
+            pickupOrDelivery (str): Type of order ("pickup" or "delivery").
+            addressId (int, optional): The ID of the delivery address (required for delivery).
+            pickupId (int, optional): The ID of the pickup address (required for pickup).
             deliveryFee (float, optional): Delivery fee.
             tipAmount (float, optional): Tip amount.
             taxAmount (float, optional): Tax amount.
             deliveryInstructions (str, optional): Special instructions for delivery.
-            custom_order (str, optional): Custom order instructions.
+            customOrder (str, optional): Custom order instructions.
         
         Returns:
             Order: The newly created order.
             
         Raises:
-            Exception: If address validation fails, including if delivery to that pincode is not supported.
+            Exception: If address validation fails or if required address/pickup ID is missing.
         """
         try:
+            # Validate required IDs based on order type
+            if pickupOrDelivery == "delivery" and not addressId:
+                raise ValueError("Delivery address ID is required for delivery orders")
+            if pickupOrDelivery == "pickup" and not pickupId:
+                raise ValueError("Pickup address ID is required for pickup orders")
+
             # Convert OrderItemInput to dictionary
             items = [{"product_id": item.productId, "quantity": item.quantity} for item in productItems]
+            
             return create_order(
                 user_id=userId, 
-                address_id=addressId, 
                 store_id=storeId,
                 product_items=items,
                 total_amount=totalAmount,
@@ -128,8 +136,10 @@ class OrderMutation:
                 tip_amount=tipAmount,
                 tax_amount=taxAmount,
                 delivery_instructions=deliveryInstructions,
-                pickup_or_delivery=pickup_or_delivery,
-                custom_order=custom_order
+                pickup_or_delivery=pickupOrDelivery,
+                custom_order=customOrder,
+                address_id=addressId,
+                pickup_id=pickupId
             )
         except ValueError as e:
             raise Exception(str(e))
