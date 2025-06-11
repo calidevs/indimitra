@@ -885,6 +885,31 @@ const Orders = () => {
                                       <Receipt /> Order Details
                                     </Typography>
                                     <Box sx={{ pl: 1 }}>
+                                      {order.customOrder && (
+                                        <Box sx={{ mb: 2 }}>
+                                          <Typography
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={700}
+                                          >
+                                            Custom Order Instructions
+                                          </Typography>
+                                          <Typography
+                                            variant="body2"
+                                            fontWeight={500}
+                                            sx={{
+                                              whiteSpace: 'pre-line',
+                                              bgcolor: 'grey.50',
+                                              p: 1.5,
+                                              borderRadius: 1,
+                                              mt: 0.5,
+                                            }}
+                                          >
+                                            {order.customOrder}
+                                          </Typography>
+                                        </Box>
+                                      )}
+
                                       <Box
                                         sx={{
                                           display: 'flex',

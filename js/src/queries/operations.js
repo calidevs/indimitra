@@ -87,6 +87,7 @@ export const GET_USER_ORDERS = `
       cancelledAt
       cancelledByUserId
       createdByUserId
+      customOrder
       orderTotalAmount
       paymentId
       status
