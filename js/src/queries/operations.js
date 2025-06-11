@@ -21,6 +21,7 @@ export const CREATE_ORDER_MUTATION = `
     $productItems: [OrderItemInput!]!
     $totalAmount: Float!
     $orderTotalAmount: Float!
+    $pickupOrDelivery: String!
     $deliveryFee: Float
     $tipAmount: Float
     $taxAmount: Float
@@ -33,6 +34,7 @@ export const CREATE_ORDER_MUTATION = `
       productItems: $productItems
       totalAmount: $totalAmount
       orderTotalAmount: $orderTotalAmount
+      pickupOrDelivery: $pickupOrDelivery
       deliveryFee: $deliveryFee
       tipAmount: $tipAmount
       taxAmount: $taxAmount
