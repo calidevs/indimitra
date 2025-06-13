@@ -17,8 +17,6 @@ def create_product(name: str, description: str, categoryId: int, image: Optional
         # Validate required fields
         if not name or name.strip() == "":
             raise ValueError("Product name cannot be empty")
-        if not description or description.strip() == "":
-            raise ValueError("Product description cannot be empty")
             
         # Normalize input (trim whitespace)
         name = name.strip()
@@ -78,8 +76,6 @@ def update_product(product_id: int, name: str, description: str, categoryId: int
         # Validate required fields
         if not name or name.strip() == "":
             raise ValueError("Product name cannot be empty")
-        if not description or description.strip() == "":
-            raise ValueError("Product description cannot be empty")
             
         # Check if the category exists
         category = db.query(CategoryModel).get(categoryId)
