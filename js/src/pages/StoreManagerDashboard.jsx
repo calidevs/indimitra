@@ -159,7 +159,7 @@ const StoreManagerDashboard = () => {
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsInitialLoad(false);
-    }, 500);
+    }, 1000); // Increased timeout to ensure smooth transition
 
     return () => clearTimeout(timer);
   }, []);
@@ -309,7 +309,7 @@ const StoreManagerDashboard = () => {
   };
 
   // Check loading state first
-  if (profileLoading || storeLoading || isInitialLoad) {
+  if (profileLoading || storeLoading || isInitialLoad || !store) {
     return (
       <Layout>
         <Container sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
@@ -330,8 +330,8 @@ const StoreManagerDashboard = () => {
     );
   }
 
-  // Check if store exists
-  if (!store) {
+  // Check if store exists and initial load is complete
+  if (!store && !isInitialLoad) {
     return (
       <Layout>
         <Container sx={{ mt: 4 }}>
