@@ -91,26 +91,21 @@ const Profile = () => {
 
   // Get Cognito ID from session
   useEffect(() => {
-    const getCognitoId = async () => {
+    const getCognitoIdAndProfile = async () => {
       try {
         const session = await fetchAuthSession();
         if (session?.tokens?.idToken) {
-          setCognitoId(session.tokens.idToken.payload.sub);
+          const cognitoId = session.tokens.idToken.payload.sub;
+          setCognitoId(cognitoId);
+          await fetchUserProfile(cognitoId);
         }
       } catch (error) {
-        console.error('Error fetching Cognito ID:', error);
+        console.error('Error fetching Cognito ID or profile:', error);
       }
     };
 
-    getCognitoId();
-  }, []);
-
-  // Fetch user profile when component mounts
-  useEffect(() => {
-    if (!userProfile) {
-      fetchUserProfile();
-    }
-  }, [userProfile, fetchUserProfile]);
+    getCognitoIdAndProfile();
+  }, [fetchUserProfile]);
 
   // Create an effective profile using any available source
   const effectiveProfile = userProfile || localUserProfile;
@@ -219,7 +214,21 @@ const Profile = () => {
         <Alert severity="warning" sx={{ mt: 4 }}>
           No profile data available. Please try again.
         </Alert>
-        <Button variant="contained" onClick={() => fetchUserProfile()} sx={{ mt: 2 }}>
+        <Button 
+          variant="contained" 
+          onClick={async () => {
+            try {
+              const session = await fetchAuthSession();
+              if (session?.tokens?.idToken) {
+                const cognitoId = session.tokens.idToken.payload.sub;
+                await fetchUserProfile(cognitoId);
+              }
+            } catch (error) {
+              console.error('Error loading profile:', error);
+            }
+          }} 
+          sx={{ mt: 2 }}
+        >
           Load Profile
         </Button>
       </Container>
