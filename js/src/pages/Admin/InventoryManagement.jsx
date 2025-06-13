@@ -83,7 +83,7 @@ const InventoryManagement = () => {
 
   // Fetch all stores
   const {
-    data: storesData,
+    data: storesData = [],
     isLoading: isLoadingStores,
     error: storesError,
     refetch: refetchStores,
@@ -343,11 +343,12 @@ const InventoryManagement = () => {
         >
           <FormControl sx={{ minWidth: 200 }}>
             <InputLabel>Select Store</InputLabel>
-            <Select value={selectedStore} onChange={handleStoreChange} label="Select Store">
-              <MenuItem value="">
-                <em>All Stores</em>
-              </MenuItem>
-              {storesData?.map((store) => (
+            <Select
+              value={selectedStore}
+              onChange={handleStoreChange}
+              label="Select Store"
+            >
+              {Array.isArray(storesData) && storesData?.map((store) => (
                 <MenuItem key={store.id} value={store.id}>
                   {store.name}
                 </MenuItem>
