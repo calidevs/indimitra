@@ -147,7 +147,7 @@ const PaymentOnboarding = () => {
   });
 
   // Fetch stores for the dropdown
-  const { data: storesData } = useQuery({
+  const { data: storesData = { stores: [] } } = useQuery({
     queryKey: ['stores'],
     queryFn: () => fetchGraphQL(GET_STORES),
   });
@@ -346,7 +346,7 @@ const PaymentOnboarding = () => {
                   onChange={handleChange}
                   label="Store"
                 >
-                  {storesData?.stores.map((store) => (
+                  {storesData?.stores?.map((store) => (
                     <MenuItem key={store.id} value={store.id}>
                       {store.name}
                     </MenuItem>
@@ -498,7 +498,7 @@ const PaymentOnboarding = () => {
             <Grid item xs={12}>
               <Typography variant="subtitle1">Store</Typography>
               <Typography>
-                {storesData?.stores.find((store) => store.id === formData.storeId)?.name}
+                {storesData?.stores?.find((store) => store.id === formData.storeId)?.name || 'No store selected'}
               </Typography>
             </Grid>
             <Grid item xs={12}>
