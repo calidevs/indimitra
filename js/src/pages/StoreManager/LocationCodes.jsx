@@ -127,7 +127,16 @@ const EditDialog = ({
       });
     }
     setError('');
-  }, [selectedLocationCode]);
+  }, [selectedLocationCode, open]);
+
+  const handleClose = () => {
+    setFormData({
+      location: '',
+      code: '',
+    });
+    setError('');
+    onClose();
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -173,7 +182,7 @@ const EditDialog = ({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle>
         {selectedLocationCode ? 'Edit Location Code' : 'Add New Location Code'}
       </DialogTitle>
@@ -205,7 +214,7 @@ const EditDialog = ({
         </Box>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button onClick={handleClose}>Cancel</Button>
         <Button
           variant="contained"
           onClick={handleSubmit}
