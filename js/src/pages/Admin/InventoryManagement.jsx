@@ -522,7 +522,7 @@ const InventoryManagement = () => {
                               size="small"
                             />
                             <Typography variant="h6" color="primary">
-                              ₹{item.price.toFixed(2)}
+                              ${item.price.toFixed(2)}
                             </Typography>
                           </Box>
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
