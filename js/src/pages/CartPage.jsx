@@ -25,6 +25,7 @@ import {
   ToggleButtonGroup,
   RadioGroup,
   Radio,
+  InputAdornment,
 } from '@mui/material';
 import {
   Remove,
@@ -48,6 +49,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import LoginModal from './Login/LoginModal';
 import AddressAutocomplete from '@/components/AddressAutocomplete/AddressAutocomplete';
 import { fetchAuthSession } from '@aws-amplify/auth';
+import FilterIcon from '@mui/icons-material/FilterList';
 
 // Replace LoadingSpinner with CircularProgress
 const LoadingSpinner = ({ size = 24, sx }) => (
@@ -814,6 +816,15 @@ const CartPage = () => {
                                   setActiveOption('delivery');
                                   setSelectedPickupId(null);
                                   console.log('Selected Address ID:', e.target.value); // Debug log
+                                }}
+                                label="Select Address"
+                                inputProps={{}}
+                                InputProps={{
+                                  startAdornment: (
+                                    <InputAdornment position="start">
+                                      <FilterIcon />
+                                    </InputAdornment>
+                                  ),
                                 }}
                               >
                                 {addresses && addresses.length > 0 ? (
