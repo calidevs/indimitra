@@ -24,8 +24,15 @@ import NoStoresMessage from './NoStoresMessage';
 import AddressAutocomplete from '@/components/AddressAutocomplete/AddressAutocomplete';
 
 const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
-  const { selectedStore, setSelectedStore, availableStores, clearCart, setPickupAddress } =
-    useStore();
+  const {
+    selectedStore,
+    setSelectedStore,
+    availableStores,
+    clearCart,
+    setPickupAddress,
+    deliveryType,
+    setDeliveryType,
+  } = useStore();
   const [step, setStep] = useState('store'); // 'store' or 'pickup'
   const [tempStore, setTempStore] = useState(null);
   const [selectedPickupId, setSelectedPickupId] = useState(null);
@@ -33,7 +40,6 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   const [isValidDeliveryAddress, setIsValidDeliveryAddress] = useState(false);
   const [deliveryStatus, setDeliveryStatus] = useState(null); // 'success' | 'error' | null
   const [deliveryMessage, setDeliveryMessage] = useState('');
-  const [activeOption, setActiveOption] = useState(null); // 'pickup' or 'delivery' or null
 
   // If forceStep is provided and modal is opened, set the step accordingly
   useEffect(() => {
@@ -64,6 +70,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     const selectedAddress = addresses.find((addr) => String(addr.id) === String(selectedPickupId));
     setSelectedStore(tempStore);
     setPickupAddress(selectedAddress);
+    setDeliveryType('pickup'); // Set delivery type to pickup
     setStep('store');
     setTempStore(null);
     setSelectedPickupId(null);
@@ -106,6 +113,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     if (deliveryStatus === 'success') {
       setSelectedStore(tempStore);
       setPickupAddress(null);
+      setDeliveryType('delivery'); // Set delivery type to delivery
       setTimeout(() => {
         setStep('store');
         setTempStore(null);
@@ -134,7 +142,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   // In handlePickup selection:
   const handlePickupRadioChange = (e) => {
     setSelectedPickupId(e.target.value);
-    setActiveOption('pickup');
+    setDeliveryType('pickup'); // Set delivery type to pickup
     setDeliveryAddress('');
     setIsValidDeliveryAddress(false);
   };
@@ -143,11 +151,11 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   const handleDeliveryAddressChange = (value) => {
     setDeliveryAddress(value);
     if (value && value.trim() !== '') {
-      setActiveOption('delivery');
+      setDeliveryType('delivery'); // Set delivery type to delivery
       setSelectedPickupId(null);
     } else {
       // If delivery field is cleared, allow both sections to be active
-      setActiveOption(selectedPickupId ? 'pickup' : null);
+      setDeliveryType(selectedPickupId ? 'pickup' : null);
     }
   };
 
@@ -196,12 +204,12 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
         <Stack spacing={3}>
           {/* Pickup Address Section */}
           <Paper
-            elevation={activeOption === 'pickup' ? 4 : 1}
+            elevation={deliveryType === 'pickup' ? 4 : 1}
             sx={{
               p: 2,
-              bgcolor: activeOption === 'pickup' ? 'primary.lighter' : 'grey.50',
-              opacity: activeOption === 'delivery' && deliveryAddress ? 0.5 : 1,
-              border: activeOption === 'pickup' ? '2px solid #1976d2' : '1px solid #eee',
+              bgcolor: deliveryType === 'pickup' ? 'primary.lighter' : 'grey.50',
+              opacity: deliveryType === 'delivery' && deliveryAddress ? 0.5 : 1,
+              border: deliveryType === 'pickup' ? '2px solid #1976d2' : '1px solid #eee',
               transition: 'all 0.2s',
             }}
           >
@@ -233,7 +241,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
               color="primary"
               fullWidth
               startIcon={<LocalShippingIcon />}
-              disabled={activeOption !== 'pickup' || !selectedPickupId}
+              disabled={deliveryType !== 'pickup' || !selectedPickupId}
               sx={{ mt: 2, fontWeight: 600, py: 1.2, fontSize: '1rem' }}
             >
               Confirm Pickup
@@ -242,12 +250,12 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
           <Divider>OR</Divider>
           {/* Home Delivery Section */}
           <Paper
-            elevation={activeOption === 'delivery' ? 4 : 1}
+            elevation={deliveryType === 'delivery' ? 4 : 1}
             sx={{
               p: 2,
-              bgcolor: activeOption === 'delivery' ? 'secondary.lighter' : 'grey.50',
-              opacity: activeOption === 'pickup' && selectedPickupId ? 0.5 : 1,
-              border: activeOption === 'delivery' ? '2px solid #9c27b0' : '1px solid #eee',
+              bgcolor: deliveryType === 'delivery' ? 'secondary.lighter' : 'grey.50',
+              opacity: deliveryType === 'pickup' && selectedPickupId ? 0.5 : 1,
+              border: deliveryType === 'delivery' ? '2px solid #9c27b0' : '1px solid #eee',
               transition: 'all 0.2s',
             }}
           >
@@ -273,7 +281,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
               color="secondary"
               fullWidth
               startIcon={<HomeIcon />}
-              disabled={activeOption !== 'delivery' || !isValidDeliveryAddress}
+              disabled={deliveryType !== 'delivery' || !isValidDeliveryAddress}
               sx={{ mt: 2, fontWeight: 600, py: 1.2, fontSize: '1rem' }}
             >
               Confirm Delivery
