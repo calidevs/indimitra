@@ -65,3 +65,28 @@ def delete_product(product_id: int) -> bool:
         raise ValueError(f"Failed to delete product: {str(e)}")
     finally:
         db.close()
+
+def update_product(product_id: int, name: str, description: str, categoryId: int, image: Optional[str] = None):
+    db = SessionLocal()
+    try:
+        product = db.query(ProductModel).get(product_id)
+        if not product:
+            raise ValueError(f"Product with ID {product_id} does not exist")
+        if not name or name.strip() == "":
+            raise ValueError("Product name cannot be empty")
+        if not description or description.strip() == "":
+            raise ValueError("Product description cannot be empty")
+        name = name.strip()
+        description = description.strip()
+        category = db.query(CategoryModel).get(categoryId)
+        if not category:
+            raise ValueError(f"Category with ID {categoryId} does not exist")
+        product.name = name
+        product.description = description
+        product.categoryId = categoryId
+        product.image = image
+        db.commit()
+        db.refresh(product)
+        return product
+    finally:
+        db.close()

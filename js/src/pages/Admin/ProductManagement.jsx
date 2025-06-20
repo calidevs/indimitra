@@ -82,6 +82,7 @@ const ProductManagement = () => {
   const [imageUploadError, setImageUploadError] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
+  const [formError, setFormError] = useState('');
 
   // Define baseUrl at component level
   const baseUrl = window.location.href?.includes('http://localhost')
@@ -116,25 +117,27 @@ const ProductManagement = () => {
       });
     },
     onSuccess: () => {
-      refetch();
+      handleFetchProducts();
       handleCloseDialog();
+      setSnackbar({
+        open: true,
+        message: 'Product added successfully!',
+        severity: 'success',
+      });
     },
   });
 
   // Update product mutation
   const updateProductMutation = useMutation({
-    mutationFn: ({ id, data }) => fetchGraphQL(UPDATE_PRODUCT, { id, input: data }),
+    mutationFn: (data) => fetchGraphQL(UPDATE_PRODUCT, data),
     onSuccess: () => {
-      refetch();
+      handleFetchProducts();
       handleCloseDialog();
-    },
-  });
-
-  // Delete product mutation
-  const deleteProductMutation = useMutation({
-    mutationFn: (productId) => graphqlService(DELETE_PRODUCT, { productId }),
-    onSuccess: () => {
-      refetch();
+      setSnackbar({
+        open: true,
+        message: 'Product updated successfully!',
+        severity: 'success',
+      });
     },
   });
 
@@ -194,8 +197,20 @@ const ProductManagement = () => {
   };
 
   const handleSubmit = () => {
+    // Validate required fields
+    if (!formData.name.trim() || !formData.description.trim() || !formData.categoryId || !formData.image) {
+      setFormError('Please fill in all required fields, including an image.');
+      return;
+    }
+    setFormError('');
     if (editingProduct) {
-      updateProductMutation.mutate({ id: editingProduct.id, data: formData });
+      updateProductMutation.mutate({
+        productId: editingProduct.id,
+        name: formData.name,
+        description: formData.description,
+        categoryId: parseInt(formData.categoryId, 10),
+        image: formData.image
+      });
     } else {
       // Convert categoryId to integer and ensure image is included
       const mutationData = {
@@ -209,31 +224,6 @@ const ProductManagement = () => {
     }
   };
 
-  const handleDelete = (id) => {
-    // First check if the product has inventory items
-    const product = allProducts.find((p) => p.id === id);
-    const hasInventory = product?.inventoryItems?.edges?.length > 0;
-
-    if (hasInventory) {
-      const confirmForceDelete = window.confirm(
-        'This product has inventory items. Deleting it will also remove all associated inventory items. Are you sure you want to proceed?'
-      );
-
-      if (!confirmForceDelete) {
-        return;
-      }
-    } else {
-      const confirmDelete = window.confirm('Are you sure you want to delete this product?');
-
-      if (!confirmDelete) {
-        return;
-      }
-    }
-
-    // Proceed with deletion
-    deleteProductMutation.mutate(parseInt(id, 10));
-  };
-
   const handleChange = (e) => {
     const { name, value } = e.target;
     if (name === 'categoryId' && value === 'new') {
@@ -244,6 +234,7 @@ const ProductManagement = () => {
       ...prev,
       [name]: value,
     }));
+    setFormError(''); // Clear error on change
   };
 
   // Update handleFetchProducts to store all products
@@ -483,9 +474,6 @@ const ProductManagement = () => {
                         <IconButton size="small" onClick={() => handleOpenDialog(product)}>
                           <EditIcon />
                         </IconButton>
-                        <IconButton size="small" onClick={() => handleDelete(product.id)}>
-                          <DeleteIcon />
-                        </IconButton>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -509,6 +497,11 @@ const ProductManagement = () => {
       <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="md" fullWidth>
         <DialogTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
         <DialogContent>
+          {formError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {formError}
+            </Alert>
+          )}
           <Grid container spacing={2} sx={{ mt: 1 }}>
             <Grid item xs={12}>
               <TextField
