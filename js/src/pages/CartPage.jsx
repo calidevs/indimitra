@@ -346,9 +346,6 @@ const CartPage = () => {
       quantity: item.quantity,
     }));
 
-    // Get all the totals from the store
-    const { subtotal, deliveryFee, taxAmount, tipAmount, total } = getCartTotals();
-
     // Get the selected pickup address if pickup is selected
     let pickupAddress = null;
     if (selectedPickupId) {
