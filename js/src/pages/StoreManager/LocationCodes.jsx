@@ -415,9 +415,26 @@ const LocationCodes = () => {
           </Box>
 
           {locationCodes.length === 0 ? (
-            <Alert severity="info" sx={{ my: 2 }}>
-              No location codes found. Add your first location code to get started.
-            </Alert>
+            <TableContainer>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Location</TableCell>
+                    <TableCell>Code</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  <TableRow>
+                    <TableCell colSpan={3} align="center">
+                      <Alert severity="info" sx={{ my: 2 }}>
+                        No location codes found for this store.
+                      </Alert>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </TableContainer>
           ) : (
             <TableContainer>
               <Table>
