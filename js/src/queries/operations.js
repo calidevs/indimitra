@@ -675,8 +675,20 @@ export const CREATE_PRODUCT = `
 `;
 
 export const UPDATE_PRODUCT = `
-  mutation UpdateProduct($productId: Int!, $name: String!, $description: String!, $categoryId: Int!, $image: String) {
-    updateProduct(productId: $productId, name: $name, description: $description, categoryId: $categoryId, image: $image) {
+  mutation UpdateProduct(
+    $productId: Int!,
+    $name: String!,
+    $description: String!,
+    $categoryId: Int!,
+    $image: String
+  ) {
+    updateProduct(
+      productId: $productId,
+      name: $name,
+      description: $description,
+      categoryId: $categoryId,
+      image: $image
+    ) {
       id
       name
       description

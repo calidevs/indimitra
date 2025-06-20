@@ -65,28 +65,20 @@ def delete_product(product_id: int) -> bool:
         db.close()
 
 def update_product(product_id: int, name: str, description: str, categoryId: int, image: Optional[str] = None):
-    """Update an existing product"""
     db = SessionLocal()
     try:
-        # Check if product exists
         product = db.query(ProductModel).get(product_id)
         if not product:
             raise ValueError(f"Product with ID {product_id} does not exist")
-            
-        # Validate required fields
         if not name or name.strip() == "":
             raise ValueError("Product name cannot be empty")
-            
-        # Check if the category exists
+        if not description or description.strip() == "":
+            raise ValueError("Product description cannot be empty")
+        name = name.strip()
+        description = description.strip()
         category = db.query(CategoryModel).get(categoryId)
         if not category:
             raise ValueError(f"Category with ID {categoryId} does not exist")
-            
-        # Normalize input (trim whitespace)
-        name = name.strip()
-        description = description.strip()
-        
-        # Update the product
         product.name = name
         product.description = description
         product.categoryId = categoryId
