@@ -546,7 +546,7 @@ export const GET_STORE_WITH_INVENTORY = `
 
 export const GET_ALL_STORES = `
   query GetAllStores {
-    stores(disabled: false) {
+    stores(disabled: false, isActive: true) {
       id
       name
       address
@@ -563,15 +563,27 @@ export const GET_ALL_STORES = `
       taxPercentage
       displayField
       sectionHeaders
-      pickupAddresses {
-      edges {
-        node {
-          address
-          id
-          storeId
+      fees {
+        edges {
+          node {
+            feeCurrency
+            feeRate
+            id
+            limit
+            storeId
+            type
+          }
         }
       }
-    }
+      pickupAddresses {
+        edges {
+          node {
+            address
+            id
+            storeId
+          }
+        }
+      }
     }
   }
 `;
