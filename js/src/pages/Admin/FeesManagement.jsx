@@ -365,22 +365,32 @@ const FeesManagement = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {fees.map((fee) => (
-                    <TableRow key={fee.id}>
-                      <TableCell>{fee.type}</TableCell>
-                      <TableCell>{fee.feeCurrency}</TableCell>
-                      <TableCell>{fee.feeRate}</TableCell>
-                      <TableCell>{fee.limit}</TableCell>
-                      <TableCell>
-                        <IconButton onClick={() => handleEditClick(fee)} color="primary">
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton onClick={() => handleDeleteClick(fee)} color="error">
-                          <DeleteIcon />
-                        </IconButton>
+                  {fees.length === 0 && !feesLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center">
+                        <Alert severity="info" sx={{ my: 2 }}>
+                          No fees found for this store.
+                        </Alert>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    fees.map((fee) => (
+                      <TableRow key={fee.id}>
+                        <TableCell>{fee.type}</TableCell>
+                        <TableCell>{fee.feeCurrency}</TableCell>
+                        <TableCell>{fee.feeRate}</TableCell>
+                        <TableCell>{fee.limit}</TableCell>
+                        <TableCell>
+                          <IconButton onClick={() => handleEditClick(fee)} color="primary">
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton onClick={() => handleDeleteClick(fee)} color="error">
+                            <DeleteIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>

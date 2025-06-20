@@ -382,20 +382,30 @@ const StoreLocationCodeManagement = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {locationCodes.map((locationCode) => (
-                    <TableRow key={locationCode.id}>
-                      <TableCell>{locationCode.location}</TableCell>
-                      <TableCell>{locationCode.code}</TableCell>
-                      <TableCell>
-                        <IconButton onClick={() => handleEditClick(locationCode)} color="primary">
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton onClick={() => handleDeleteClick(locationCode)} color="error">
-                          <DeleteIcon />
-                        </IconButton>
+                  {locationCodes.length === 0 && !locationCodesLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={3} align="center">
+                        <Alert severity="info" sx={{ my: 2 }}>
+                          No location codes found for this store.
+                        </Alert>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    locationCodes.map((locationCode) => (
+                      <TableRow key={locationCode.id}>
+                        <TableCell>{locationCode.location}</TableCell>
+                        <TableCell>{locationCode.code}</TableCell>
+                        <TableCell>
+                          <IconButton onClick={() => handleEditClick(locationCode)} color="primary">
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton onClick={() => handleDeleteClick(locationCode)} color="error">
+                            <DeleteIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
