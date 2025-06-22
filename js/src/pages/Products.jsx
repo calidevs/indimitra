@@ -106,9 +106,16 @@ const Products = () => {
 
   // Memoize the filtered products with debounced search (no min character check)
   const filteredProducts = useMemo(() => {
-    return products.filter((product) =>
-      product.name.toLowerCase().includes(debouncedSearch.toLowerCase())
-    );
+    // First filter by search, then sort by isAvailable
+    return products
+      .filter((product) =>
+        product.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+      )
+      .sort((a, b) => {
+        // Sort available products (isAvailable true) to the top
+        if (a.isAvailable === b.isAvailable) return 0;
+        return a.isAvailable ? -1 : 1;
+      });
   }, [products, debouncedSearch]);
 
   const handleChangePage = (event, newPage) => {
