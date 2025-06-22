@@ -160,7 +160,7 @@ const Dashbaord = () => {
                   sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                 >
                   <Typography variant="h6" sx={{ fontWeight: 600 }}>
-                    {isManualMode ? 'Manual Product Selection' : 'Enter your shopping list'}
+                    {isManualMode ? 'Browse Products' : 'Quick List Entry'}
                   </Typography>
                   <Box
                     sx={{
@@ -183,13 +183,13 @@ const Dashbaord = () => {
                           variant="body2"
                           color="text.secondary"
                           sx={{
-                            width: 120,
+                            width: 140,
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
                           }}
                         >
-                          Switch mode
+                          {isManualMode ? 'Manual Browse' : 'Quick List'}
                         </Typography>
                       }
                       labelPlacement="end"
