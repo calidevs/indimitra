@@ -39,6 +39,7 @@ import {
   Payment,
   Store,
   Home,
+  CheckCircle,
 } from '@mui/icons-material';
 import useStore, { useAuthStore, useAddressStore } from './../store/useStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -246,6 +247,9 @@ const CartPage = () => {
   const [customTip, setCustomTip] = useState('');
   const [selectedPickupId, setSelectedPickupId] = useState(null);
 
+  // Track if user has manually selected an address
+  const [userSelectedAddress, setUserSelectedAddress] = useState(false);
+
   // Fetch user profile when component mounts
   useEffect(() => {
     const fetchProfile = async () => {
@@ -324,6 +328,54 @@ const CartPage = () => {
     tipAmount: localTipAmount,
     total,
   } = cartTotals;
+
+  // Set default selection for delivery/pickup when addresses are loaded
+  useEffect(() => {
+    // If user has manually selected an address, do not auto-select
+    if (userSelectedAddress) return;
+
+    // If pickup addresses are available and nothing is selected, select the first pickup address
+    if (
+      selectedStore?.pickupAddresses?.edges?.length > 0 &&
+      !selectedPickupId &&
+      !selectedAddressId
+    ) {
+      const firstPickupAddress = selectedStore.pickupAddresses.edges[0].node;
+      setSelectedPickupId(String(firstPickupAddress.id));
+      setActiveOption('pickup');
+      setSelectedAddressId(null);
+      return;
+    }
+
+    // If delivery addresses are available and nothing is selected, select the primary address
+    if (addresses && addresses.length > 0 && !selectedPickupId && !selectedAddressId) {
+      const primary = addresses.find((addr) => addr.isPrimary) || addresses[0];
+      setSelectedAddressId(primary.id);
+      setActiveOption('delivery');
+      setSelectedPickupId(null);
+      return;
+    }
+
+    // If neither is available, default to pickup but don't select anything
+    if (
+      (!selectedStore?.pickupAddresses?.edges?.length ||
+        selectedStore?.pickupAddresses?.edges?.length === 0) &&
+      (!addresses || addresses.length === 0) &&
+      !selectedPickupId &&
+      !selectedAddressId
+    ) {
+      setActiveOption('pickup');
+    }
+    // eslint-disable-next-line
+  }, [selectedStore?.pickupAddresses?.edges, addresses, userSelectedAddress]);
+
+  // When user selects a delivery address, mark as manual selection
+  const handleAddressDropdownChange = (e) => {
+    setSelectedAddressId(e.target.value);
+    setActiveOption('delivery');
+    setSelectedPickupId(null);
+    setUserSelectedAddress(true);
+  };
 
   const { mutate, isPending } = useMutation({
     mutationKey: ['createOrder'],
@@ -475,9 +527,29 @@ const CartPage = () => {
       </Typography>
 
       {isOrderPlaced ? (
-        <Alert severity="success" sx={{ mb: 3 }}>
-          Order placed successfully!
-        </Alert>
+        <Paper
+          elevation={4}
+          sx={{
+            mb: 3,
+            p: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            borderRadius: 3,
+            background: 'linear-gradient(135deg, #e0ffe8 0%, #f8fff8 100%)',
+            boxShadow: 6,
+            border: '2px solid #4caf50',
+          }}
+        >
+          <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
+          <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main', mb: 1 }}>
+            Order placed successfully!
+          </Typography>
+          <Typography variant="h6" sx={{ color: 'text.secondary', mb: 2, textAlign: 'center' }}>
+            Thank you for your purchase. Your order is being processed and you'll receive an update
+            soon!
+          </Typography>
+        </Paper>
       ) : (
         <Grid container spacing={3}>
           {/* Cart Items Section */}
@@ -489,7 +561,7 @@ const CartPage = () => {
                 </Alert>
               )}
 
-              {Object.values(cart).length > 0 ? (
+              {Object.values(cart).length > 0 || customOrder ? (
                 <>
                   <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>
                     Cart Items
@@ -553,6 +625,51 @@ const CartPage = () => {
                       </CardContent>
                     </Card>
                   ))}
+
+                  {/* Custom Order Items */}
+                  {customOrder && (
+                    <Card sx={{ mb: 2, position: 'relative', bgcolor: 'primary.lighter' }}>
+                      <CardContent>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                          <ShoppingBag color="primary" />
+                          <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                            Custom Shopping List
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            p: 2,
+                            bgcolor: 'background.paper',
+                            borderRadius: 1,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                          }}
+                        >
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              whiteSpace: 'pre-line',
+                              fontFamily: 'monospace',
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            {customOrder}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            size="small"
+                            onClick={() => setCustomOrder('')}
+                            startIcon={<Remove />}
+                          >
+                            Remove List
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  )}
                 </>
               ) : (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -834,12 +951,7 @@ const CartPage = () => {
                             ) : (
                               <Select
                                 value={selectedAddressId || ''}
-                                onChange={(e) => {
-                                  setSelectedAddressId(e.target.value);
-                                  setDeliveryType('delivery');
-                                  setSelectedPickupId(null);
-                                  console.log('Selected Address ID:', e.target.value); // Debug log
-                                }}
+                                onChange={handleAddressDropdownChange}
                                 label="Select Address"
                                 inputProps={{}}
                                 InputProps={{
@@ -947,7 +1059,7 @@ const CartPage = () => {
                     isPending ||
                     isProfileLoading ||
                     (!selectedAddressId && !selectedPickupId) ||
-                    (Object.values(cart).length === 0 && !customOrder)
+                    (Object.values(cart).length === 0 && !customOrder?.trim())
                   }
                   startIcon={isPending ? <LoadingSpinner size={20} /> : <Payment />}
                   sx={{
