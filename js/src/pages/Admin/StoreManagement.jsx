@@ -359,8 +359,20 @@ const StoreManagement = () => {
       errors.address = 'Address is required';
     }
 
+    if (!formData.email.trim()) {
+      errors.email = 'Manager email is required';
+    }
+
+    if (!formData.mobile.trim()) {
+      errors.mobile = 'Manager mobile is required';
+    }
+
     if (!formData.managerUserId) {
       errors.managerUserId = 'Manager User ID is required';
+    }
+
+    if (!formData.radius || isNaN(parseFloat(formData.radius))) {
+      errors.radius = 'Delivery radius is required';
     }
 
     if (!formData.displayField.trim()) {
@@ -556,6 +568,8 @@ const StoreManagement = () => {
                 value={formData.radius}
                 onChange={handleChange}
                 inputProps={{ step: '0.1' }}
+                error={!!validationErrors.radius}
+                helperText={validationErrors.radius}
               />
             </Grid>
             <Grid item xs={12} md={6}>
