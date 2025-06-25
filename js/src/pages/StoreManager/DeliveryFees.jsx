@@ -110,12 +110,13 @@ const ADD_FEE = `
 `;
 
 const EditDialog = ({ open, onClose, selectedFee, onUpdate, isLoading }) => {
-  const [formData, setFormData] = useState({
+  const initialFormData = {
     feeCurrency: '',
     feeRate: '',
     limit: '',
     type: 'DELIVERY',
-  });
+  };
+  const [formData, setFormData] = useState(initialFormData);
 
   useEffect(() => {
     if (selectedFee) {
@@ -125,8 +126,16 @@ const EditDialog = ({ open, onClose, selectedFee, onUpdate, isLoading }) => {
         limit: selectedFee.limit?.toString() || '',
         type: selectedFee.type?.toUpperCase() || 'DELIVERY',
       });
+    } else if (open) {
+      setFormData(initialFormData);
     }
-  }, [selectedFee]);
+  }, [selectedFee, open]);
+
+  useEffect(() => {
+    if (!open) {
+      setFormData(initialFormData);
+    }
+  }, [open]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -143,6 +152,9 @@ const EditDialog = ({ open, onClose, selectedFee, onUpdate, isLoading }) => {
       feeRate: parseFloat(formData.feeRate),
       limit: parseFloat(formData.limit),
     });
+    if (!selectedFee) {
+      setFormData(initialFormData);
+    }
   };
 
   return (
