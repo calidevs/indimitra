@@ -231,6 +231,9 @@ const CartPage = () => {
     setCustomOrder,
     pickupAddress,
     setPickupAddress,
+    deliveryType,
+    setDeliveryType,
+    tipAmount,
   } = useStore();
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
@@ -241,7 +244,6 @@ const CartPage = () => {
   const queryClient = useQueryClient();
   const [tipPercentage, setTipPercentage] = useState(0);
   const [customTip, setCustomTip] = useState('');
-  const [activeOption, setActiveOption] = useState('pickup');
   const [selectedPickupId, setSelectedPickupId] = useState(null);
 
   // Fetch user profile when component mounts
@@ -274,8 +276,15 @@ const CartPage = () => {
   const [isValidAddress, setIsValidAddress] = useState(false);
   const boxCount = Object.values(cart).reduce((acc, item) => acc + (item.quantity || 0), 0);
 
-  // Get all totals from the store
-  const { subtotal, deliveryFee, taxAmount, taxPercentage, tipAmount, total } = getCartTotals();
+  // State to store cart totals
+  const [cartTotals, setCartTotals] = useState({
+    subtotal: 0,
+    deliveryFee: 0,
+    taxAmount: 0,
+    taxPercentage: 0,
+    tipAmount: 0,
+    total: 0,
+  });
 
   // Fetch addresses when modal opens and user profile is available
   useEffect(() => {
@@ -294,10 +303,27 @@ const CartPage = () => {
   useEffect(() => {
     if (pickupAddress) {
       setSelectedPickupId(String(pickupAddress.id));
-      setActiveOption('pickup');
+      setDeliveryType('pickup');
       setSelectedAddressId(null);
     }
-  }, [pickupAddress]);
+  }, [pickupAddress, setDeliveryType]);
+
+  // Recalculate totals when delivery type, cart, or tip amount changes
+  useEffect(() => {
+    console.log('Recalculating totals for delivery type:', deliveryType);
+    const totals = getCartTotals();
+    setCartTotals(totals);
+  }, [deliveryType, cart, getCartTotals, tipAmount]);
+
+  // Destructure totals from state
+  const {
+    subtotal,
+    deliveryFee,
+    taxAmount,
+    taxPercentage,
+    tipAmount: localTipAmount,
+    total,
+  } = cartTotals;
 
   const { mutate, isPending } = useMutation({
     mutationKey: ['createOrder'],
@@ -346,9 +372,6 @@ const CartPage = () => {
       quantity: item.quantity,
     }));
 
-    // Get all the totals from the store
-    const { subtotal, deliveryFee, taxAmount, tipAmount, total } = getCartTotals();
-
     // Get the selected pickup address if pickup is selected
     let pickupAddress = null;
     if (selectedPickupId) {
@@ -370,11 +393,11 @@ const CartPage = () => {
       productItems: orderItems,
       totalAmount: subtotal,
       orderTotalAmount: total,
-      pickupOrDelivery: selectedPickupId ? 'pickup' : 'delivery',
-      deliveryFee: selectedPickupId ? 0 : deliveryFee,
-      tipAmount: tipAmount,
+      pickupOrDelivery: deliveryType, // Use deliveryType from store
+      deliveryFee: deliveryType === 'pickup' ? 0 : deliveryFee, // Use deliveryType to determine fee
+      tipAmount: tipAmount, // Use tipAmount from store
       taxAmount: taxAmount,
-      deliveryInstructions: selectedPickupId ? null : deliveryInstructions,
+      deliveryInstructions: deliveryType === 'pickup' ? null : deliveryInstructions, // Use deliveryType
       customOrder: customOrder,
     };
 
@@ -419,8 +442,8 @@ const CartPage = () => {
     if (newTipPercentage !== null) {
       setTipPercentage(newTipPercentage);
       setCustomTip('');
-      const tipAmount = (subtotal * newTipPercentage) / 100;
-      setTipAmount(tipAmount);
+      const calculatedTipAmount = (subtotal * newTipPercentage) / 100;
+      setTipAmount(calculatedTipAmount);
     }
   };
 
@@ -429,8 +452,8 @@ const CartPage = () => {
     const value = event.target.value;
     setCustomTip(value);
     setTipPercentage(0);
-    const tipAmount = parseFloat(value) || 0;
-    setTipAmount(tipAmount);
+    const calculatedTipAmount = parseFloat(value) || 0;
+    setTipAmount(calculatedTipAmount);
   };
 
   return (
@@ -656,7 +679,7 @@ const CartPage = () => {
                       }}
                     >
                       <Typography>Tip Amount</Typography>
-                      <Typography>${tipAmount.toFixed(2)}</Typography>
+                      <Typography>${localTipAmount.toFixed(2)}</Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={12}>
@@ -723,13 +746,13 @@ const CartPage = () => {
                       {/* Pickup Address Section */}
                       {selectedStore?.pickupAddresses?.edges?.length > 0 && (
                         <Paper
-                          elevation={activeOption === 'pickup' ? 4 : 1}
+                          elevation={deliveryType === 'pickup' ? 4 : 1}
                           sx={{
                             p: 2,
-                            bgcolor: activeOption === 'pickup' ? 'primary.lighter' : 'grey.50',
-                            opacity: activeOption === 'delivery' && selectedAddressId ? 0.5 : 1,
+                            bgcolor: deliveryType === 'pickup' ? 'primary.lighter' : 'grey.50',
+                            opacity: deliveryType === 'delivery' && selectedAddressId ? 0.5 : 1,
                             border:
-                              activeOption === 'pickup' ? '2px solid #1976d2' : '1px solid #eee',
+                              deliveryType === 'pickup' ? '2px solid #1976d2' : '1px solid #eee',
                             transition: 'all 0.2s',
                           }}
                         >
@@ -750,7 +773,7 @@ const CartPage = () => {
                             onChange={(e) => {
                               const pickupId = e.target.value;
                               setSelectedPickupId(pickupId);
-                              setActiveOption('pickup');
+                              setDeliveryType('pickup');
                               setSelectedAddressId(null);
 
                               // Find and set the selected pickup address in the store
@@ -779,13 +802,13 @@ const CartPage = () => {
 
                       {/* Home Delivery Section */}
                       <Paper
-                        elevation={activeOption === 'delivery' ? 4 : 1}
+                        elevation={deliveryType === 'delivery' ? 4 : 1}
                         sx={{
                           p: 2,
-                          bgcolor: activeOption === 'delivery' ? 'secondary.lighter' : 'grey.50',
-                          opacity: activeOption === 'pickup' && selectedPickupId ? 0.5 : 1,
+                          bgcolor: deliveryType === 'delivery' ? 'secondary.lighter' : 'grey.50',
+                          opacity: deliveryType === 'pickup' && selectedPickupId ? 0.5 : 1,
                           border:
-                            activeOption === 'delivery' ? '2px solid #9c27b0' : '1px solid #eee',
+                            deliveryType === 'delivery' ? '2px solid #9c27b0' : '1px solid #eee',
                           transition: 'all 0.2s',
                         }}
                       >
@@ -813,7 +836,7 @@ const CartPage = () => {
                                 value={selectedAddressId || ''}
                                 onChange={(e) => {
                                   setSelectedAddressId(e.target.value);
-                                  setActiveOption('delivery');
+                                  setDeliveryType('delivery');
                                   setSelectedPickupId(null);
                                   console.log('Selected Address ID:', e.target.value); // Debug log
                                 }}
