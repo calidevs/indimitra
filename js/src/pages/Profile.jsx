@@ -56,6 +56,7 @@ import {
 } from '../queries/operations';
 import { useAuthStore, useAddressStore } from '@/store/useStore';
 import { fetchAuthSession } from 'aws-amplify/auth';
+import AddressAutocomplete from '@/components/AddressAutocomplete/AddressAutocomplete';
 
 const Profile = () => {
   // Get zustand state and functions
@@ -90,6 +91,7 @@ const Profile = () => {
   const [newAddress, setNewAddress] = useState('');
   const [isPrimary, setIsPrimary] = useState(false);
   const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const [isValidAddress, setIsValidAddress] = useState(false);
 
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -155,6 +157,11 @@ const Profile = () => {
 
     setIsSavingAddress(true);
     try {
+      // Only allow saving if a valid address is selected
+      if (!isValidAddress) {
+        return;
+      }
+
       if (!editingAddress) {
         if (addresses.length === 0) {
           await createAddressMutation(newAddress, effectiveProfile.id, true);
@@ -198,6 +205,7 @@ const Profile = () => {
       setEditingAddress(null);
       setNewAddress('');
       setIsPrimary(false);
+      setIsValidAddress(false);
     } catch (error) {
       setSnackbar({ open: true, message: 'Failed to save address. Please try again.', severity: 'error' });
     } finally {
@@ -522,13 +530,10 @@ const Profile = () => {
         <DialogTitle>{editingAddress ? 'Edit Address' : 'Add Address'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} mt={1}>
-            <TextField
-              label="Address"
-              fullWidth
-              multiline
-              rows={3}
+            <AddressAutocomplete
               value={newAddress}
-              onChange={(e) => setNewAddress(e.target.value)}
+              onChange={setNewAddress}
+              onValidAddress={setIsValidAddress}
             />
             <FormControlLabel
               control={
@@ -539,11 +544,15 @@ const Profile = () => {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddressDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => {
+            setAddressDialogOpen(false);
+            setNewAddress('');
+            setIsValidAddress(false);
+          }}>Cancel</Button>
           <Button
             onClick={handleSaveAddress}
             variant="contained"
-            disabled={!newAddress || isSavingAddress}
+            disabled={!newAddress || isSavingAddress || !isValidAddress}
           >
             {isSavingAddress ? (
               <>
