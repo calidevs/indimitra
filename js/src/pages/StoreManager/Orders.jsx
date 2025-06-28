@@ -181,6 +181,16 @@ const StoreOrders = () => {
   const [newQuantity, setNewQuantity] = useState(1);
   const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
   const [selectedOrderForDownload, setSelectedOrderForDownload] = useState(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // Set isInitialLoad to false after component mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoad(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch Cognito ID on component mount
   useEffect(() => {
@@ -1109,7 +1119,7 @@ const StoreOrders = () => {
     setDownloadDialogOpen(false);
   };
 
-  if (profileLoading || ordersLoading || driversLoading) {
+  if (profileLoading || ordersLoading || driversLoading || isInitialLoad) {
     return (
       <Layout>
         <Box
@@ -1121,7 +1131,7 @@ const StoreOrders = () => {
     );
   }
 
-  if (ordersError || driversError) {
+  if ((ordersError || driversError) && !isInitialLoad) {
     return (
       <Layout>
         <Alert severity="error" sx={{ mb: 2 }}>
