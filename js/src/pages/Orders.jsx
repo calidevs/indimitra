@@ -90,7 +90,6 @@ const Orders = () => {
         const session = await fetchAuthSession();
         if (session?.tokens?.idToken) {
           const id = session.tokens.idToken.payload.sub;
-          console.log('Fetched Cognito ID:', id);
           setCognitoId(id);
         } else {
           console.warn('No valid session tokens found.');
@@ -111,18 +110,14 @@ const Orders = () => {
   } = useQuery({
     queryKey: ['getUserProfile', cognitoId],
     queryFn: async () => {
-      console.log('Fetching user profile with cognitoId:', cognitoId);
       const response = await fetchGraphQL(GET_USER_PROFILE, { userId: cognitoId });
-      console.log('User profile API response:', response);
 
       // Set profile data immediately when we get it
       if (response?.getUserProfile) {
-        console.log('Setting profile in store:', response.getUserProfile);
         setUserProfile(response.getUserProfile);
 
         // Force refresh after a small delay
         setTimeout(() => {
-          console.log('Current profile in store:', getLatestProfile());
           forceUpdate();
         }, 200);
       }
@@ -138,13 +133,6 @@ const Orders = () => {
   // Get the effective profile from any available source
   const directStoreProfile = getLatestProfile();
   const effectiveProfile = directStoreProfile || userProfile || profileData?.getUserProfile;
-
-  console.log('Orders Page State:', {
-    directStoreProfile,
-    zustandHookProfile: userProfile,
-    apiProfile: profileData?.getUserProfile,
-    using: effectiveProfile,
-  });
 
   // Fetch orders using the user's numeric ID
   const {
@@ -211,13 +199,11 @@ const Orders = () => {
 
   const handleFileAction = async (orderId) => {
     if (isLoading) {
-      console.log('Already loading, skipping call');
       return;
     }
 
     try {
       setIsLoading(true);
-      console.log('Starting file fetch for order:', orderId);
 
       const baseUrl = window.location.href?.includes('http://localhost')
         ? 'http://127.0.0.1:8000'
@@ -229,10 +215,8 @@ const Orders = () => {
 
       if (response.status === 200) {
         const data = await response.json();
-        console.log('S3 URL response:', data);
 
         if (data?.view_url) {
-          console.log('Found file URL, initiating download:', data.view_url);
           const link = document.createElement('a');
           link.href = data.view_url;
           link.download = data.file_name;
@@ -246,7 +230,6 @@ const Orders = () => {
 
       alert('No bill available for this order');
     } catch (error) {
-      console.error('Error getting file URL:', error);
       alert('Error downloading the bill. Please try again.');
     } finally {
       setIsLoading(false);
@@ -254,14 +237,7 @@ const Orders = () => {
   };
 
   const handleQuantityUpdate = (order, item, newQuantity) => {
-    console.log('handleQuantityUpdate called with:', {
-      order,
-      item,
-      newQuantity,
-    });
-
     if (!item || !item.id) {
-      console.error('Invalid item or missing item ID:', item);
       return;
     }
 
@@ -293,8 +269,6 @@ const Orders = () => {
       taxAmount: newTaxAmount,
     };
 
-    console.log('Sending mutation with variables:', mutationVariables);
-
     updateOrderItemsMutation.mutate(mutationVariables);
   };
 
@@ -325,14 +299,11 @@ const Orders = () => {
       .map(({ node }) => node)
       .filter((item) => item.updatedOrderitemsId === null);
 
-    console.log('Latest items:', latestItems);
     return latestItems;
   };
 
   // Add a helper function to build item history
   const buildItemHistory = (currentItem, allItems) => {
-    console.log('Building history for current item:', currentItem);
-
     // Create a map of all items for quick lookup
     const itemMap = new Map();
     allItems.forEach(({ node }) => {
@@ -352,14 +323,12 @@ const Orders = () => {
 
       if (!nextItem) break;
 
-      console.log('Found previous version:', nextItem);
       history.push(nextItem);
       currentId = nextItem.id;
     }
 
     // Reverse the history to show oldest to newest
     const orderedHistory = history.reverse();
-    console.log('Complete history array:', orderedHistory);
     return orderedHistory;
   };
 
@@ -567,7 +536,6 @@ const Orders = () => {
                                 {order.orderItems?.edges?.length > 0 ? (
                                   <Grid container spacing={{ xs: 1, sm: 2 }}>
                                     {getLatestOrderItem(order.orderItems).map((node) => {
-                                      console.log('Processing latest item:', node);
                                       const inventoryItem =
                                         node.product.inventoryItems?.edges[0]?.node;
 
@@ -576,7 +544,6 @@ const Orders = () => {
                                         node,
                                         order.orderItems.edges
                                       );
-                                      console.log('Item history for', node.id, ':', itemHistory);
 
                                       return (
                                         <Grid item xs={12} key={node.id}>
@@ -791,7 +758,6 @@ const Orders = () => {
                                                 </Typography>
                                                 <Box sx={{ pl: 2 }}>
                                                   {itemHistory.slice(0, -1).map((item, index) => {
-                                                    console.log('Rendering history item:', item);
                                                     return (
                                                       <Box
                                                         key={item.id}
@@ -925,11 +891,11 @@ const Orders = () => {
                                           Subtotal
                                         </Typography>
                                         <Typography fontWeight={500}>
-                                          ${order.totalAmount.toFixed(2)}
+                                          ${order.totalAmount ? order.totalAmount.toFixed(2) : '0.00'}
                                         </Typography>
                                       </Box>
 
-                                      {order.deliveryFee && (
+                                      {order.deliveryFee !== undefined && (
                                         <Box
                                           sx={{
                                             display: 'flex',
@@ -945,12 +911,12 @@ const Orders = () => {
                                             Delivery Fee
                                           </Typography>
                                           <Typography fontWeight={500}>
-                                            ${order.deliveryFee.toFixed(2)}
+                                            ${order.deliveryFee ? order.deliveryFee.toFixed(2) : '0.00'}
                                           </Typography>
                                         </Box>
                                       )}
 
-                                      {order.taxAmount && (
+                                      {order.taxAmount !== undefined && (
                                         <Box
                                           sx={{
                                             display: 'flex',
@@ -966,12 +932,12 @@ const Orders = () => {
                                             Tax
                                           </Typography>
                                           <Typography fontWeight={500}>
-                                            ${order.taxAmount.toFixed(2)}
+                                            ${order.taxAmount ? order.taxAmount.toFixed(2) : '0.00'}
                                           </Typography>
                                         </Box>
                                       )}
 
-                                      {order.tipAmount && (
+                                      {order.tipAmount !== undefined && (
                                         <Box
                                           sx={{
                                             display: 'flex',
@@ -987,7 +953,7 @@ const Orders = () => {
                                             Tip
                                           </Typography>
                                           <Typography fontWeight={500}>
-                                            ${order.tipAmount.toFixed(2)}
+                                            ${order.tipAmount ? order.tipAmount.toFixed(2) : '0.00'}
                                           </Typography>
                                         </Box>
                                       )}
@@ -1009,7 +975,7 @@ const Orders = () => {
                                           color="primary"
                                           fontWeight={700}
                                         >
-                                          ${order.orderTotalAmount.toFixed(2)}
+                                          ${order.orderTotalAmount ? order.orderTotalAmount.toFixed(2) : '0.00'}
                                         </Typography>
                                       </Box>
                                     </Box>
