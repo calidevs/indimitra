@@ -342,7 +342,7 @@ const CartPage = () => {
     ) {
       const firstPickupAddress = selectedStore.pickupAddresses.edges[0].node;
       setSelectedPickupId(String(firstPickupAddress.id));
-      setActiveOption('pickup');
+      setDeliveryType('pickup');
       setSelectedAddressId(null);
       return;
     }
@@ -351,7 +351,7 @@ const CartPage = () => {
     if (addresses && addresses.length > 0 && !selectedPickupId && !selectedAddressId) {
       const primary = addresses.find((addr) => addr.isPrimary) || addresses[0];
       setSelectedAddressId(primary.id);
-      setActiveOption('delivery');
+      setDeliveryType('delivery');
       setSelectedPickupId(null);
       return;
     }
@@ -364,7 +364,7 @@ const CartPage = () => {
       !selectedPickupId &&
       !selectedAddressId
     ) {
-      setActiveOption('pickup');
+      setDeliveryType('pickup');
     }
     // eslint-disable-next-line
   }, [selectedStore?.pickupAddresses?.edges, addresses, userSelectedAddress]);
@@ -372,7 +372,7 @@ const CartPage = () => {
   // When user selects a delivery address, mark as manual selection
   const handleAddressDropdownChange = (e) => {
     setSelectedAddressId(e.target.value);
-    setActiveOption('delivery');
+    setDeliveryType('delivery');
     setSelectedPickupId(null);
     setUserSelectedAddress(true);
   };
