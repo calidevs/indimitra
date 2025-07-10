@@ -1,11 +1,11 @@
 name: Frontend Deployment
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'js/**'    # Only .js files
+  # push:
+  #   branches:
+  #     - main
+  #   paths:
+  #     - 'js/**'    # Only .js files
   workflow_dispatch:
     
 env:

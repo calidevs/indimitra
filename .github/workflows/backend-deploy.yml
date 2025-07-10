@@ -1,11 +1,11 @@
 name: Backend Deployment
 
 on:
-  push:
-    branches:  
-      - main
-    paths:
-      - 'python/**'
+  # push:
+  #   branches:  
+  #     - main
+  #   paths:
+  #     - 'python/**'
   workflow_dispatch:
 
 env:
