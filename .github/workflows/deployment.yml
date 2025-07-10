@@ -1,0 +1,179 @@
+name: Indimitra Deployment
+
+on:
+#   push:
+#     branches:
+#       - main
+#     paths:
+#       - 'js/**'    # Only .js files
+#       - 'nginx/**'  # Only Nginx configuration files
+#       - 'python/**'  # Only Python files
+  workflow_dispatch:
+
+env:
+  ACCOUNT_ID: ${{ secrets.ACCOUNT_ID }}
+  AWS_REGION: ${{ vars.AWS_REGION }}
+  ECR_REPO_URL: ${{ vars.ECR_FRONTEND }}
+  TF_VAR_password: ${{ secrets.TF_VAR_PASSWORD }}
+  TF_VAR_COGNITO_USER_POOL_CLIENT_ID: ${{ secrets.TF_VAR_COGNITO_USER_POOL_CLIENT_ID }}
+  TF_VAR_COGNITO_USER_POOL_ID: ${{ secrets.TF_VAR_COGNITO_USER_POOL_ID }}
+  TF_VAR_AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  TF_VAR_AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  TF_VAR_S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
+
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  changes:
+    environment: dev
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Paths filter
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            frontend:
+              - 'js/**'
+              - 'nginx/**'
+            backend:
+              - 'python/**'
+
+  frontend-deploy:
+    environment: dev
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install dependencies and build
+        run: |
+          cd js
+          npm install
+          npm run build
+    
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build
+          path: ./js/build
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+            audience: sts.amazonaws.com
+            role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/terraform-deploy
+            aws-region: ${{ env.AWS_REGION }}        
+            
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+            name: build
+            path: ./js/build   
+
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build and Push Image to ECR
+        id: build-image
+        run: |
+            docker build -t ${{ env.ECR_REPO_URL }}:latest -f ./nginx/Dockerfile .
+            docker tag ${{ env.ECR_REPO_URL }}:latest ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_URL }}:latest
+            docker push ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_URL }}:latest
+  backend-deploy:
+    environment: dev
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+            audience: sts.amazonaws.com
+            role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/terraform-deploy
+            aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to AWS ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build Docker image
+        run: |
+          cd ./python
+          docker build -t ${{ env.ECR_REPO_URL }}:latest .
+          docker tag ${{ env.ECR_REPO_URL }}:latest ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_URL }}:latest
+          docker push ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_URL }}:latest
+
+  update-ecs-task:
+    environment: dev
+    needs: [frontend-deploy, backend-deploy]
+    if: needs.changes.outputs.frontend == 'true' || needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+            audience: sts.amazonaws.com
+            role-to-assume: arn:aws:iam::${{ env.ACCOUNT_ID }}:role/terraform-deploy
+            aws-region: ${{ env.AWS_REGION }}
+
+      - name: Download the ECS task definition
+        id: get-task-def
+        run: |
+    
+            echo "🔍 Getting current task definition ARN from ECS service..."
+            TASK_DEF_ARN=$(aws ecs describe-services \
+            --cluster 46817-automation-dashboard-ecscluster \
+            --services 46817-automation-dashboard-service \
+            --query "services[0].taskDefinition" \
+            --output text)
+
+            echo "✅ Current task definition ARN: $TASK_DEF_ARN"
+
+            # Extract family and revision
+            TASK_DEF_NAME=$(echo $TASK_DEF_ARN | awk -F'/' '{print $2}')
+            echo "✅ Task definition name (family:revision): $TASK_DEF_NAME"
+
+            FAMILY=$(echo $TASK_DEF_NAME | cut -d':' -f1)
+            REVISION=$(echo $TASK_DEF_NAME | cut -d':' -f2)
+
+            echo "🟩 Family: $FAMILY"
+            echo "🟩 Revision: $REVISION"
+
+            echo "📥 Downloading the full task definition JSON..."
+            aws ecs describe-task-definition \
+            --task-definition $TASK_DEF_ARN \
+            --output json > task-def.json
+            echo "✅ task-def.json downloaded successfully."
+                    
+                    
+
+
+
+            
