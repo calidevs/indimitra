@@ -8,11 +8,9 @@ import {
   InputAdornment,
   CircularProgress,
   Box,
-  Button,
   TablePagination,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
-import StoreIcon from '@mui/icons-material/Storefront';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_STORE_PRODUCTS } from '@/queries/operations';
 import useStore from '@/store/useStore';
@@ -53,12 +51,12 @@ function useDebounce(value, delay) {
   return debouncedValue;
 }
 
-const Products = ({ setStoreModalOpen }) => {
+const Products = () => {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(12); // Default rows per page
 
-  const { selectedStore, availableStores } = useStore();
+  const { selectedStore } = useStore();
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -108,9 +106,16 @@ const Products = ({ setStoreModalOpen }) => {
 
   // Memoize the filtered products with debounced search (no min character check)
   const filteredProducts = useMemo(() => {
-    return products.filter((product) =>
-      product.name.toLowerCase().includes(debouncedSearch.toLowerCase())
-    );
+    // First filter by search, then sort by isAvailable
+    return products
+      .filter((product) =>
+        product.name.toLowerCase().includes(debouncedSearch.toLowerCase())
+      )
+      .sort((a, b) => {
+        // Sort available products (isAvailable true) to the top
+        if (a.isAvailable === b.isAvailable) return 0;
+        return a.isAvailable ? -1 : 1;
+      });
   }, [products, debouncedSearch]);
 
   const handleChangePage = (event, newPage) => {
@@ -126,109 +131,54 @@ const Products = ({ setStoreModalOpen }) => {
     return filteredProducts.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
   }, [filteredProducts, page, rowsPerPage]);
 
-  console.log({ visibleRows });
-
   if (inventoryError)
     return <Typography>Error fetching products: {inventoryError.message}</Typography>;
 
   return (
-    <>
-      {/* Store Selection */}
-      {selectedStore && (
-        <Container>
-          <Box
-            sx={{
-              alignItems: 'center',
-              mb: 3,
-              mt: 2,
-              p: 2,
-              backgroundColor: 'rgba(0, 0, 0, 0.03)',
-              borderRadius: 2,
-            }}
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                width: '100%',
-              }}
-            >
-              <Box>
-                <Typography variant="h6">{selectedStore.name}</Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {selectedStore.address}
-                </Typography>
-              </Box>
-              <Button
-                variant="outlined"
-                startIcon={<StoreIcon />}
-                onClick={() => setStoreModalOpen(true)}
-              >
-                Change Store
-              </Button>
-            </Box>
-            <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between' }}>
-              <Typography variant="body2" color="text.secondary">
-                {selectedStore.description}
-              </Typography>
-              {/* commenting for mnow if not occuping more spaces */}
-              {/* <Typography variant="body2" color="text.secondary">
-                Pincodes Served:{selectedStore?.pincodes?.map((pincode) => pincode).join(', ')}
-              </Typography> */}
-              <Typography variant="body2" color="text.secondary">
-                {selectedStore.tnc}
-              </Typography>
-            </Box>
-          </Box>
-        </Container>
-      )}
-      <Container>
-        {/* Search Field */}
-        <TextField
-          label="Search Products"
-          variant="outlined"
-          fullWidth
-          sx={{ mb: 3 }}
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by product name or category..."
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
-          }}
-        />
+    <Container>
+      {/* Search Field */}
+      <TextField
+        label="Search Products"
+        variant="outlined"
+        fullWidth
+        sx={{ mb: 3 }}
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        placeholder="Search by product name or category..."
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon />
+            </InputAdornment>
+          ),
+        }}
+      />
 
-        {/* Product Grid */}
-        {inventoryLoading ? (
-          <Box display="flex" justifyContent="center" my={4}>
-            <CircularProgress />
-          </Box>
-        ) : products.length === 0 ? (
-          <Typography variant="h6" align="center" sx={{ mt: 4 }}>
-            No products available in this store.
-          </Typography>
-        ) : (
-          <ProductGrid products={visibleRows} />
-          // <div></div>
-        )}
-        {/* Add pagination controls */}
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-          <TablePagination
-            rowsPerPageOptions={[8, 12, 24]}
-            component="div"
-            count={filteredProducts.length}
-            rowsPerPage={rowsPerPage}
-            page={page}
-            onPageChange={handleChangePage}
-            onRowsPerPageChange={handleChangeRowsPerPage}
-          />
+      {/* Product Grid */}
+      {inventoryLoading ? (
+        <Box display="flex" justifyContent="center" my={4}>
+          <CircularProgress />
         </Box>
-      </Container>
-    </>
+      ) : products.length === 0 ? (
+        <Typography variant="h6" align="center" sx={{ mt: 4 }}>
+          No products available in this store.
+        </Typography>
+      ) : (
+        <ProductGrid products={visibleRows} />
+      )}
+      {/* Add pagination controls */}
+      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+        <TablePagination
+          rowsPerPageOptions={[8, 12, 24]}
+          component="div"
+          count={filteredProducts.length}
+          rowsPerPage={rowsPerPage}
+          page={page}
+          onPageChange={handleChangePage}
+          onRowsPerPageChange={handleChangeRowsPerPage}
+        />
+      </Box>
+    </Container>
   );
 };
 

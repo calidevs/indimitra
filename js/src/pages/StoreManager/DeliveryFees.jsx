@@ -1,0 +1,501 @@
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import {
+  Container,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  IconButton,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  TextField,
+  CircularProgress,
+  Box,
+  Alert,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+} from '@mui/material';
+import { Edit as EditIcon, Delete as DeleteIcon, Add as AddIcon } from '@mui/icons-material';
+import fetchGraphQL from '@/config/graphql/graphqlService';
+import { useAuthStore } from '@/store/useStore';
+import { fetchUserAttributes } from 'aws-amplify/auth';
+import Layout from '@/components/StoreManager/Layout';
+
+// GraphQL Queries and Mutations
+const GET_USER_PROFILE = `
+  query GetUserProfile($userId: String!) {
+    getUserProfile(userId: $userId) {
+      id
+      email
+      mobile
+      active
+      type
+      referralId
+    }
+  }
+`;
+
+const GET_STORE_WITH_FEES = `
+  query GetStoreWithFees($managerId: Int!) {
+    storesByManager(managerUserId: $managerId) {
+      id
+      name
+    }
+  }
+`;
+
+const GET_FEES_BY_STORE = `
+  query GetFeesByStore($storeId: Int!) {
+    getFeesByStore(storeId: $storeId) {
+      id
+      feeCurrency
+      feeRate
+      limit
+      storeId
+      type
+    }
+  }
+`;
+
+const UPDATE_FEE = `
+  mutation UpdateFee($input: UpdateFeeInput!) {
+    updateFee(input: $input) {
+      fee {
+        id
+        feeCurrency
+        feeRate
+        limit
+        storeId
+        type
+      }
+      error {
+        message
+      }
+    }
+  }
+`;
+
+const DELETE_FEE = `
+  mutation DeleteFee($id: Int!) {
+    deleteFee(id: $id)
+  }
+`;
+
+const ADD_FEE = `
+  mutation CreateFee($input: CreateFeeInput!) {
+    createFee(input: $input) {
+      fee {
+        id
+        feeCurrency
+        feeRate
+        limit
+        storeId
+        type
+      }
+      error {
+        message
+      }
+    }
+  }
+`;
+
+const EditDialog = ({ open, onClose, selectedFee, onUpdate, isLoading }) => {
+  const initialFormData = {
+    feeCurrency: '',
+    feeRate: '',
+    limit: '',
+    type: 'DELIVERY',
+  };
+  const [formData, setFormData] = useState(initialFormData);
+
+  useEffect(() => {
+    if (selectedFee) {
+      setFormData({
+        feeCurrency: selectedFee.feeCurrency || '',
+        feeRate: selectedFee.feeRate?.toString() || '',
+        limit: selectedFee.limit?.toString() || '',
+        type: selectedFee.type?.toUpperCase() || 'DELIVERY',
+      });
+    } else if (open) {
+      setFormData(initialFormData);
+    }
+  }, [selectedFee, open]);
+
+  useEffect(() => {
+    if (!open) {
+      setFormData(initialFormData);
+    }
+  }, [open]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleSubmit = () => {
+    onUpdate({
+      id: selectedFee?.id,
+      ...formData,
+      feeRate: parseFloat(formData.feeRate),
+      limit: parseFloat(formData.limit),
+    });
+    if (!selectedFee) {
+      setFormData(initialFormData);
+    }
+  };
+
+  return (
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
+      <DialogTitle>{selectedFee ? 'Edit Fee' : 'Add New Fee'}</DialogTitle>
+      <DialogContent>
+        <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <FormControl fullWidth>
+            <InputLabel>Fee Type</InputLabel>
+            <Select name="type" value={formData.type} onChange={handleChange} label="Fee Type">
+              <MenuItem value="DELIVERY">Delivery Fee</MenuItem>
+              <MenuItem value="PICKUP">Pickup Fee</MenuItem>
+            </Select>
+          </FormControl>
+
+          <TextField
+            name="feeCurrency"
+            label="Currency"
+            value={formData.feeCurrency}
+            onChange={handleChange}
+            fullWidth
+            placeholder="e.g., USD"
+          />
+
+          <TextField
+            name="feeRate"
+            label="Fee Rate"
+            type="number"
+            value={formData.feeRate}
+            onChange={handleChange}
+            fullWidth
+            inputProps={{ step: '0.01', min: '0' }}
+          />
+
+          <TextField
+            name="limit"
+            label="Limit"
+            type="number"
+            value={formData.limit}
+            onChange={handleChange}
+            fullWidth
+            inputProps={{ step: '0.01', min: '0' }}
+          />
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={onClose}>Cancel</Button>
+        <Button
+          variant="contained"
+          onClick={handleSubmit}
+          disabled={isLoading}
+          startIcon={isLoading ? <CircularProgress size={20} /> : null}
+        >
+          {isLoading ? 'Saving...' : 'Save'}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  );
+};
+
+const DeliveryFees = () => {
+  const [cognitoId, setCognitoId] = useState('');
+  const { userProfile, setUserProfile } = useAuthStore();
+  const [selectedFee, setSelectedFee] = useState(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Fetch Cognito ID on component mount
+  useEffect(() => {
+    const getUserInfo = async () => {
+      try {
+        const userAttributes = await fetchUserAttributes();
+        setCognitoId(userAttributes.sub);
+      } catch (error) {
+        console.error('Error fetching user info:', error);
+      }
+    };
+    getUserInfo();
+  }, []);
+
+  // Fetch user profile using Cognito ID
+  const { data: profileData, isLoading: profileLoading } = useQuery({
+    queryKey: ['getUserProfile', cognitoId],
+    queryFn: async () => {
+      const response = await fetchGraphQL(GET_USER_PROFILE, { userId: cognitoId });
+      if (response?.getUserProfile) {
+        setUserProfile(response.getUserProfile);
+      }
+      return response;
+    },
+    enabled: !!cognitoId,
+  });
+
+  // Fetch store data
+  const {
+    data: storeData,
+    isLoading: storeLoading,
+    error: storeError,
+  } = useQuery({
+    queryKey: ['storeWithFees', userProfile?.id],
+    queryFn: () => fetchGraphQL(GET_STORE_WITH_FEES, { managerId: userProfile.id }),
+    enabled: !!userProfile?.id,
+  });
+
+  const store = storeData?.storesByManager?.[0];
+
+  // Fetch fees data
+  const {
+    data: feesData,
+    isLoading: feesLoading,
+    error: feesError,
+    refetch: refetchFees,
+  } = useQuery({
+    queryKey: ['getFeesByStore', store?.id],
+    queryFn: () => fetchGraphQL(GET_FEES_BY_STORE, { storeId: store?.id }),
+    enabled: !!store?.id,
+  });
+
+  const fees = feesData?.getFeesByStore || [];
+
+  // Update fee mutation
+  const updateMutation = useMutation({
+    mutationFn: (variables) => {
+      return fetchGraphQL(UPDATE_FEE, {
+        input: variables,
+      });
+    },
+    onSuccess: () => {
+      refetchFees();
+      setEditModalOpen(false);
+      setSelectedFee(null);
+      setSuccessMessage('Fee updated successfully');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    },
+    onError: (error) => {
+      setErrorMessage(`Error updating fee: ${error.message}`);
+    },
+  });
+
+  // Delete fee mutation
+  const deleteMutation = useMutation({
+    mutationFn: (variables) => {
+      return fetchGraphQL(DELETE_FEE, variables);
+    },
+    onSuccess: () => {
+      refetchFees();
+      setDeleteModalOpen(false);
+      setSelectedFee(null);
+      setSuccessMessage('Fee deleted successfully');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    },
+    onError: (error) => {
+      setErrorMessage(`Error deleting fee: ${error.message}`);
+    },
+  });
+
+  // Add fee mutation
+  const addMutation = useMutation({
+    mutationFn: (variables) => {
+      return fetchGraphQL(ADD_FEE, {
+        input: {
+          ...variables,
+          storeId: store?.id,
+        },
+      });
+    },
+    onSuccess: () => {
+      refetchFees();
+      setEditModalOpen(false);
+      setSelectedFee(null);
+      setSuccessMessage('Fee added successfully');
+      setTimeout(() => setSuccessMessage(''), 3000);
+    },
+    onError: (error) => {
+      setErrorMessage(`Error adding fee: ${error.message}`);
+    },
+  });
+
+  const handleEditClick = (fee) => {
+    setSelectedFee(fee);
+    setEditModalOpen(true);
+  };
+
+  const handleDeleteClick = (fee) => {
+    setSelectedFee(fee);
+    setDeleteModalOpen(true);
+  };
+
+  const handleAddClick = () => {
+    setSelectedFee(null);
+    setEditModalOpen(true);
+  };
+
+  if (profileLoading || storeLoading || feesLoading) {
+    return (
+      <Layout>
+        <Container sx={{ mt: 4, display: 'flex', justifyContent: 'center' }}>
+          <CircularProgress />
+        </Container>
+      </Layout>
+    );
+  }
+
+  if (storeError || feesError) {
+    return (
+      <Layout>
+        <Container sx={{ mt: 4 }}>
+          <Alert severity="error">
+            Error loading data: {storeError?.message || feesError?.message}
+          </Alert>
+        </Container>
+      </Layout>
+    );
+  }
+
+  return (
+    <Layout>
+      <Container>
+        <Typography variant="h4" gutterBottom>
+          Delivery Fees Management
+        </Typography>
+
+        {/* Success/Error Messages */}
+        {successMessage && (
+          <Alert severity="success" sx={{ mb: 2 }}>
+            {successMessage}
+          </Alert>
+        )}
+        {errorMessage && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {errorMessage}
+          </Alert>
+        )}
+
+        {/* Fees Table */}
+        <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
+          <Box
+            sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}
+          >
+            <Typography variant="h5">Fees</Typography>
+            <Button
+              variant="contained"
+              color="primary"
+              startIcon={<AddIcon />}
+              onClick={handleAddClick}
+            >
+              Add Fee
+            </Button>
+          </Box>
+
+          <TableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Type</TableCell>
+                  <TableCell>Currency</TableCell>
+                  <TableCell>Rate</TableCell>
+                  <TableCell>Limit</TableCell>
+                  <TableCell>Actions</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {fees.map((fee) => (
+                  <TableRow key={fee.id}>
+                    <TableCell>{fee.type}</TableCell>
+                    <TableCell>{fee.feeCurrency}</TableCell>
+                    <TableCell>{fee.feeRate}</TableCell>
+                    <TableCell>{fee.limit}</TableCell>
+                    <TableCell>
+                      <IconButton onClick={() => handleEditClick(fee)} color="primary">
+                        <EditIcon />
+                      </IconButton>
+                      <IconButton onClick={() => handleDeleteClick(fee)} color="error">
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Paper>
+
+        {/* Edit/Add Dialog */}
+        <EditDialog
+          open={editModalOpen}
+          onClose={() => {
+            setEditModalOpen(false);
+            setSelectedFee(null);
+            setErrorMessage('');
+          }}
+          selectedFee={selectedFee}
+          onUpdate={(data) => {
+            if (selectedFee) {
+              updateMutation.mutate(data);
+            } else {
+              addMutation.mutate(data);
+            }
+          }}
+          isLoading={updateMutation.isLoading || addMutation.isLoading}
+        />
+
+        {/* Delete Confirmation Dialog */}
+        <Dialog
+          open={deleteModalOpen}
+          onClose={() => {
+            setDeleteModalOpen(false);
+            setSelectedFee(null);
+            setErrorMessage('');
+          }}
+        >
+          <DialogTitle>Delete Fee</DialogTitle>
+          <DialogContent>
+            <Typography>
+              Are you sure you want to delete this fee? This action cannot be undone.
+            </Typography>
+          </DialogContent>
+          <DialogActions>
+            <Button
+              onClick={() => {
+                setDeleteModalOpen(false);
+                setSelectedFee(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() => deleteMutation.mutate({ id: selectedFee.id })}
+              disabled={deleteMutation.isLoading}
+            >
+              {deleteMutation.isLoading ? <CircularProgress size={24} /> : 'Delete'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </Container>
+    </Layout>
+  );
+};
+
+export default DeliveryFees;

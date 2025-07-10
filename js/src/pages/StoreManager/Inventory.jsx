@@ -579,6 +579,7 @@ const Inventory = () => {
   const [filterCategory, setFilterCategory] = useState('all');
   const [categories, setCategories] = useState([]);
   const [addModalOpen, setAddModalOpen] = useState(false);
+  const [tableLoading, setTableLoading] = useState(true);
 
   // Create refs for select elements to prevent focus issues
   const categorySelectRef = useRef(null);
@@ -632,7 +633,9 @@ const Inventory = () => {
 
   // Log store data when it changes
   useEffect(() => {
-    console.log('Store data updated:', storeData);
+    if (storeData && storeData.products) {
+      setTableLoading(false);
+    }
   }, [storeData]);
 
   // Extract store, inventory, and products from the combined query response
@@ -895,7 +898,7 @@ const Inventory = () => {
     <Layout>
       <>
         <Typography variant="h4" gutterBottom>
-          Inventory Management
+          Store Inventory Management
         </Typography>
 
         {/* Search and Filters */}
@@ -939,7 +942,11 @@ const Inventory = () => {
             </Button>
           </Box>
 
-          {filteredInventory.length === 0 ? (
+          {tableLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : filteredInventory.length === 0 ? (
             <Alert severity="info" sx={{ my: 2 }}>
               No inventory items match your filters.
             </Alert>

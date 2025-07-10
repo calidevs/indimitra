@@ -7,6 +7,9 @@ from app.db.models.order_item import OrderItemModel
 from app.db.models.product import ProductModel
 from app.db.models.address import AddressModel
 from app.db.models.inventory import InventoryModel
+from app.db.models.store_location_code import StoreLocationCodeModel
+from app.db.models.pickup_address import PickupAddressModel
+from app.db.models.fee_type import FeeType
 from app.services.validation_service import validate_delivery_pincode
 
 def get_order_by_id(order_id: int) -> Optional[OrderModel]:
@@ -69,41 +72,102 @@ def get_orders_by_store(store_id: int) -> List[OrderModel]:
     finally:
         db.close()
 
-def create_order(user_id: int, address_id: int, store_id: int, product_items: List[dict], 
-                 total_amount: float, order_total_amount: float, delivery_fee: Optional[float] = None,
-                 tip_amount: Optional[float] = None, tax_amount: Optional[float] = None,
-                 delivery_instructions: Optional[str] = None) -> OrderModel:
+def create_order(user_id: int, store_id: int, product_items: List[dict], 
+                 total_amount: float, order_total_amount: float, 
+                 pickup_or_delivery: str = "delivery",
+                 address_id: Optional[int] = None,
+                 pickup_id: Optional[int] = None,
+                 delivery_fee: Optional[float] = None,
+                 tip_amount: Optional[float] = None, 
+                 tax_amount: Optional[float] = None,
+                 delivery_instructions: Optional[str] = None,
+                 custom_order: Optional[str] = None) -> OrderModel:
     """
     Create a new order with multiple order items
     
     Args:
         user_id: The ID of the user creating the order
-        address_id: The ID of the delivery address
         store_id: The ID of the store the order is being placed from
         product_items: List of product items [{"product_id": int, "quantity": int}, ...]
         total_amount: The total amount of products (subtotal)
         order_total_amount: The final total amount including all fees and taxes
+        pickup_or_delivery: Type of order ("pickup" or "delivery")
+        address_id: Optional delivery address ID (required for delivery)
+        pickup_id: Optional pickup address ID (required for pickup)
         delivery_fee: Optional delivery fee
         tip_amount: Optional tip amount
         tax_amount: Optional tax amount
         delivery_instructions: Optional special instructions for delivery
+        custom_order: Optional custom order instructions
     
     Returns:
         The created order
+        
+    Raises:
+        ValueError: If pickup_or_delivery is not "pickup" or "delivery"
+        ValueError: If required address/pickup ID is missing
     """
+    if pickup_or_delivery not in ["pickup", "delivery"]:
+        raise ValueError("pickup_or_delivery must be 'pickup' or 'delivery'")
+        
     db = SessionLocal()
     try:
-        # Verify the address exists and belongs to the user
-        address = db.query(AddressModel).filter(
-            AddressModel.id == address_id,
-            AddressModel.userId == user_id
-        ).first()
-        
-        if not address:
-            raise ValueError(f"Address with ID {address_id} not found or does not belong to user {user_id}")
-        
-        # Validate delivery pincode is serviced by the store
-        validate_delivery_pincode(address_id, store_id)
+        # Handle address validation based on order type
+        if pickup_or_delivery == "delivery":
+            if not address_id:
+                raise ValueError("Delivery address ID is required for delivery orders")
+            
+            # Verify the address exists and belongs to the user
+            address = db.query(AddressModel).filter(
+                AddressModel.id == address_id,
+                AddressModel.userId == user_id
+            ).first()
+            
+            if not address:
+                raise ValueError(f"Address with ID {address_id} not found or does not belong to user {user_id}")
+            
+            # Validate delivery pincode is serviced by the store
+            validate_delivery_pincode(address_id, store_id)
+            
+            # Extract city name from address and get location code
+            location_code = "00"  # Default code
+            if address.address:
+                address_parts = address.address.split(',')
+                if len(address_parts) >= 2:
+                    city_name = address_parts[1].strip()
+                    # Query StoreLocationCodeModel for the city code
+                    location_code_record = db.query(StoreLocationCodeModel).filter(
+                        StoreLocationCodeModel.store_id == store_id,
+                        StoreLocationCodeModel.location == city_name
+                    ).first()
+                    if location_code_record:
+                        location_code = location_code_record.code
+        else:  # pickup
+            if not pickup_id:
+                raise ValueError("Pickup address ID is required for pickup orders")
+            
+            # Verify the pickup address exists and belongs to the store
+            pickup_address = db.query(PickupAddressModel).filter(
+                PickupAddressModel.id == pickup_id,
+                PickupAddressModel.store_id == store_id
+            ).first()
+            
+            if not pickup_address:
+                raise ValueError(f"Pickup address with ID {pickup_id} not found or does not belong to store {store_id}")
+            
+            # Get location code for pickup address
+            location_code = "00"  # Default code
+            if pickup_address.address:
+                address_parts = pickup_address.address.split(',')
+                if len(address_parts) >= 2:
+                    city_name = address_parts[1].strip()
+                    # Query StoreLocationCodeModel for the city code
+                    location_code_record = db.query(StoreLocationCodeModel).filter(
+                        StoreLocationCodeModel.store_id == store_id,
+                        StoreLocationCodeModel.location == city_name
+                    ).first()
+                    if location_code_record:
+                        location_code = location_code_record.code
         
         # Extract all product IDs from the items
         product_ids = [item["product_id"] for item in product_items]
@@ -125,7 +189,9 @@ def create_order(user_id: int, address_id: int, store_id: int, product_items: Li
         # Create the order with the provided amounts (no calculation in BE)
         order = OrderModel(
             createdByUserId=user_id,
-            addressId=address_id,
+            addressId=address_id if pickup_or_delivery == "delivery" else None,
+            pickupId=pickup_id if pickup_or_delivery == "pickup" else None,
+            type=FeeType.DELIVERY if pickup_or_delivery == "delivery" else FeeType.PICKUP,
             storeId=store_id,
             status=OrderStatus.PENDING,
             totalAmount=total_amount,
@@ -138,7 +204,11 @@ def create_order(user_id: int, address_id: int, store_id: int, product_items: Li
         )
         
         db.add(order)
-        db.flush()
+        db.flush()  # This will generate the order ID
+        
+        # Set display code and custom order
+        order.display_code = f"{location_code}{order.id}{pickup_or_delivery[0].upper()}"
+        order.custom_order = custom_order
         
         # Create order items with inventory prices
         for item in product_items:
@@ -151,7 +221,7 @@ def create_order(user_id: int, address_id: int, store_id: int, product_items: Li
                 inventoryId=inventory_item.id
             )
             db.add(order_item)
-        
+            
         db.commit()
         db.refresh(order)
         

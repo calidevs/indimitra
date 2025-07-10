@@ -19,6 +19,7 @@ from app.services.order_service import (
     update_order_items
 )
 from app.services.delivery_service import assign_delivery
+from app.services.email_service import EmailService
 
 
 # ✅ Order Queries
@@ -79,43 +80,55 @@ class OrderMutation:
     def createOrder(
         self,
         userId: int,
-        addressId: int,
         storeId: int,
         productItems: List[OrderItemInput],
         totalAmount: float,
         orderTotalAmount: float,
+        pickupOrDelivery: str,
+        addressId: Optional[int] = None,
+        pickupId: Optional[int] = None,
         deliveryFee: Optional[float] = None,
         tipAmount: Optional[float] = None,
         taxAmount: Optional[float] = None,
-        deliveryInstructions: Optional[str] = None
+        deliveryInstructions: Optional[str] = None,
+        customOrder: Optional[str] = None
     ) -> Order:
         """
         Create a new order with multiple order items.
         
         Args:
             userId (int): The ID of the user placing the order.
-            addressId (int): The ID of the delivery address.
             storeId (int): The ID of the store the order is being placed from.
             productItems (List[OrderItemInput]): List of items with product IDs and quantities.
             totalAmount (float): The subtotal amount of products.
             orderTotalAmount (float): The final total amount including all fees and taxes.
+            pickupOrDelivery (str): Type of order ("pickup" or "delivery").
+            addressId (int, optional): The ID of the delivery address (required for delivery).
+            pickupId (int, optional): The ID of the pickup address (required for pickup).
             deliveryFee (float, optional): Delivery fee.
             tipAmount (float, optional): Tip amount.
             taxAmount (float, optional): Tax amount.
             deliveryInstructions (str, optional): Special instructions for delivery.
+            customOrder (str, optional): Custom order instructions.
         
         Returns:
             Order: The newly created order.
             
         Raises:
-            Exception: If address validation fails, including if delivery to that pincode is not supported.
+            Exception: If address validation fails or if required address/pickup ID is missing.
         """
         try:
+            # Validate required IDs based on order type
+            if pickupOrDelivery == "delivery" and not addressId:
+                raise ValueError("Delivery address ID is required for delivery orders")
+            if pickupOrDelivery == "pickup" and not pickupId:
+                raise ValueError("Pickup address ID is required for pickup orders")
+
             # Convert OrderItemInput to dictionary
             items = [{"product_id": item.productId, "quantity": item.quantity} for item in productItems]
+            
             return create_order(
                 user_id=userId, 
-                address_id=addressId, 
                 store_id=storeId,
                 product_items=items,
                 total_amount=totalAmount,
@@ -123,7 +136,11 @@ class OrderMutation:
                 delivery_fee=deliveryFee,
                 tip_amount=tipAmount,
                 tax_amount=taxAmount,
-                delivery_instructions=deliveryInstructions
+                delivery_instructions=deliveryInstructions,
+                pickup_or_delivery=pickupOrDelivery,
+                custom_order=customOrder,
+                address_id=addressId,
+                pickup_id=pickupId
             )
         except ValueError as e:
             raise Exception(str(e))
@@ -150,7 +167,7 @@ class OrderMutation:
     @strawberry.mutation
     def updateOrderStatus(self, input: UpdateOrderStatusInput) -> Optional[Order]:
         """
-        Update order status and remove the assigned delivery record if needed.
+        Update order status and send email notification for specific status changes.
 
         Args:
             input: Contains orderId, status, driverId (optional), scheduleTime (optional),
@@ -190,7 +207,7 @@ class OrderMutation:
             # ✅ Assign Delivery only if status is READY_FOR_DELIVERY
             if input.status == "READY_FOR_DELIVERY":
                 if not input.driverId:
-                    raise ValueError("Driver ID is required for READY_FOR_DELIVERY.")
+                    raise ValueError("Driver ID is required for READY_FOR_DELIVERY status.")
                 if not input.scheduleTime:
                     raise ValueError("Schedule time is required for READY_FOR_DELIVERY.")
 
@@ -211,6 +228,19 @@ class OrderMutation:
                 order.status = OrderStatus[input.status]
                 db.commit()
                 db.refresh(order)
+
+                # Send email notification for specific status changes
+                email_statuses = ["ACCEPTED", "PICKED_UP", "DELIVERED", "CANCELLED"]
+                if input.status in email_statuses:
+                    # Get user's email from the order
+                    user = db.query(UserModel).filter(UserModel.id == order.createdByUserId).first()
+                    if user and user.email:
+                        email_service = EmailService()
+                        email_service.send_order_status_update(
+                            to_email=user.email,
+                            order_id=str(order.id),
+                            status=input.status
+                        )
 
             return order
 

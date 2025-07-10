@@ -46,12 +46,15 @@ class StoreMutation:
         address: str,
         email: str,
         manager_user_id: int,
+        display_field: str,
         radius: Optional[float] = None,
         mobile: Optional[str] = None,
         description: Optional[str] = None,
         tnc: Optional[str] = None,
         store_delivery_fee: Optional[float] = None,
-        tax_percentage: Optional[float] = None
+        tax_percentage: Optional[float] = None,
+        section_headers: Optional[List[str]] = None,
+        pincodes: Optional[List[str]] = None
     ) -> Store:
         """
         Create a new store
@@ -61,25 +64,31 @@ class StoreMutation:
             address: Store address
             email: Store email (must be unique)
             manager_user_id: ID of the user who manages this store
+            display_field: Unique display field for the store
             radius: Optional delivery radius for the store
             mobile: Optional store phone number (must be unique if provided)
             description: Optional store description/timings/notes
             tnc: Optional terms and conditions as dot-separated values
             store_delivery_fee: Optional store delivery fee
             tax_percentage: Optional store tax percentage
+            section_headers: Optional list of section header strings
+            pincodes: Optional list of pincodes
         """
         try:
             return create_store(
                 name, 
                 address, 
                 manager_user_id, 
-                email, 
+                email,
+                display_field,
                 radius, 
                 mobile, 
                 description, 
                 tnc,
                 store_delivery_fee,
-                tax_percentage
+                tax_percentage,
+                section_headers=section_headers,
+                pincodes=pincodes
             )
         except ValueError as e:
             raise Exception(str(e))
@@ -100,7 +109,9 @@ class StoreMutation:
         pincodes: Optional[List[str]] = None,
         tnc: Optional[str] = None,
         store_delivery_fee: Optional[float] = None,
-        tax_percentage: Optional[float] = None
+        tax_percentage: Optional[float] = None,
+        section_headers: Optional[List[str]] = None,
+        display_field: Optional[str] = None
     ) -> Optional[Store]:
         """
         Update an existing store
@@ -120,6 +131,8 @@ class StoreMutation:
             tnc: Optional terms and conditions as dot-separated values
             store_delivery_fee: Optional store delivery fee
             tax_percentage: Optional tax percentage
+            section_headers: Optional list of section header strings
+            display_field: Optional new display field (must be unique if provided)
         """
         try:
             store = update_store(
@@ -136,7 +149,9 @@ class StoreMutation:
                 pincodes,
                 tnc,
                 store_delivery_fee,
-                tax_percentage
+                tax_percentage,
+                section_headers,
+                display_field
             )
             if not store:
                 raise Exception(f"Store with ID {store_id} not found")

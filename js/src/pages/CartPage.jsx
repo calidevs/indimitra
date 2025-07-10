@@ -23,6 +23,9 @@ import {
   CircularProgress,
   ToggleButton,
   ToggleButtonGroup,
+  RadioGroup,
+  Radio,
+  InputAdornment,
 } from '@mui/material';
 import {
   Remove,
@@ -34,6 +37,9 @@ import {
   ShoppingBag,
   LocalShipping,
   Payment,
+  Store,
+  Home,
+  CheckCircle,
 } from '@mui/icons-material';
 import useStore, { useAuthStore, useAddressStore } from './../store/useStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -44,6 +50,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import LoginModal from './Login/LoginModal';
 import AddressAutocomplete from '@/components/AddressAutocomplete/AddressAutocomplete';
 import { fetchAuthSession } from '@aws-amplify/auth';
+import FilterIcon from '@mui/icons-material/FilterList';
 
 // Replace LoadingSpinner with CircularProgress
 const LoadingSpinner = ({ size = 24, sx }) => (
@@ -221,6 +228,13 @@ const CartPage = () => {
     selectedStore,
     getCartTotals,
     setTipAmount,
+    customOrder,
+    setCustomOrder,
+    pickupAddress,
+    setPickupAddress,
+    deliveryType,
+    setDeliveryType,
+    tipAmount,
   } = useStore();
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
@@ -231,6 +245,10 @@ const CartPage = () => {
   const queryClient = useQueryClient();
   const [tipPercentage, setTipPercentage] = useState(0);
   const [customTip, setCustomTip] = useState('');
+  const [selectedPickupId, setSelectedPickupId] = useState(null);
+
+  // Track if user has manually selected an address
+  const [userSelectedAddress, setUserSelectedAddress] = useState(false);
 
   // Fetch user profile when component mounts
   useEffect(() => {
@@ -262,8 +280,15 @@ const CartPage = () => {
   const [isValidAddress, setIsValidAddress] = useState(false);
   const boxCount = Object.values(cart).reduce((acc, item) => acc + (item.quantity || 0), 0);
 
-  // Get all totals from the store
-  const { subtotal, deliveryFee, taxAmount, taxPercentage, tipAmount, total } = getCartTotals();
+  // State to store cart totals
+  const [cartTotals, setCartTotals] = useState({
+    subtotal: 0,
+    deliveryFee: 0,
+    taxAmount: 0,
+    taxPercentage: 0,
+    tipAmount: 0,
+    total: 0,
+  });
 
   // Fetch addresses when modal opens and user profile is available
   useEffect(() => {
@@ -277,6 +302,80 @@ const CartPage = () => {
     console.log('Addresses from store:', addresses);
     console.log('Selected address ID:', selectedAddressId);
   }, [addresses, selectedAddressId]);
+
+  // Set initial pickup address if available in store
+  useEffect(() => {
+    if (pickupAddress) {
+      setSelectedPickupId(String(pickupAddress.id));
+      setDeliveryType('pickup');
+      setSelectedAddressId(null);
+    }
+  }, [pickupAddress, setDeliveryType]);
+
+  // Recalculate totals when delivery type, cart, or tip amount changes
+  useEffect(() => {
+    console.log('Recalculating totals for delivery type:', deliveryType);
+    const totals = getCartTotals();
+    setCartTotals(totals);
+  }, [deliveryType, cart, getCartTotals, tipAmount]);
+
+  // Destructure totals from state
+  const {
+    subtotal,
+    deliveryFee,
+    taxAmount,
+    taxPercentage,
+    tipAmount: localTipAmount,
+    total,
+  } = cartTotals;
+
+  // Set default selection for delivery/pickup when addresses are loaded
+  useEffect(() => {
+    // If user has manually selected an address, do not auto-select
+    if (userSelectedAddress) return;
+
+    // If pickup addresses are available and nothing is selected, select the first pickup address
+    if (
+      selectedStore?.pickupAddresses?.edges?.length > 0 &&
+      !selectedPickupId &&
+      !selectedAddressId
+    ) {
+      const firstPickupAddress = selectedStore.pickupAddresses.edges[0].node;
+      setSelectedPickupId(String(firstPickupAddress.id));
+      setDeliveryType('pickup');
+      setSelectedAddressId(null);
+      return;
+    }
+
+    // If delivery addresses are available and nothing is selected, select the primary address
+    if (addresses && addresses.length > 0 && !selectedPickupId && !selectedAddressId) {
+      const primary = addresses.find((addr) => addr.isPrimary) || addresses[0];
+      setSelectedAddressId(primary.id);
+      setDeliveryType('delivery');
+      setSelectedPickupId(null);
+      return;
+    }
+
+    // If neither is available, default to pickup but don't select anything
+    if (
+      (!selectedStore?.pickupAddresses?.edges?.length ||
+        selectedStore?.pickupAddresses?.edges?.length === 0) &&
+      (!addresses || addresses.length === 0) &&
+      !selectedPickupId &&
+      !selectedAddressId
+    ) {
+      setDeliveryType('pickup');
+    }
+    // eslint-disable-next-line
+  }, [selectedStore?.pickupAddresses?.edges, addresses, userSelectedAddress]);
+
+  // When user selects a delivery address, mark as manual selection
+  const handleAddressDropdownChange = (e) => {
+    setSelectedAddressId(e.target.value);
+    setDeliveryType('delivery');
+    setSelectedPickupId(null);
+    setUserSelectedAddress(true);
+  };
 
   const { mutate, isPending } = useMutation({
     mutationKey: ['createOrder'],
@@ -297,6 +396,7 @@ const CartPage = () => {
       }
       console.log('Order placed successfully:', response);
       clearCart();
+      setCustomOrder(''); // Clear the custom order
       setIsOrderPlaced(true);
       setTimeout(() => {
         setIsOrderPlaced(false);
@@ -313,8 +413,9 @@ const CartPage = () => {
   const handleOrderPlacement = async () => {
     setError(''); // Clear any previous errors
 
-    if (!selectedAddressId) {
-      setError('Please select a delivery address');
+    // Validate that either pickup or delivery is selected
+    if (!selectedPickupId && !selectedAddressId) {
+      setError('Please select either a pickup location or delivery address');
       return;
     }
 
@@ -323,21 +424,36 @@ const CartPage = () => {
       quantity: item.quantity,
     }));
 
-    // Get all the totals from the store
-    const { subtotal, deliveryFee, taxAmount, tipAmount, total } = getCartTotals();
+    // Get the selected pickup address if pickup is selected
+    let pickupAddress = null;
+    if (selectedPickupId) {
+      const addresses = selectedStore.pickupAddresses.edges.map((e) => e.node);
+      pickupAddress = addresses.find((addr) => String(addr.id) === String(selectedPickupId));
+    }
 
-    mutate({
+    // Get the selected delivery address if delivery is selected
+    let deliveryAddress = null;
+    if (selectedAddressId) {
+      deliveryAddress = addresses.find((addr) => addr.id === selectedAddressId);
+    }
+
+    const variables = {
       userId: userProfile.id,
       addressId: selectedAddressId,
+      pickupId: selectedPickupId ? parseInt(selectedPickupId, 10) : null,
       storeId: selectedStore.id,
       productItems: orderItems,
       totalAmount: subtotal,
       orderTotalAmount: total,
-      deliveryFee: deliveryFee,
-      tipAmount: tipAmount,
+      pickupOrDelivery: deliveryType, // Use deliveryType from store
+      deliveryFee: deliveryType === 'pickup' ? 0 : deliveryFee, // Use deliveryType to determine fee
+      tipAmount: tipAmount, // Use tipAmount from store
       taxAmount: taxAmount,
-      deliveryInstructions: deliveryInstructions,
-    });
+      deliveryInstructions: deliveryType === 'pickup' ? null : deliveryInstructions, // Use deliveryType
+      customOrder: customOrder,
+    };
+
+    mutate(variables);
   };
 
   const handleAddAddress = async () => {
@@ -378,8 +494,8 @@ const CartPage = () => {
     if (newTipPercentage !== null) {
       setTipPercentage(newTipPercentage);
       setCustomTip('');
-      const tipAmount = (subtotal * newTipPercentage) / 100;
-      setTipAmount(tipAmount);
+      const calculatedTipAmount = (subtotal * newTipPercentage) / 100;
+      setTipAmount(calculatedTipAmount);
     }
   };
 
@@ -388,8 +504,8 @@ const CartPage = () => {
     const value = event.target.value;
     setCustomTip(value);
     setTipPercentage(0);
-    const tipAmount = parseFloat(value) || 0;
-    setTipAmount(tipAmount);
+    const calculatedTipAmount = parseFloat(value) || 0;
+    setTipAmount(calculatedTipAmount);
   };
 
   return (
@@ -411,9 +527,29 @@ const CartPage = () => {
       </Typography>
 
       {isOrderPlaced ? (
-        <Alert severity="success" sx={{ mb: 3 }}>
-          Order placed successfully!
-        </Alert>
+        <Paper
+          elevation={4}
+          sx={{
+            mb: 3,
+            p: 4,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            borderRadius: 3,
+            background: 'linear-gradient(135deg, #e0ffe8 0%, #f8fff8 100%)',
+            boxShadow: 6,
+            border: '2px solid #4caf50',
+          }}
+        >
+          <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
+          <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main', mb: 1 }}>
+            Order placed successfully!
+          </Typography>
+          <Typography variant="h6" sx={{ color: 'text.secondary', mb: 2, textAlign: 'center' }}>
+            Thank you for your purchase. Your order is being processed and you'll receive an update
+            soon!
+          </Typography>
+        </Paper>
       ) : (
         <Grid container spacing={3}>
           {/* Cart Items Section */}
@@ -425,7 +561,7 @@ const CartPage = () => {
                 </Alert>
               )}
 
-              {Object.values(cart).length > 0 ? (
+              {Object.values(cart).length > 0 || customOrder ? (
                 <>
                   <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>
                     Cart Items
@@ -489,6 +625,51 @@ const CartPage = () => {
                       </CardContent>
                     </Card>
                   ))}
+
+                  {/* Custom Order Items */}
+                  {customOrder && (
+                    <Card sx={{ mb: 2, position: 'relative', bgcolor: 'primary.lighter' }}>
+                      <CardContent>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                          <ShoppingBag color="primary" />
+                          <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
+                            Custom Shopping List
+                          </Typography>
+                        </Box>
+                        <Box
+                          sx={{
+                            p: 2,
+                            bgcolor: 'background.paper',
+                            borderRadius: 1,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                          }}
+                        >
+                          <Typography
+                            variant="body1"
+                            sx={{
+                              whiteSpace: 'pre-line',
+                              fontFamily: 'monospace',
+                              lineHeight: 1.6,
+                            }}
+                          >
+                            {customOrder}
+                          </Typography>
+                        </Box>
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                          <Button
+                            variant="outlined"
+                            color="error"
+                            size="small"
+                            onClick={() => setCustomOrder('')}
+                            startIcon={<Remove />}
+                          >
+                            Remove List
+                          </Button>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  )}
                 </>
               ) : (
                 <Box sx={{ textAlign: 'center', py: 4 }}>
@@ -615,7 +796,7 @@ const CartPage = () => {
                       }}
                     >
                       <Typography>Tip Amount</Typography>
-                      <Typography>${tipAmount.toFixed(2)}</Typography>
+                      <Typography>${localTipAmount.toFixed(2)}</Typography>
                     </Box>
                   </Grid>
                   <Grid item xs={12}>
@@ -630,14 +811,47 @@ const CartPage = () => {
                 </Grid>
               </Box>
 
-              {/* Delivery Address Section */}
+              {/* Custom Order Details */}
+              {customOrder && (
+                <Box sx={{ mb: 3 }}>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
+                  >
+                    <ShoppingBag /> Custom Order Details
+                  </Typography>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      borderRadius: 2,
+                      backgroundColor: 'background.paper',
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        whiteSpace: 'pre-line',
+                        color: 'text.secondary',
+                        fontFamily: 'monospace',
+                      }}
+                    >
+                      {customOrder}
+                    </Typography>
+                  </Paper>
+                </Box>
+              )}
+
+              {/* Delivery/Pickup Address Section */}
               {userProfile && (
                 <Box sx={{ mb: 3 }}>
                   <Typography
                     variant="subtitle1"
                     sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}
                   >
-                    <LocalShipping /> Delivery Address
+                    <LocalShipping /> Delivery/Pickup Options
                   </Typography>
 
                   {isProfileLoading ? (
@@ -645,79 +859,174 @@ const CartPage = () => {
                       <LoadingSpinner size={24} />
                     </Box>
                   ) : (
-                    <Box>
-                      <FormControl fullWidth sx={{ mb: 2 }}>
-                        <InputLabel>Select Address</InputLabel>
-                        {isLoadingAddresses ? (
-                          <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                            <LoadingSpinner size={24} />
-                          </Box>
-                        ) : (
-                          <Select
-                            value={selectedAddressId || ''}
-                            onChange={(e) => setSelectedAddressId(e.target.value)}
-                          >
-                            {addresses && addresses.length > 0 ? (
-                              addresses.map((addr) => (
-                                <MenuItem key={addr.id} value={addr.id}>
-                                  {addr.address} {addr.isPrimary ? '(Primary)' : ''}
-                                </MenuItem>
-                              ))
-                            ) : (
-                              <MenuItem disabled>No addresses available</MenuItem>
-                            )}
-                          </Select>
-                        )}
-                      </FormControl>
-
-                      <Button
-                        fullWidth
-                        variant="outlined"
-                        startIcon={showAddressForm ? <ExpandLess /> : <ExpandMore />}
-                        onClick={() => setShowAddressForm(!showAddressForm)}
-                        sx={{ mb: 2 }}
-                      >
-                        {showAddressForm ? 'Cancel' : 'Add New Address'}
-                      </Button>
-
-                      <Collapse in={showAddressForm}>
-                        <Box
+                    <Stack spacing={3}>
+                      {/* Pickup Address Section */}
+                      {selectedStore?.pickupAddresses?.edges?.length > 0 && (
+                        <Paper
+                          elevation={deliveryType === 'pickup' ? 4 : 1}
                           sx={{
                             p: 2,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            borderRadius: 1,
+                            bgcolor: deliveryType === 'pickup' ? 'primary.lighter' : 'grey.50',
+                            opacity: deliveryType === 'delivery' && selectedAddressId ? 0.5 : 1,
+                            border:
+                              deliveryType === 'pickup' ? '2px solid #1976d2' : '1px solid #eee',
+                            transition: 'all 0.2s',
                           }}
                         >
-                          <Stack spacing={2}>
-                            <AddressAutocomplete
-                              value={newAddress}
-                              onChange={setNewAddress}
-                              onValidAddress={setIsValidAddress}
-                            />
-                            <FormControlLabel
-                              control={
-                                <Checkbox
-                                  checked={isPrimary}
-                                  onChange={(e) => setIsPrimary(e.target.checked)}
-                                />
+                          <Typography
+                            variant="subtitle1"
+                            sx={{
+                              mb: 1,
+                              fontWeight: 600,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1,
+                            }}
+                          >
+                            <Store fontSize="small" color="primary" /> Pickup Address
+                          </Typography>
+                          <RadioGroup
+                            value={selectedPickupId || ''}
+                            onChange={(e) => {
+                              const pickupId = e.target.value;
+                              setSelectedPickupId(pickupId);
+                              setDeliveryType('pickup');
+                              setSelectedAddressId(null);
+
+                              // Find and set the selected pickup address in the store
+                              const addresses = selectedStore.pickupAddresses.edges.map(
+                                (e) => e.node
+                              );
+                              const selectedAddress = addresses.find(
+                                (addr) => String(addr.id) === String(pickupId)
+                              );
+                              if (selectedAddress) {
+                                setPickupAddress(selectedAddress);
                               }
-                              label="Set as Primary Address"
-                            />
-                            <Button
-                              variant="contained"
-                              onClick={handleAddAddress}
-                              disabled={!newAddress.trim() || isAddingAddress || !isValidAddress}
-                              startIcon={
-                                isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />
-                              }
+                            }}
+                          >
+                            {selectedStore.pickupAddresses.edges.map(({ node: addr }) => (
+                              <FormControlLabel
+                                key={addr.id}
+                                value={String(addr.id)}
+                                control={<Radio color="primary" />}
+                                label={addr.address}
+                              />
+                            ))}
+                          </RadioGroup>
+                        </Paper>
+                      )}
+
+                      {/* Home Delivery Section */}
+                      <Paper
+                        elevation={deliveryType === 'delivery' ? 4 : 1}
+                        sx={{
+                          p: 2,
+                          bgcolor: deliveryType === 'delivery' ? 'secondary.lighter' : 'grey.50',
+                          opacity: deliveryType === 'pickup' && selectedPickupId ? 0.5 : 1,
+                          border:
+                            deliveryType === 'delivery' ? '2px solid #9c27b0' : '1px solid #eee',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        <Typography
+                          variant="subtitle1"
+                          sx={{
+                            mb: 1,
+                            fontWeight: 600,
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: 1,
+                          }}
+                        >
+                          <Home fontSize="small" color="secondary" /> Home Delivery Address
+                        </Typography>
+                        <Box>
+                          <FormControl fullWidth sx={{ mb: 2 }}>
+                            <InputLabel>Select Address</InputLabel>
+                            {isLoadingAddresses ? (
+                              <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                                <LoadingSpinner size={24} />
+                              </Box>
+                            ) : (
+                              <Select
+                                value={selectedAddressId || ''}
+                                onChange={handleAddressDropdownChange}
+                                label="Select Address"
+                                inputProps={{}}
+                                InputProps={{
+                                  startAdornment: (
+                                    <InputAdornment position="start">
+                                      <FilterIcon />
+                                    </InputAdornment>
+                                  ),
+                                }}
+                              >
+                                {addresses && addresses.length > 0 ? (
+                                  addresses.map((addr) => (
+                                    <MenuItem key={addr.id} value={addr.id}>
+                                      {addr.address} {addr.isPrimary ? '(Primary)' : ''}
+                                    </MenuItem>
+                                  ))
+                                ) : (
+                                  <MenuItem disabled>No addresses available</MenuItem>
+                                )}
+                              </Select>
+                            )}
+                          </FormControl>
+
+                          <Button
+                            fullWidth
+                            variant="outlined"
+                            startIcon={showAddressForm ? <ExpandLess /> : <ExpandMore />}
+                            onClick={() => setShowAddressForm(!showAddressForm)}
+                            sx={{ mb: 2 }}
+                          >
+                            {showAddressForm ? 'Cancel' : 'Add New Address'}
+                          </Button>
+
+                          <Collapse in={showAddressForm}>
+                            <Box
+                              sx={{
+                                p: 2,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                borderRadius: 1,
+                              }}
                             >
-                              {isAddingAddress ? 'Adding...' : 'Add Address'}
-                            </Button>
-                          </Stack>
+                              <Stack spacing={2}>
+                                <AddressAutocomplete
+                                  value={newAddress}
+                                  onChange={setNewAddress}
+                                  onValidAddress={setIsValidAddress}
+                                />
+                                <FormControlLabel
+                                  control={
+                                    <Checkbox
+                                      checked={isPrimary}
+                                      onChange={(e) => setIsPrimary(e.target.checked)}
+                                    />
+                                  }
+                                  label="Set as Primary Address"
+                                />
+                                <Button
+                                  variant="contained"
+                                  onClick={handleAddAddress}
+                                  disabled={
+                                    !newAddress.trim() || isAddingAddress || !isValidAddress
+                                  }
+                                  startIcon={
+                                    isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />
+                                  }
+                                >
+                                  {isAddingAddress ? 'Adding...' : 'Add Address'}
+                                </Button>
+                              </Stack>
+                            </Box>
+                          </Collapse>
                         </Box>
-                      </Collapse>
-                    </Box>
+                      </Paper>
+                    </Stack>
                   )}
                 </Box>
               )}
@@ -747,10 +1056,10 @@ const CartPage = () => {
                   size="large"
                   onClick={handleOrderPlacement}
                   disabled={
-                    Object.values(cart).length === 0 ||
                     isPending ||
-                    !selectedAddressId ||
-                    isProfileLoading
+                    isProfileLoading ||
+                    (!selectedAddressId && !selectedPickupId) ||
+                    (Object.values(cart).length === 0 && !customOrder?.trim())
                   }
                   startIcon={isPending ? <LoadingSpinner size={20} /> : <Payment />}
                   sx={{

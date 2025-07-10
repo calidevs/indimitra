@@ -36,5 +36,5 @@ class ProductMutation:
         categoryId: int,
         image: Optional[str] = None
     ) -> Product:
-        """Update an existing product"""
+        """Update a product's details"""
         return update_product(product_id, name, description, categoryId, image)

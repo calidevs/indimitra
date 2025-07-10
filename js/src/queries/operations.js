@@ -16,27 +16,33 @@ export const PRODUCTS_QUERY = `
 export const CREATE_ORDER_MUTATION = `
   mutation CreateOrder(
     $userId: Int!
-    $addressId: Int!
     $storeId: Int!
     $productItems: [OrderItemInput!]!
     $totalAmount: Float!
     $orderTotalAmount: Float!
+    $pickupOrDelivery: String!
+    $addressId: Int
+    $pickupId: Int
     $deliveryFee: Float
     $tipAmount: Float
     $taxAmount: Float
     $deliveryInstructions: String
+    $customOrder: String
   ) {
     createOrder(
       userId: $userId
-      addressId: $addressId
       storeId: $storeId
       productItems: $productItems
       totalAmount: $totalAmount
       orderTotalAmount: $orderTotalAmount
+      pickupOrDelivery: $pickupOrDelivery
+      addressId: $addressId
+      pickupId: $pickupId
       deliveryFee: $deliveryFee
       tipAmount: $tipAmount
       taxAmount: $taxAmount
       deliveryInstructions: $deliveryInstructions
+      customOrder: $customOrder
     ) {
       id
       status
@@ -81,6 +87,7 @@ export const GET_USER_ORDERS = `
       cancelledAt
       cancelledByUserId
       createdByUserId
+      customOrder
       orderTotalAmount
       paymentId
       status
@@ -88,6 +95,13 @@ export const GET_USER_ORDERS = `
       taxAmount
       tipAmount
       totalAmount
+      type
+      pickupId
+      pickupAddress {
+        id
+        address
+        storeId
+      }
       address { 
         id
         address
@@ -266,26 +280,40 @@ export const GET_ORDERS_BY_STORE = `
     getOrdersByStore(storeId: $storeId) {
       id
       addressId
+      billUrl
+      cancelMessage
       cancelledAt
       cancelledByUserId
       createdByUserId
+      customOrder
       deliveryDate
+      deliveryFee
       deliveryInstructions
+      displayCode
       id
+      orderTotalAmount
       paymentId
+      pickupId
       status
       storeId
-      totalAmount
-      orderTotalAmount
-      deliveryFee
-      tipAmount
       taxAmount
+      tipAmount
+      totalAmount
+      type
+      pickupAddress {
+        address
+        id
+        storeId
+      }
       address {
         address
+        id
+        userId
       }
       creator {
-        mobile
         email
+        id
+        mobile
       }
       delivery {
         driverId
@@ -510,13 +538,15 @@ export const GET_STORE_WITH_INVENTORY = `
       tnc
       storeDeliveryFee
       taxPercentage
+      displayField
+      sectionHeaders
     }
   }
 `;
 
 export const GET_ALL_STORES = `
   query GetAllStores {
-    stores(disabled: false) {
+    stores(disabled: false, isActive: true) {
       id
       name
       address
@@ -531,6 +561,29 @@ export const GET_ALL_STORES = `
       tnc
       storeDeliveryFee
       taxPercentage
+      displayField
+      sectionHeaders
+      fees {
+        edges {
+          node {
+            feeCurrency
+            feeRate
+            id
+            limit
+            storeId
+            type
+          }
+        }
+      }
+      pickupAddresses {
+        edges {
+          node {
+            address
+            id
+            storeId
+          }
+        }
+      }
     }
   }
 `;
@@ -581,6 +634,8 @@ export const GET_STORES = `
       tnc
       storeDeliveryFee
       taxPercentage
+      displayField
+      sectionHeaders
       drivers {
         edges {
           node {
@@ -632,8 +687,20 @@ export const CREATE_PRODUCT = `
 `;
 
 export const UPDATE_PRODUCT = `
-  mutation UpdateProduct($productId: Int!, $name: String!, $description: String!, $categoryId: Int!, $image: String) {
-    updateProduct(productId: $productId, name: $name, description: $description, categoryId: $categoryId, image: $image) {
+  mutation UpdateProduct(
+    $productId: Int!,
+    $name: String!,
+    $description: String!,
+    $categoryId: Int!,
+    $image: String
+  ) {
+    updateProduct(
+      productId: $productId,
+      name: $name,
+      description: $description,
+      categoryId: $categoryId,
+      image: $image
+    ) {
       id
       name
       description

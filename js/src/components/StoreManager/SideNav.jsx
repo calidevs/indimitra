@@ -22,6 +22,9 @@ import {
   Settings as SettingsIcon,
   ChevronLeft as ChevronLeftIcon,
   LocalShipping as DeliveryIcon,
+  Payments as PaymentsIcon,
+  LocationOn as LocationIcon,
+  LocalShipping as PickupIcon,
 } from '@mui/icons-material';
 import { ROUTES } from '@/config/constants/routes';
 import { DrawerContext } from './Layout';
@@ -34,6 +37,9 @@ const menuItems = [
   { text: 'Orders', icon: <OrdersIcon />, path: ROUTES.STORE_ORDERS },
   { text: 'Delivery Partners', icon: <DeliveryIcon />, path: '/store_manager/delivery-partners' },
   { text: 'Inventory', icon: <InventoryIcon />, path: '/store_manager/inventory' },
+  { text: 'Delivery Fees', icon: <PaymentsIcon />, path: '/store_manager/delivery-fees' },
+  { text: 'Location Codes', icon: <LocationIcon />, path: '/store_manager/location-codes' },
+  { text: 'Pickup Addresses', icon: <PickupIcon />, path: '/store_manager/pickup-addresses' },
   { text: 'Settings', icon: <SettingsIcon />, path: '/store_manager/settings' },
 ];
 

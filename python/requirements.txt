@@ -12,3 +12,4 @@ email-validator==2.0.0
 python-dotenv
 strawberry-sqlalchemy-mapper
 boto3==1.28.38
+sendgrid==6.10.0

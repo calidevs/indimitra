@@ -43,6 +43,9 @@ import {
   Upload as UploadIcon,
   Visibility as VisibilityIcon,
   Delete as DeleteIcon,
+  ShoppingBag,
+  LocalShipping,
+  Download as DownloadIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/useStore';
 import { useStore } from '@/store/useStore';
@@ -59,6 +62,18 @@ import Layout from '@/components/StoreManager/Layout';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { fetchUserAttributes } from 'aws-amplify/auth';
 import graphqlService from '@/config/graphql/graphqlService';
+import { jsPDF } from 'jspdf';
+import {
+  Document as DocxDocument,
+  Packer,
+  Paragraph,
+  TextRun,
+  Table as DocxTable,
+  TableRow as DocxTableRow,
+  TableCell as DocxTableCell,
+  WidthType,
+} from 'docx';
+import { saveAs } from 'file-saver';
 
 const client = generateClient();
 
@@ -164,6 +179,18 @@ const StoreOrders = () => {
   const [editItemDialogOpen, setEditItemDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [newQuantity, setNewQuantity] = useState(1);
+  const [downloadDialogOpen, setDownloadDialogOpen] = useState(false);
+  const [selectedOrderForDownload, setSelectedOrderForDownload] = useState(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // Set isInitialLoad to false after component mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsInitialLoad(false);
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   // Fetch Cognito ID on component mount
   useEffect(() => {
@@ -685,7 +712,414 @@ const StoreOrders = () => {
     }
   };
 
-  if (profileLoading || ordersLoading || driversLoading) {
+  const generatePDF = (orders) => {
+    const doc = new jsPDF();
+    let yOffset = 20;
+    const lineHeight = 7;
+    const margin = 20;
+    const pageWidth = doc.internal.pageSize.width;
+
+    // Add title
+    doc.setFontSize(16);
+    doc.text('Orders Report', margin, yOffset);
+    yOffset += lineHeight * 2;
+
+    // Add filters info
+    doc.setFontSize(10);
+    if (searchTerm) {
+      doc.text(`Search Term: ${searchTerm}`, margin, yOffset);
+      yOffset += lineHeight;
+    }
+    if (statusFilter !== 'ALL') {
+      doc.text(`Status Filter: ${statusFilter}`, margin, yOffset);
+      yOffset += lineHeight;
+    }
+    yOffset += lineHeight;
+
+    // Add orders
+    orders.forEach((order, index) => {
+      // Check if we need a new page
+      if (yOffset > doc.internal.pageSize.height - 40) {
+        doc.addPage();
+        yOffset = 20;
+      }
+
+      // Order header
+      doc.setFontSize(12);
+      doc.text(`Order #${order.id}`, margin, yOffset);
+      yOffset += lineHeight;
+      doc.text(`Order Code: ${order.displayCode || 'N/A'}`, margin, yOffset);
+      yOffset += lineHeight * 1.5;
+
+      // Order details
+      doc.setFontSize(10);
+      const details = [
+        `Type: ${order.type === 'PICKUP' ? 'Pickup' : 'Delivery'}`,
+        `Status: ${ORDER_STATUSES.find((s) => s.value === order.status)?.label || order.status}`,
+        `Total: $${order.orderTotalAmount}`,
+        `Customer: ${order.creator?.email || 'N/A'}`,
+        `Phone: ${order.creator?.mobile || 'N/A'}`,
+        `Address: ${order.type === 'PICKUP' ? order.pickupAddress?.address : order.address?.address || 'N/A'}`,
+      ];
+
+      details.forEach((detail) => {
+        doc.text(detail, margin + 5, yOffset);
+        yOffset += lineHeight;
+      });
+
+      // Custom Order Details
+      if (order.customOrder) {
+        yOffset += lineHeight;
+        doc.setFontSize(11);
+        doc.text('Custom Order Details:', margin + 5, yOffset);
+        yOffset += lineHeight;
+
+        // Split by double newlines to separate Q&A pairs
+        const qaPairs = order.customOrder.split('\n\n');
+        qaPairs.forEach((pair) => {
+          const [question, ...answerLines] = pair.split('\n');
+          if (question && answerLines.length > 0) {
+            doc.setFontSize(10);
+            doc.text(`Q: ${question}`, margin + 10, yOffset);
+            yOffset += lineHeight;
+
+            // Add each answer line with indentation
+            answerLines.forEach((line) => {
+              doc.text(`A: ${line}`, margin + 15, yOffset);
+              yOffset += lineHeight;
+            });
+            yOffset += lineHeight * 0.5; // Add some space after each Q&A group
+          }
+        });
+      }
+
+      // Order items
+      if (order.orderItems?.edges?.length > 0) {
+        yOffset += lineHeight;
+        doc.setFontSize(11);
+        doc.text('Items:', margin + 5, yOffset);
+        yOffset += lineHeight;
+
+        order.orderItems.edges.forEach(({ node }) => {
+          const price = node.product?.inventoryItems?.edges[0]?.node?.price || 0;
+          const itemText = `${node.product?.name || 'N/A'} - Qty: ${node.quantity} - Price: $${price} - Total: $${node.quantity * price}`;
+          doc.text(itemText, margin + 10, yOffset);
+          yOffset += lineHeight;
+        });
+      }
+
+      yOffset += lineHeight * 2;
+    });
+
+    return doc;
+  };
+
+  const generateDOCX = (orders) => {
+    const doc = new DocxDocument({
+      sections: [
+        {
+          properties: {},
+          children: [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: 'Orders Report',
+                  bold: true,
+                  size: 32,
+                }),
+              ],
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: searchTerm ? `Search Term: ${searchTerm}` : '',
+                  size: 24,
+                }),
+              ],
+            }),
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: statusFilter !== 'ALL' ? `Status Filter: ${statusFilter}` : '',
+                  size: 24,
+                }),
+              ],
+            }),
+            ...orders
+              .map((order) => [
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: `Order #${order.id}`,
+                      bold: true,
+                      size: 28,
+                    }),
+                  ],
+                }),
+                new Paragraph({
+                  children: [
+                    new TextRun({
+                      text: `Order Code: ${order.displayCode || 'N/A'}`,
+                      size: 24,
+                    }),
+                  ],
+                }),
+                new DocxTable({
+                  width: {
+                    size: 100,
+                    type: WidthType.PERCENTAGE,
+                  },
+                  rows: [
+                    new DocxTableRow({
+                      children: [
+                        new DocxTableCell({
+                          children: [new Paragraph('Type')],
+                          width: { size: 20, type: WidthType.PERCENTAGE },
+                        }),
+                        new DocxTableCell({
+                          children: [
+                            new Paragraph(order.type === 'PICKUP' ? 'Pickup' : 'Delivery'),
+                          ],
+                          width: { size: 80, type: WidthType.PERCENTAGE },
+                        }),
+                      ],
+                    }),
+                    new DocxTableRow({
+                      children: [
+                        new DocxTableCell({
+                          children: [new Paragraph('Status')],
+                          width: { size: 20, type: WidthType.PERCENTAGE },
+                        }),
+                        new DocxTableCell({
+                          children: [
+                            new Paragraph(
+                              ORDER_STATUSES.find((s) => s.value === order.status)?.label ||
+                                order.status
+                            ),
+                          ],
+                          width: { size: 80, type: WidthType.PERCENTAGE },
+                        }),
+                      ],
+                    }),
+                    new DocxTableRow({
+                      children: [
+                        new DocxTableCell({
+                          children: [new Paragraph('Total')],
+                          width: { size: 20, type: WidthType.PERCENTAGE },
+                        }),
+                        new DocxTableCell({
+                          children: [new Paragraph(`$${order.orderTotalAmount}`)],
+                          width: { size: 80, type: WidthType.PERCENTAGE },
+                        }),
+                      ],
+                    }),
+                    new DocxTableRow({
+                      children: [
+                        new DocxTableCell({
+                          children: [new Paragraph('Customer')],
+                          width: { size: 20, type: WidthType.PERCENTAGE },
+                        }),
+                        new DocxTableCell({
+                          children: [new Paragraph(order.creator?.email || 'N/A')],
+                          width: { size: 80, type: WidthType.PERCENTAGE },
+                        }),
+                      ],
+                    }),
+                    new DocxTableRow({
+                      children: [
+                        new DocxTableCell({
+                          children: [new Paragraph('Phone')],
+                          width: { size: 20, type: WidthType.PERCENTAGE },
+                        }),
+                        new DocxTableCell({
+                          children: [new Paragraph(order.creator?.mobile || 'N/A')],
+                          width: { size: 80, type: WidthType.PERCENTAGE },
+                        }),
+                      ],
+                    }),
+                    new DocxTableRow({
+                      children: [
+                        new DocxTableCell({
+                          children: [new Paragraph('Address')],
+                          width: { size: 20, type: WidthType.PERCENTAGE },
+                        }),
+                        new DocxTableCell({
+                          children: [
+                            new Paragraph(
+                              order.type === 'PICKUP'
+                                ? order.pickupAddress?.address
+                                : order.address?.address || 'N/A'
+                            ),
+                          ],
+                          width: { size: 80, type: WidthType.PERCENTAGE },
+                        }),
+                      ],
+                    }),
+                  ],
+                }),
+                // Custom Order Details
+                ...(order.customOrder
+                  ? [
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: 'Custom Order Details',
+                            bold: true,
+                            size: 24,
+                          }),
+                        ],
+                      }),
+                      new DocxTable({
+                        width: {
+                          size: 100,
+                          type: WidthType.PERCENTAGE,
+                        },
+                        rows: (() => {
+                          const qaPairs = order.customOrder.split('\n\n');
+                          return qaPairs
+                            .map((pair) => {
+                              const [question, ...answerLines] = pair.split('\n');
+                              if (question && answerLines.length > 0) {
+                                return new DocxTableRow({
+                                  children: [
+                                    new DocxTableCell({
+                                      children: [new Paragraph(question)],
+                                      width: { size: 30, type: WidthType.PERCENTAGE },
+                                    }),
+                                    new DocxTableCell({
+                                      children: [
+                                        new Paragraph({
+                                          children: answerLines
+                                            .map((line, index) => [
+                                              new TextRun(line),
+                                              ...(index < answerLines.length - 1
+                                                ? [new TextRun({ break: 1 })]
+                                                : []),
+                                            ])
+                                            .flat(),
+                                        }),
+                                      ],
+                                      width: { size: 70, type: WidthType.PERCENTAGE },
+                                    }),
+                                  ],
+                                });
+                              }
+                              return null;
+                            })
+                            .filter(Boolean);
+                        })(),
+                      }),
+                    ]
+                  : []),
+                // Order Items
+                ...(order.orderItems?.edges?.length > 0
+                  ? [
+                      new Paragraph({
+                        children: [
+                          new TextRun({
+                            text: 'Items',
+                            bold: true,
+                            size: 24,
+                          }),
+                        ],
+                      }),
+                      new DocxTable({
+                        width: {
+                          size: 100,
+                          type: WidthType.PERCENTAGE,
+                        },
+                        rows: [
+                          new DocxTableRow({
+                            children: [
+                              new DocxTableCell({
+                                children: [new Paragraph('Product')],
+                                width: { size: 40, type: WidthType.PERCENTAGE },
+                              }),
+                              new DocxTableCell({
+                                children: [new Paragraph('Quantity')],
+                                width: { size: 20, type: WidthType.PERCENTAGE },
+                              }),
+                              new DocxTableCell({
+                                children: [new Paragraph('Price')],
+                                width: { size: 20, type: WidthType.PERCENTAGE },
+                              }),
+                              new DocxTableCell({
+                                children: [new Paragraph('Total')],
+                                width: { size: 20, type: WidthType.PERCENTAGE },
+                              }),
+                            ],
+                          }),
+                          ...order.orderItems.edges.map(({ node }) => {
+                            const price = node.product?.inventoryItems?.edges[0]?.node?.price || 0;
+                            return new DocxTableRow({
+                              children: [
+                                new DocxTableCell({
+                                  children: [new Paragraph(node.product?.name || 'N/A')],
+                                  width: { size: 40, type: WidthType.PERCENTAGE },
+                                }),
+                                new DocxTableCell({
+                                  children: [new Paragraph(node.quantity.toString())],
+                                  width: { size: 20, type: WidthType.PERCENTAGE },
+                                }),
+                                new DocxTableCell({
+                                  children: [new Paragraph(`$${price}`)],
+                                  width: { size: 20, type: WidthType.PERCENTAGE },
+                                }),
+                                new DocxTableCell({
+                                  children: [new Paragraph(`$${node.quantity * price}`)],
+                                  width: { size: 20, type: WidthType.PERCENTAGE },
+                                }),
+                              ],
+                            });
+                          }),
+                        ],
+                      }),
+                    ]
+                  : []),
+                new Paragraph({}), // Add spacing between orders
+              ])
+              .flat(),
+          ],
+        },
+      ],
+    });
+
+    return doc;
+  };
+
+  const handleDownload = async (orders, format) => {
+    try {
+      if (format === 'pdf') {
+        const doc = generatePDF(orders);
+        doc.save(
+          `orders_${new Date().toISOString().replace(/[-:]/g, '').replace('T', '_').replace('Z', '')}.pdf`
+        );
+      } else {
+        const doc = generateDOCX(orders);
+        const blob = await Packer.toBlob(doc);
+        saveAs(
+          blob,
+          `orders_${new Date().toISOString().replace(/[-:]/g, '').replace('T', '_').replace('Z', '')}.docx`
+        );
+      }
+
+      setSnackbar({
+        open: true,
+        message: `Orders downloaded successfully in ${format.toUpperCase()} format!`,
+        severity: 'success',
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      setSnackbar({
+        open: true,
+        message: 'Failed to download orders. Please try again.',
+        severity: 'error',
+      });
+    }
+    setDownloadDialogOpen(false);
+  };
+
+  if (profileLoading || ordersLoading || driversLoading || isInitialLoad) {
     return (
       <Layout>
         <Box
@@ -697,7 +1131,7 @@ const StoreOrders = () => {
     );
   }
 
-  if (ordersError || driversError) {
+  if ((ordersError || driversError) && !isInitialLoad) {
     return (
       <Layout>
         <Alert severity="error" sx={{ mb: 2 }}>
@@ -723,7 +1157,7 @@ const StoreOrders = () => {
         <Card sx={{ mb: 3 }}>
           <CardContent>
             <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <TextField
                   fullWidth
                   placeholder="Search orders..."
@@ -738,7 +1172,7 @@ const StoreOrders = () => {
                   }}
                 />
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <TextField
                   select
                   fullWidth
@@ -761,10 +1195,21 @@ const StoreOrders = () => {
                   ))}
                 </TextField>
               </Grid>
-              <Grid item xs={12} md={4}>
+              <Grid item xs={12} md={3}>
                 <Typography variant="body2" color="textSecondary">
                   Total Orders: {filteredOrders.length}
                 </Typography>
+              </Grid>
+              <Grid item xs={12} md={3}>
+                <Button
+                  fullWidth
+                  variant="contained"
+                  startIcon={<DownloadIcon />}
+                  onClick={() => setDownloadDialogOpen(true)}
+                  disabled={filteredOrders.length === 0}
+                >
+                  Download Orders
+                </Button>
               </Grid>
             </Grid>
           </CardContent>
@@ -794,7 +1239,6 @@ const StoreOrders = () => {
                       />
                     </Box>
                   </TableCell>
-                  <TableCell>Delivery Instructions</TableCell>
                   <TableCell>
                     <Box
                       sx={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}
@@ -822,7 +1266,6 @@ const StoreOrders = () => {
                   <React.Fragment key={order.id}>
                     <TableRow>
                       <TableCell>{order.id}</TableCell>
-                      <TableCell>{order.deliveryInstructions || 'N/A'}</TableCell>
                       <TableCell>${order.orderTotalAmount}</TableCell>
                       <TableCell>
                         <Chip
@@ -884,6 +1327,54 @@ const StoreOrders = () => {
                         <TableCell colSpan={6}>
                           <Box sx={{ p: 2 }}>
                             <Grid container spacing={2}>
+                              {/* Order Information */}
+                              <Grid item xs={12}>
+                                <Typography
+                                  variant="subtitle1"
+                                  gutterBottom
+                                  sx={{ fontWeight: 'bold' }}
+                                >
+                                  Order Information
+                                </Typography>
+                                <Grid container spacing={2}>
+                                  <Grid item xs={12} md={4}>
+                                    <Typography>
+                                      <strong>Order Code:</strong> {order.displayCode || 'N/A'}
+                                    </Typography>
+                                  </Grid>
+                                  <Grid item xs={12} md={4}>
+                                    <Typography>
+                                      <strong>Type:</strong>{' '}
+                                      {order.type === 'PICKUP' ? (
+                                        <Box
+                                          component="span"
+                                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                                        >
+                                          <ShoppingBag fontSize="small" />
+                                          Pickup Order
+                                        </Box>
+                                      ) : (
+                                        <Box
+                                          component="span"
+                                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                                        >
+                                          <LocalShipping fontSize="small" />
+                                          Delivery Order
+                                        </Box>
+                                      )}
+                                    </Typography>
+                                  </Grid>
+                                  <Grid item xs={12} md={4}>
+                                    <Typography>
+                                      <strong>Address:</strong>{' '}
+                                      {order.type === 'PICKUP'
+                                        ? order.pickupAddress?.address || 'No pickup address'
+                                        : order.address?.address || 'No delivery address'}
+                                    </Typography>
+                                  </Grid>
+                                </Grid>
+                              </Grid>
+
                               {/* Customer Information */}
                               <Grid item xs={12}>
                                 <Typography
@@ -900,11 +1391,6 @@ const StoreOrders = () => {
                                   <Grid item xs={12} md={6}>
                                     <Typography>
                                       Phone: {order?.creator?.mobile || 'N/A'}
-                                    </Typography>
-                                  </Grid>
-                                  <Grid item xs={12}>
-                                    <Typography>
-                                      Delivery Address: {order?.address?.address || 'N/A'}
                                     </Typography>
                                   </Grid>
                                 </Grid>
@@ -1048,6 +1534,48 @@ const StoreOrders = () => {
                                   </TableBody>
                                 </Table>
                               </Grid>
+
+                              {/* Custom Order Details */}
+                              {order.customOrder && (
+                                <Grid item xs={12}>
+                                  <Typography
+                                    variant="subtitle1"
+                                    gutterBottom
+                                    sx={{ fontWeight: 'bold' }}
+                                  >
+                                    Custom Order Details
+                                  </Typography>
+                                  <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1 }}>
+                                    {order.customOrder.split('\n\n').map((pair, index) => {
+                                      const [question, ...answerLines] = pair.split('\n');
+                                      if (question && answerLines.length > 0) {
+                                        return (
+                                          <Box key={index} sx={{ mb: 2 }}>
+                                            <Typography
+                                              variant="subtitle2"
+                                              sx={{ color: 'text.secondary', mb: 0.5 }}
+                                            >
+                                              {question}
+                                            </Typography>
+                                            <Box sx={{ pl: 2 }}>
+                                              {answerLines.map((line, lineIndex) => (
+                                                <Typography
+                                                  key={lineIndex}
+                                                  variant="body2"
+                                                  sx={{ mb: 0.5 }}
+                                                >
+                                                  {line}
+                                                </Typography>
+                                              ))}
+                                            </Box>
+                                          </Box>
+                                        );
+                                      }
+                                      return null;
+                                    })}
+                                  </Box>
+                                </Grid>
+                              )}
 
                               {/* Order Summary */}
                               <Grid item xs={12}>
@@ -1295,6 +1823,50 @@ const StoreOrders = () => {
                   ? 'Delete'
                   : 'Update'}
             </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Update Download Format Dialog */}
+        <Dialog
+          open={downloadDialogOpen}
+          onClose={() => setDownloadDialogOpen(false)}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle>Download Orders</DialogTitle>
+          <DialogContent>
+            <Typography variant="body1" gutterBottom>
+              Download {filteredOrders.length} filtered orders
+            </Typography>
+            <Typography variant="body2" color="textSecondary" gutterBottom>
+              {searchTerm && `Search term: ${searchTerm}`}
+              {statusFilter !== 'ALL' && `\nStatus: ${statusFilter}`}
+            </Typography>
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={6}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  onClick={() => handleDownload(filteredOrders, 'pdf')}
+                  startIcon={<DownloadIcon />}
+                >
+                  PDF
+                </Button>
+              </Grid>
+              <Grid item xs={6}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  onClick={() => handleDownload(filteredOrders, 'docx')}
+                  startIcon={<DownloadIcon />}
+                >
+                  DOCX
+                </Button>
+              </Grid>
+            </Grid>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setDownloadDialogOpen(false)}>Cancel</Button>
           </DialogActions>
         </Dialog>
 
