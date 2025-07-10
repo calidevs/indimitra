@@ -4,6 +4,8 @@ from app.db import models
 from typing import Optional, Union
 from datetime import datetime
 from app.db.models.order import OrderStatus
+from enum import Enum
+from app.db.models.fees import FeeType
 
 # Create a single mapper instance.
 mapper = StrawberrySQLAlchemyMapper()
@@ -75,3 +77,44 @@ class Store:
 @mapper.type(models.StoreDriverModel)
 class StoreDriver:
     pass
+
+# Generate a GraphQL type for StoreLocationCodeModel
+@mapper.type(models.StoreLocationCodeModel)
+class StoreLocationCode:
+    pass
+
+@strawberry.type
+class PickupAddress:
+    """GraphQL type for store pickup addresses"""
+    id: int
+    store_id: int
+    address: str
+
+    @classmethod
+    def from_db(cls, model):
+        return cls(
+            id=model.id,
+            store_id=model.store_id,
+            address=model.address
+        )
+
+@strawberry.type
+class Fee:
+    """GraphQL type for store fees"""
+    id: int
+    store_id: int
+    fee_rate: float
+    fee_currency: str
+    type: FeeType
+    limit: Optional[float]
+
+    @classmethod
+    def from_db(cls, model):
+        return cls(
+            id=model.id,
+            store_id=model.store_id,
+            fee_rate=model.fee_rate,
+            fee_currency=model.fee_currency,
+            type=FeeType(model.type.value),
+            limit=model.limit
+        )

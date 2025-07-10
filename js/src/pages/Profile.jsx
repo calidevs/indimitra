@@ -27,6 +27,8 @@ import {
   Card,
   CardContent,
   Alert,
+  Snackbar,
+  Alert as MuiAlert,
 } from '@mui/material';
 import {
   ContentCopy,
@@ -54,6 +56,7 @@ import {
 } from '../queries/operations';
 import { useAuthStore, useAddressStore } from '@/store/useStore';
 import { fetchAuthSession } from 'aws-amplify/auth';
+import AddressAutocomplete from '@/components/AddressAutocomplete/AddressAutocomplete';
 
 const Profile = () => {
   // Get zustand state and functions
@@ -88,29 +91,29 @@ const Profile = () => {
   const [newAddress, setNewAddress] = useState('');
   const [isPrimary, setIsPrimary] = useState(false);
   const [isSavingAddress, setIsSavingAddress] = useState(false);
+  const [isValidAddress, setIsValidAddress] = useState(false);
+
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [addressToDelete, setAddressToDelete] = useState(null);
 
   // Get Cognito ID from session
   useEffect(() => {
-    const getCognitoId = async () => {
+    const getCognitoIdAndProfile = async () => {
       try {
         const session = await fetchAuthSession();
         if (session?.tokens?.idToken) {
-          setCognitoId(session.tokens.idToken.payload.sub);
+          const cognitoId = session.tokens.idToken.payload.sub;
+          setCognitoId(cognitoId);
+          await fetchUserProfile(cognitoId);
         }
       } catch (error) {
-        console.error('Error fetching Cognito ID:', error);
+        console.error('Error fetching Cognito ID or profile:', error);
       }
     };
 
-    getCognitoId();
-  }, []);
-
-  // Fetch user profile when component mounts
-  useEffect(() => {
-    if (!userProfile) {
-      fetchUserProfile();
-    }
-  }, [userProfile, fetchUserProfile]);
+    getCognitoIdAndProfile();
+  }, [fetchUserProfile]);
 
   // Create an effective profile using any available source
   const effectiveProfile = userProfile || localUserProfile;
@@ -129,38 +132,82 @@ const Profile = () => {
     setAddressDialogOpen(true);
   };
 
-  const handleDeleteAddress = async (id) => {
-    if (window.confirm('Are you sure you want to delete this address?')) {
-      try {
-        await deleteAddressMutation(id);
-      } catch (error) {
-        console.error('Error deleting address:', error);
-        alert('Failed to delete address. Please try again.');
-      }
+  const handleDeleteAddress = (id) => {
+    setAddressToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteAddress = async () => {
+    try {
+      await deleteAddressMutation(addressToDelete);
+      setSnackbar({ open: true, message: 'Address deleted successfully', severity: 'success' });
+    } catch (error) {
+      setSnackbar({ open: true, message: 'Failed to delete address. Please try again.', severity: 'error' });
+    } finally {
+      setDeleteDialogOpen(false);
+      setAddressToDelete(null);
     }
   };
 
   const handleSaveAddress = async () => {
     if (!effectiveProfile?.id) {
-      alert('Could not save address: user information not available');
+      setSnackbar({ open: true, message: 'Could not save address: user information not available', severity: 'error' });
       return;
     }
 
     setIsSavingAddress(true);
     try {
-      if (editingAddress) {
-        await updateAddressMutation(editingAddress.id, newAddress, isPrimary);
-      } else {
-        await createAddressMutation(newAddress, effectiveProfile.id, isPrimary);
+      // Only allow saving if a valid address is selected
+      if (!isValidAddress) {
+        return;
       }
 
+      if (!editingAddress) {
+        if (addresses.length === 0) {
+          await createAddressMutation(newAddress, effectiveProfile.id, true);
+          setSnackbar({ open: true, message: 'Address added successfully', severity: 'success' });
+        } else {
+          if (isPrimary) {
+            for (const addr of addresses) {
+              if (addr.isPrimary) {
+                await updateAddressMutation(addr.id, addr.address, false);
+              }
+            }
+            await createAddressMutation(newAddress, effectiveProfile.id, true);
+            setSnackbar({ open: true, message: 'Address added as primary', severity: 'success' });
+          } else {
+            await createAddressMutation(newAddress, effectiveProfile.id, false);
+            setSnackbar({ open: true, message: 'Address added as secondary', severity: 'success' });
+          }
+        }
+      } else {
+        if (isPrimary) {
+          for (const addr of addresses) {
+            if (addr.id !== editingAddress.id && addr.isPrimary) {
+              await updateAddressMutation(addr.id, addr.address, false);
+            }
+          }
+          await updateAddressMutation(editingAddress.id, newAddress, true);
+          setSnackbar({ open: true, message: 'Address updated as primary', severity: 'success' });
+        } else {
+          const isOnlyPrimary = editingAddress.isPrimary && addresses.filter(a => a.isPrimary).length === 1;
+          if (isOnlyPrimary) {
+            await updateAddressMutation(editingAddress.id, newAddress, true);
+            setSnackbar({ open: true, message: 'At least one address must be primary', severity: 'warning' });
+          } else {
+            await updateAddressMutation(editingAddress.id, newAddress, false);
+            setSnackbar({ open: true, message: 'Address updated as secondary', severity: 'success' });
+          }
+        }
+      }
+      await fetchAddresses(effectiveProfile.id);
       setAddressDialogOpen(false);
       setEditingAddress(null);
       setNewAddress('');
       setIsPrimary(false);
+      setIsValidAddress(false);
     } catch (error) {
-      console.error('Error saving address:', error);
-      alert('Failed to save address. Please try again.');
+      setSnackbar({ open: true, message: 'Failed to save address. Please try again.', severity: 'error' });
     } finally {
       setIsSavingAddress(false);
     }
@@ -219,7 +266,21 @@ const Profile = () => {
         <Alert severity="warning" sx={{ mt: 4 }}>
           No profile data available. Please try again.
         </Alert>
-        <Button variant="contained" onClick={() => fetchUserProfile()} sx={{ mt: 2 }}>
+        <Button 
+          variant="contained" 
+          onClick={async () => {
+            try {
+              const session = await fetchAuthSession();
+              if (session?.tokens?.idToken) {
+                const cognitoId = session.tokens.idToken.payload.sub;
+                await fetchUserProfile(cognitoId);
+              }
+            } catch (error) {
+              console.error('Error loading profile:', error);
+            }
+          }} 
+          sx={{ mt: 2 }}
+        >
           Load Profile
         </Button>
       </Container>
@@ -286,62 +347,66 @@ const Profile = () => {
     </Card>
   );
 
-  const renderAddresses = () => (
-    <Card sx={{ height: '100%' }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-          <Typography variant="h6">My Addresses</Typography>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => setAddressDialogOpen(true)}
-          >
-            Add Address
-          </Button>
-        </Box>
-        {isLoadingAddresses ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
-            <CircularProgress />
+  const renderAddresses = () => {
+    // Sort addresses: primary first, then others
+    const sortedAddresses = [...addresses].sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0));
+    return (
+      <Card sx={{ height: '100%' }}>
+        <CardContent>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Typography variant="h6">My Addresses</Typography>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => setAddressDialogOpen(true)}
+            >
+              Add Address
+            </Button>
           </Box>
-        ) : addresses.length > 0 ? (
-          <Grid container spacing={2}>
-            {addresses.map((addr) => (
-              <Grid item xs={12} sm={6} key={addr.id}>
-                <Paper
-                  elevation={2}
-                  sx={{
-                    p: 2,
-                    position: 'relative',
-                    border: addr.isPrimary ? '2px solid' : '1px solid',
-                    borderColor: addr.isPrimary ? 'primary.main' : 'divider',
-                  }}
-                >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                    <Typography variant="subtitle2" color="primary">
-                      {addr.isPrimary ? 'Primary Address' : 'Secondary Address'}
-                    </Typography>
-                    <Box>
-                      <IconButton size="small" onClick={() => handleEditAddress(addr)}>
-                        <Edit fontSize="small" />
-                      </IconButton>
-                      <IconButton size="small" onClick={() => handleDeleteAddress(addr.id)}>
-                        <Delete fontSize="small" />
-                      </IconButton>
+          {isLoadingAddresses ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : sortedAddresses.length > 0 ? (
+            <Grid container spacing={2}>
+              {sortedAddresses.map((addr) => (
+                <Grid item xs={12} sm={6} key={addr.id}>
+                  <Paper
+                    elevation={2}
+                    sx={{
+                      p: 2,
+                      position: 'relative',
+                      border: addr.isPrimary ? '2px solid' : '1px solid',
+                      borderColor: addr.isPrimary ? 'primary.main' : 'divider',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="subtitle2" color="primary">
+                        {addr.isPrimary ? 'Primary Address' : 'Secondary Address'}
+                      </Typography>
+                      <Box>
+                        <IconButton size="small" onClick={() => handleEditAddress(addr)}>
+                          <Edit fontSize="small" />
+                        </IconButton>
+                        <IconButton size="small" onClick={() => handleDeleteAddress(addr.id)}>
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </Box>
                     </Box>
-                  </Box>
-                  <Typography variant="body2">{addr.address}</Typography>
-                </Paper>
-              </Grid>
-            ))}
-          </Grid>
-        ) : (
-          <Alert severity="info" sx={{ mt: 2 }}>
-            You don't have any addresses yet. Add one to get started!
-          </Alert>
-        )}
-      </CardContent>
-    </Card>
-  );
+                    <Typography variant="body2">{addr.address}</Typography>
+                  </Paper>
+                </Grid>
+              ))}
+            </Grid>
+          ) : (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              You don't have any addresses yet. Add one to get started!
+            </Alert>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
 
   const renderSettings = () => (
     <Card sx={{ height: '100%' }}>
@@ -465,13 +530,10 @@ const Profile = () => {
         <DialogTitle>{editingAddress ? 'Edit Address' : 'Add Address'}</DialogTitle>
         <DialogContent>
           <Stack spacing={2} mt={1}>
-            <TextField
-              label="Address"
-              fullWidth
-              multiline
-              rows={3}
+            <AddressAutocomplete
               value={newAddress}
-              onChange={(e) => setNewAddress(e.target.value)}
+              onChange={setNewAddress}
+              onValidAddress={setIsValidAddress}
             />
             <FormControlLabel
               control={
@@ -482,11 +544,15 @@ const Profile = () => {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setAddressDialogOpen(false)}>Cancel</Button>
+          <Button onClick={() => {
+            setAddressDialogOpen(false);
+            setNewAddress('');
+            setIsValidAddress(false);
+          }}>Cancel</Button>
           <Button
             onClick={handleSaveAddress}
             variant="contained"
-            disabled={!newAddress || isSavingAddress}
+            disabled={!newAddress || isSavingAddress || !isValidAddress}
           >
             {isSavingAddress ? (
               <>
@@ -498,6 +564,28 @@ const Profile = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Delete Address</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to delete this address? This action cannot be undone.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button onClick={confirmDeleteAddress} color="error" variant="contained">Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <MuiAlert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </MuiAlert>
+      </Snackbar>
     </Container>
   );
 };

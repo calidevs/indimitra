@@ -19,8 +19,13 @@ class StoreModel(Base):
     tnc = Column(String, nullable=True)  # Terms and conditions as dot-separated values
     storeDeliveryFee = Column(Float, nullable=True)  # Store's default delivery fee
     taxPercentage = Column(Float, nullable=True)  # Store's default tax percentage
+    section_headers = Column(ARRAY(String), nullable=True)  # Array of section header strings
+    display_field = Column(String, unique=True, nullable=False)  # Unique display field, required
     
     # Relationships
     manager = relationship("UserModel", back_populates="stores")
     inventory = relationship("InventoryModel", back_populates="store")
     drivers = relationship("StoreDriverModel", back_populates="store")
+    location_codes = relationship("StoreLocationCodeModel", back_populates="store")
+    pickup_addresses = relationship("PickupAddressModel", back_populates="store")
+    fees = relationship("FeesModel", back_populates="store")

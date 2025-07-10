@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Box,
@@ -64,6 +64,8 @@ const CREATE_STORE = `
     $storeDeliveryFee: Float
     $taxPercentage: Float
     $tnc: String
+    $displayField: String!
+    $sectionHeaders: [String!]
     $pincodes: [String!]
   ) {
     createStore(
@@ -77,25 +79,29 @@ const CREATE_STORE = `
       storeDeliveryFee: $storeDeliveryFee
       taxPercentage: $taxPercentage
       tnc: $tnc
+      displayField: $displayField
+      sectionHeaders: $sectionHeaders
       pincodes: $pincodes
     ) {
       id
       name
       address
-        email
-        mobile
+      email
+      mobile
       managerUserId
       radius
       description
       storeDeliveryFee
       taxPercentage
       tnc
+      displayField
+      sectionHeaders
       pincodes
     }
   }
 `;
 
-// Add the mutation
+// Update the UPDATE_STORE mutation
 const UPDATE_STORE = `
   mutation UpdateStore(
     $storeId: Int!
@@ -112,6 +118,8 @@ const UPDATE_STORE = `
     $tnc: String
     $storeDeliveryFee: Float
     $taxPercentage: Float
+    $displayField: String
+    $sectionHeaders: [String!]
   ) {
     updateStore(
       storeId: $storeId
@@ -128,6 +136,8 @@ const UPDATE_STORE = `
       tnc: $tnc
       storeDeliveryFee: $storeDeliveryFee
       taxPercentage: $taxPercentage
+      displayField: $displayField
+      sectionHeaders: $sectionHeaders
     ) {
       id
       name
@@ -143,6 +153,8 @@ const UPDATE_STORE = `
       tnc
       storeDeliveryFee
       taxPercentage
+      displayField
+      sectionHeaders
     }
   }
 `;
@@ -172,6 +184,8 @@ const StoreManagement = () => {
     storeDeliveryFee: '',
     taxPercentage: '',
     tnc: '',
+    displayField: '',
+    sectionHeaders: [],
     // Dummy data for additional steps
     inventory: [],
     drivers: [],
@@ -207,6 +221,8 @@ const StoreManagement = () => {
         storeDeliveryFee: data.storeDeliveryFee ? parseFloat(data.storeDeliveryFee) : null,
         taxPercentage: data.taxPercentage ? parseFloat(data.taxPercentage) : null,
         tnc: data.tnc || null,
+        displayField: data.displayField || null,
+        sectionHeaders: data.sectionHeaders || null,
         pincodes: data.pincodes || null,
       });
     },
@@ -225,6 +241,8 @@ const StoreManagement = () => {
         storeDeliveryFee: '',
         taxPercentage: '',
         tnc: '',
+        displayField: '',
+        sectionHeaders: [],
         inventory: [],
         drivers: [],
         storeManagers: [],
@@ -306,6 +324,30 @@ const StoreManagement = () => {
     }
   };
 
+  const handleSectionHeaderChange = (index, value) => {
+    const newHeaders = [...formData.sectionHeaders];
+    newHeaders[index] = value;
+    setFormData((prev) => ({
+      ...prev,
+      sectionHeaders: newHeaders,
+    }));
+  };
+
+  const addSectionHeader = () => {
+    setFormData((prev) => ({
+      ...prev,
+      sectionHeaders: [...prev.sectionHeaders, ''],
+    }));
+  };
+
+  const removeSectionHeader = (index) => {
+    const newHeaders = formData.sectionHeaders.filter((_, i) => i !== index);
+    setFormData((prev) => ({
+      ...prev,
+      sectionHeaders: newHeaders,
+    }));
+  };
+
   const validateForm = () => {
     const errors = {};
 
@@ -317,8 +359,24 @@ const StoreManagement = () => {
       errors.address = 'Address is required';
     }
 
+    if (!formData.email.trim()) {
+      errors.email = 'Manager email is required';
+    }
+
+    if (!formData.mobile.trim()) {
+      errors.mobile = 'Manager mobile is required';
+    }
+
     if (!formData.managerUserId) {
       errors.managerUserId = 'Manager User ID is required';
+    }
+
+    if (!formData.radius || isNaN(parseFloat(formData.radius))) {
+      errors.radius = 'Delivery radius is required';
+    }
+
+    if (!formData.displayField.trim()) {
+      errors.displayField = 'Display Field is required';
     }
 
     setValidationErrors(errors);
@@ -353,6 +411,8 @@ const StoreManagement = () => {
       storeDeliveryFee: formData.storeDeliveryFee ? parseFloat(formData.storeDeliveryFee) : null,
       taxPercentage: formData.taxPercentage ? parseFloat(formData.taxPercentage) : null,
       tnc: formData.tnc || null,
+      displayField: formData.displayField,
+      sectionHeaders: formData.sectionHeaders.filter((header) => header.trim().length > 0),
       pincodes: pincodes,
       is_active: true,
       disabled: false,
@@ -383,6 +443,15 @@ const StoreManagement = () => {
           .filter((p) => p.length > 0)
       : [];
 
+    // Get section headers as array
+    const sectionHeadersString = formData.get('sectionHeaders');
+    const sectionHeaders = sectionHeadersString
+      ? sectionHeadersString
+          .split('\n')
+          .map((h) => h.trim())
+          .filter((h) => h.length > 0)
+      : [];
+
     // Convert string values to appropriate types
     const updateData = {
       storeId: editStore.id,
@@ -399,6 +468,8 @@ const StoreManagement = () => {
       tnc: formData.get('tnc') || null,
       storeDeliveryFee: parseFloat(formData.get('storeDeliveryFee')) || null,
       taxPercentage: parseFloat(formData.get('taxPercentage')) || null,
+      displayField: formData.get('displayField'),
+      sectionHeaders: sectionHeaders,
     };
 
     updateStoreMutation.mutate(updateData);
@@ -497,6 +568,8 @@ const StoreManagement = () => {
                 value={formData.radius}
                 onChange={handleChange}
                 inputProps={{ step: '0.1' }}
+                error={!!validationErrors.radius}
+                helperText={validationErrors.radius}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -559,6 +632,51 @@ const StoreManagement = () => {
                 onChange={handleChange}
                 helperText="Enter pincodes separated by commas"
               />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                required
+                fullWidth
+                label="Display Field"
+                name="displayField"
+                value={formData.displayField}
+                onChange={handleChange}
+                error={!!validationErrors.displayField}
+                helperText={validationErrors.displayField || 'Unique identifier for the store'}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="subtitle1" gutterBottom>
+                Section Headers
+              </Typography>
+              <Box sx={{ mb: 2 }}>
+                {formData.sectionHeaders.map((header, index) => (
+                  <Box key={index} sx={{ display: 'flex', gap: 1, mb: 1 }}>
+                    <TextField
+                      fullWidth
+                      label={`Question ${index + 1}`}
+                      value={header}
+                      onChange={(e) => handleSectionHeaderChange(index, e.target.value)}
+                      placeholder="Enter question text"
+                    />
+                    <IconButton
+                      color="error"
+                      onClick={() => removeSectionHeader(index)}
+                      sx={{ alignSelf: 'center' }}
+                    >
+                      <DeleteIcon />
+                    </IconButton>
+                  </Box>
+                ))}
+                <Button
+                  startIcon={<AddIcon />}
+                  onClick={addSectionHeader}
+                  variant="outlined"
+                  sx={{ mt: 1 }}
+                >
+                  Add Question
+                </Button>
+              </Box>
             </Grid>
           </Grid>
         );
@@ -835,6 +953,21 @@ const StoreManagement = () => {
     }
   };
 
+  // Add useEffect to handle success message timeout
+  useEffect(() => {
+    let timeoutId;
+    if (success) {
+      timeoutId = setTimeout(() => {
+        setSuccess(false);
+      }, 5000); // 5 seconds
+    }
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [success]);
+
   return (
     <Box>
       <Paper sx={{ p: 3, mb: 3 }}>
@@ -855,7 +988,21 @@ const StoreManagement = () => {
         )}
 
         {success && (
-          <Alert severity="success" sx={{ mb: 3 }}>
+          <Alert
+            severity="success"
+            sx={{
+              mb: 3,
+              animation: 'fadeOut 0.5s ease-in-out 4.5s forwards',
+              '@keyframes fadeOut': {
+                '0%': {
+                  opacity: 1,
+                },
+                '100%': {
+                  opacity: 0,
+                },
+              },
+            }}
+          >
             Store created successfully!
           </Alert>
         )}
@@ -1394,6 +1541,31 @@ const StoreManagement = () => {
                 />
               </Grid>
 
+              {/* Display Field */}
+              <Grid item xs={12}>
+                <TextField
+                  name="displayField"
+                  label="Display Field"
+                  defaultValue={editStore?.displayField}
+                  required
+                  fullWidth
+                  helperText="Unique identifier for the store"
+                />
+              </Grid>
+
+              {/* Section Headers */}
+              <Grid item xs={12}>
+                <TextField
+                  name="sectionHeaders"
+                  label="Section Headers"
+                  defaultValue={editStore?.sectionHeaders?.join('\n')}
+                  fullWidth
+                  multiline
+                  rows={3}
+                  helperText="Enter each section header on a new line"
+                />
+              </Grid>
+
               {/* Location & Delivery */}
               <Grid item xs={12}>
                 <Typography
@@ -1433,7 +1605,7 @@ const StoreManagement = () => {
                   type="number"
                   defaultValue={editStore?.storeDeliveryFee}
                   fullWidth
-                  inputProps={{ step: 0.01, min: 0 }}
+                  inputProps={{ step: '0.01', min: 0 }}
                   InputProps={{
                     startAdornment: <InputAdornment position="start">$</InputAdornment>,
                   }}
@@ -1446,7 +1618,7 @@ const StoreManagement = () => {
                   type="number"
                   defaultValue={editStore?.taxPercentage}
                   fullWidth
-                  inputProps={{ step: 0.1, min: 0 }}
+                  inputProps={{ step: '0.1', min: 0 }}
                   InputProps={{
                     endAdornment: <InputAdornment position="end">%</InputAdornment>,
                   }}

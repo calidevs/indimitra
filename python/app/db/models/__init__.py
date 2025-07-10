@@ -11,3 +11,6 @@ from .address import AddressModel
 from .store import StoreModel
 from .inventory import InventoryModel
 from .store_driver import StoreDriverModel
+from .store_location_code import StoreLocationCodeModel
+from .pickup_address import PickupAddressModel
+from .fees import FeesModel

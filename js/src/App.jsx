@@ -14,6 +14,7 @@ import Orders from './pages/Orders';
 import Profile from './pages/Profile';
 import NotFound from './components/NotFound';
 import StoreManagerNotFound from './components/StoreManager/NotFound';
+import DeliveryFees from './pages/StoreManager/DeliveryFees';
 
 import { useAuthStore } from './store/useStore';
 import { ROUTES } from './config/constants/routes';
@@ -25,6 +26,8 @@ import Layout from './components/layout/Layout';
 import StoreManagerOrders from './pages/StoreManager/Orders';
 import DeliveryPartners from './pages/StoreManager/DeliveryPartners';
 import Inventory from './pages/StoreManager/Inventory';
+import LocationCodes from './pages/StoreManager/LocationCodes';
+import PickupAddresses from '@/pages/StoreManager/PickupAddresses';
 
 const App = () => {
   const { user } = useAuthStore();
@@ -126,6 +129,30 @@ const App = () => {
           element={
             <ProtectedRoute role="store_manager">
               <Inventory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/store_manager/delivery-fees"
+          element={
+            <ProtectedRoute role="store_manager">
+              <DeliveryFees />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/store_manager/location-codes"
+          element={
+            <ProtectedRoute role="store_manager">
+              <LocationCodes />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/store_manager/pickup-addresses"
+          element={
+            <ProtectedRoute role="store_manager">
+              <PickupAddresses />
             </ProtectedRoute>
           }
         />

@@ -41,6 +41,7 @@ def create_store(
     address: str, 
     manager_user_id: int, 
     email: str, 
+    display_field: str,
     radius: Optional[float] = None, 
     mobile: Optional[str] = None,
     description: Optional[str] = None,
@@ -49,7 +50,8 @@ def create_store(
     tax_percentage: Optional[float] = None,
     pincodes: Optional[List[str]] = None,
     is_active: Optional[bool] = True,
-    disabled: Optional[bool] = False
+    disabled: Optional[bool] = False,
+    section_headers: Optional[List[str]] = None
 ) -> StoreModel:
     """Create a new store"""
     db = SessionLocal()
@@ -61,11 +63,14 @@ def create_store(
             raise ValueError("Store address cannot be empty")
         if not email or email.strip() == "":
             raise ValueError("Store email cannot be empty")
+        if not display_field or display_field.strip() == "":
+            raise ValueError("Display field cannot be empty")
             
         # Normalize input (trim whitespace)
         name = name.strip()
         address = address.strip()
         email = email.strip()
+        display_field = display_field.strip()
         if mobile:
             mobile = mobile.strip()
         if description:
@@ -88,6 +93,11 @@ def create_store(
             existing_mobile = db.query(StoreModel).filter(StoreModel.mobile == mobile).first()
             if existing_mobile:
                 raise ValueError(f"A store with the mobile number '{mobile}' already exists")
+                
+        # Check if a store with the same display_field already exists
+        existing_display = db.query(StoreModel).filter(StoreModel.display_field == display_field).first()
+        if existing_display:
+            raise ValueError(f"A store with the display field '{display_field}' already exists")
         
         # Create the new store
         store = StoreModel(
@@ -103,7 +113,9 @@ def create_store(
             taxPercentage=tax_percentage,
             pincodes=pincodes,
             is_active=is_active,
-            disabled=disabled
+            disabled=disabled,
+            section_headers=section_headers,
+            display_field=display_field
         )
         db.add(store)
         db.commit()
@@ -126,7 +138,9 @@ def update_store(
     pincodes: Optional[List[str]] = None,
     tnc: Optional[str] = None,
     store_delivery_fee: Optional[float] = None,
-    tax_percentage: Optional[float] = None
+    tax_percentage: Optional[float] = None,
+    section_headers: Optional[List[str]] = None,
+    display_field: Optional[str] = None
 ) -> Optional[StoreModel]:
     """Update an existing store"""
     db = SessionLocal()
@@ -191,6 +205,22 @@ def update_store(
                     if existing:
                         raise ValueError(f"A store with the mobile number '{mobile}' already exists")
                 store.mobile = mobile
+                
+        # Update display_field if provided
+        if display_field is not None:
+            if display_field.strip() == "":
+                raise ValueError("Display field cannot be empty")
+            display_field = display_field.strip()
+            
+            # Check if the new display_field is already taken by another store
+            if display_field != store.display_field:
+                existing = db.query(StoreModel).filter(
+                    StoreModel.display_field == display_field,
+                    StoreModel.id != store_id
+                ).first()
+                if existing:
+                    raise ValueError(f"A store with the display field '{display_field}' already exists")
+            store.display_field = display_field
             
         # Update other fields if provided
         if manager_user_id:
@@ -216,6 +246,13 @@ def update_store(
             store.storeDeliveryFee = store_delivery_fee
         if tax_percentage is not None:
             store.taxPercentage = tax_percentage
+        if section_headers is not None:
+            # Validate and normalize section headers
+            if section_headers:
+                # Remove any empty strings and strip whitespace
+                store.section_headers = [h.strip() for h in section_headers if h.strip()]
+            else:
+                store.section_headers = None
         
         db.commit()
         db.refresh(store)

@@ -12,7 +12,6 @@ import {
   ListItemText,
   useTheme,
   useMediaQuery,
-  Avatar,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -29,20 +28,25 @@ import {
   Storefront as StorefrontIcon,
   Person as PersonIcon,
   Category as CategoryIcon,
+  LocationOn as LocationIcon,
+  LocalShipping as PickupIcon,
 } from '@mui/icons-material';
 import Header from '@/components/layout/Header';
 import { signOut } from 'aws-amplify/auth';
 import { useAuthStore } from '@/store/useStore';
 
 // Import the page components
+import Dashboard from './Dashboard';
 import UserManagement from './UserManagement';
 import StoreManagement from './StoreManagement';
 import ProductManagement from './ProductManagement';
 import Orders from './Orders';
 import PaymentOnboarding from './PaymentOnboarding';
-import Dashboard from './Dashboard';
 import InventoryManagement from './InventoryManagement';
 import CategoryManagement from './CategoryManagement';
+import FeesManagement from './FeesManagement';
+import StoreLocationCodeManagement from './StoreLocationCodeManagement';
+import PickupAddressManagement from './PickupAddressManagement';
 
 const DRAWER_WIDTH = 240;
 const COLLAPSED_DRAWER_WIDTH = 65;
@@ -57,6 +61,9 @@ const menuItems = [
   { text: 'Payment Onboarding', icon: <PaymentIcon />, path: '/admin/payment-onboarding' },
   { text: 'Settings', icon: <SettingsIcon />, path: '/admin/settings' },
   { text: 'Categories', icon: <CategoryIcon />, path: '/admin/categories' },
+  { text: 'Fees Management', icon: <PaymentIcon />, path: '/admin/fees' },
+  { text: 'Location Codes', icon: <LocationIcon />, path: '/admin/location-codes' },
+  { text: 'Pickup Addresses', icon: <PickupIcon />, path: '/admin/pickup-addresses' },
 ];
 
 const AdminDashboard = () => {
@@ -85,7 +92,6 @@ const AdminDashboard = () => {
       console.error('Error signing out:', error);
     }
   };
-
 
   const handleNavigation = (path) => {
     navigate(path);
@@ -243,6 +249,9 @@ const AdminDashboard = () => {
           <Route path="orders" element={<Orders />} />
           <Route path="payment-onboarding" element={<PaymentOnboarding />} />
           <Route path="categories" element={<CategoryManagement />} />
+          <Route path="fees" element={<FeesManagement />} />
+          <Route path="location-codes" element={<StoreLocationCodeManagement />} />
+          <Route path="pickup-addresses" element={<PickupAddressManagement />} />
         </Routes>
       </Box>
     </Box>
