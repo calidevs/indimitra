@@ -1,7 +1,7 @@
 fastapi==0.100.0
 uvicorn==0.23.0
 sqlalchemy==2.0.19
-psycopg2-binary==2.9.6
+psycopg2-binary==2.9.10
 alembic==1.11.1
 strawberry-graphql==0.205.0
 pydantic==2.1.1
