@@ -8,8 +8,8 @@ import {
   useTheme,
   useMediaQuery,
   CircularProgress,
-  Alert,
 } from '@mui/material';
+import { ErrorHandler } from '@/components';
 import {
   People as PeopleIcon,
   Store as StoreIcon,
@@ -115,11 +115,15 @@ const Dashboard = () => {
 
   // Error state
   if (dashboardError || orderError || storesError) {
+    const errorMessage =
+      dashboardError?.message ||
+      orderError?.message ||
+      storesError?.message ||
+      'Error loading dashboard data. Please try again later.';
+
     return (
       <Box sx={{ p: isMobile ? 2 : 3 }}>
-        <Alert severity="error" sx={{ mb: 3 }}>
-          Error loading dashboard data. Please try again later.
-        </Alert>
+        <ErrorHandler error={errorMessage} title="Dashboard Error" severity="error" />
       </Box>
     );
   }
