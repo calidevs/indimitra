@@ -3,6 +3,7 @@ from app.db.models.user import UserModel, UserType
 from app.graphql.types import User  # Import the GraphQL User type
 from typing import Optional
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy import func
 from app.services.aws_service import update_cognito_user_role
 from datetime import datetime
 
@@ -195,5 +196,30 @@ def update_secondary_phone(user_id: int, secondary_phone: Optional[str] = None) 
         db.commit()
         db.refresh(user)
         return user
+    finally:
+        db.close()
+
+def get_dashboard_stats():
+    """Get dashboard statistics for admin panel"""
+    db = SessionLocal()
+    try:
+        # Get total users count
+        total_users = db.query(UserModel).count()
+        
+        # Get users by type
+        users_by_type = db.query(UserModel.type, func.count(UserModel.id)).group_by(UserModel.type).all()
+        
+        # Get active users count
+        active_users = db.query(UserModel).filter(UserModel.active == True).count()
+        
+        # Get delivery agents count
+        delivery_agents = db.query(UserModel).filter(UserModel.type == UserType.DELIVERY).count()
+        
+        return {
+            'total_users': total_users,
+            'active_users': active_users,
+            'delivery_agents': delivery_agents,
+            'users_by_type': {user_type.value: count for user_type, count in users_by_type}
+        }
     finally:
         db.close()

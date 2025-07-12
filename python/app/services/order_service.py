@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
+from sqlalchemy import func
 
 from app.db.session import SessionLocal
 from app.db.models.order import OrderModel, OrderStatus
@@ -17,6 +18,14 @@ def get_order_by_id(order_id: int) -> Optional[OrderModel]:
     db = SessionLocal()
     try:
         return db.query(OrderModel).filter(OrderModel.id == order_id).first()
+    finally:
+        db.close()
+
+def get_all_orders() -> List[OrderModel]:
+    """Get all orders"""
+    db = SessionLocal()
+    try:
+        return db.query(OrderModel).all()
     finally:
         db.close()
 
@@ -44,14 +53,6 @@ def get_orders_by_user(user_id: int) -> List[OrderModel]:
         )
         
         return orders
-    finally:
-        db.close()
-
-def get_all_orders() -> List[OrderModel]:
-    """Get all orders"""
-    db = SessionLocal()
-    try:
-        return db.query(OrderModel).all()
     finally:
         db.close()
 
@@ -318,6 +319,31 @@ def update_order_bill_url(order_id: int, bill_url: Optional[str] = None) -> Opti
         db.commit()
         db.refresh(order)
         return order
+    finally:
+        db.close()
+
+def get_order_stats():
+    """Get order statistics for dashboard"""
+    db = SessionLocal()
+    try:
+        # Get total orders count
+        total_orders = db.query(OrderModel).count()
+        
+        # Get orders by status
+        orders_by_status = db.query(OrderModel.status, func.count(OrderModel.id)).group_by(OrderModel.status).all()
+        
+        # Get orders by type (delivery/pickup)
+        orders_by_type = db.query(OrderModel.type, func.count(OrderModel.id)).group_by(OrderModel.type).all()
+        
+        # Since OrderModel doesn't have createdAt field, we'll set recent_orders to 0
+        recent_orders = 0
+        
+        return {
+            'total_orders': total_orders,
+            'recent_orders': recent_orders,
+            'orders_by_status': {status.value: count for status, count in orders_by_status},
+            'orders_by_type': {order_type.value: count for order_type, count in orders_by_type}
+        }
     finally:
         db.close()
 

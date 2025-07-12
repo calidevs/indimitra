@@ -1,11 +1,11 @@
 import strawberry
 from strawberry_sqlalchemy_mapper import StrawberrySQLAlchemyMapper
 from app.db import models
-from typing import Optional, Union
+from typing import Optional
 from datetime import datetime
 from app.db.models.order import OrderStatus
-from enum import Enum
 from app.db.models.fees import FeeType
+from strawberry.scalars import JSON
 
 # Create a single mapper instance.
 mapper = StrawberrySQLAlchemyMapper()
@@ -118,3 +118,19 @@ class Fee:
             type=FeeType(model.type.value),
             limit=model.limit
         )
+
+@strawberry.type
+class DashboardStats:
+    """GraphQL type for dashboard statistics"""
+    total_users: int
+    active_users: int
+    delivery_agents: int
+    users_by_type: JSON
+
+@strawberry.type
+class OrderStats:
+    """GraphQL type for order statistics"""
+    total_orders: int
+    recent_orders: int
+    orders_by_status: JSON
+    orders_by_type: JSON

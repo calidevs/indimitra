@@ -3,7 +3,7 @@ from typing import List, Optional
 from datetime import datetime
 from app.db.session import SessionLocal
 
-from app.graphql.types import Order
+from app.graphql.types import Order, OrderStats
 from app.db.models.order import OrderModel, OrderStatus
 from app.db.models.delivery import DeliveryModel
 from app.db.models.user import UserModel
@@ -16,7 +16,8 @@ from app.services.order_service import (
     update_order_status,
     get_orders_by_store,
     update_order_bill_url,
-    update_order_items
+    update_order_items,
+    get_order_stats
 )
 from app.services.delivery_service import assign_delivery
 from app.services.email_service import EmailService
@@ -44,6 +45,17 @@ class OrderQuery:
     def getOrdersByStore(self, storeId: int) -> List[Order]:
         """Fetch all orders for a specific store"""
         return get_orders_by_store(store_id=storeId)
+    
+    @strawberry.field
+    def getOrderStats(self) -> OrderStats:
+        """Get order statistics for dashboard"""
+        stats = get_order_stats()
+        return OrderStats(
+            total_orders=stats['total_orders'],
+            recent_orders=stats['recent_orders'],
+            orders_by_status=stats['orders_by_status'],
+            orders_by_type=stats['orders_by_type']
+        )
 
 
 # ✅ Input Type for Order Items

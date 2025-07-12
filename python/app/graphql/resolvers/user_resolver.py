@@ -1,7 +1,7 @@
 import strawberry
 from typing import List, Optional, Union
-from app.graphql.types import User
-from app.services.user_service import get_all_users, create_user, get_user_profile, update_user_type, update_user_mobile, update_secondary_phone
+from app.graphql.types import User, DashboardStats
+from app.services.user_service import get_all_users, create_user, get_user_profile, update_user_type, update_user_mobile, update_secondary_phone, get_dashboard_stats
 
 @strawberry.type
 class UserError:
@@ -33,6 +33,17 @@ class UserQuery:
         user_data = get_user_profile(userId) # Create a User instance from sanitized data
         
         return user_data
+    
+    @strawberry.field
+    def getDashboardStats(self) -> DashboardStats:
+        """Get dashboard statistics for admin panel"""
+        stats = get_dashboard_stats()
+        return DashboardStats(
+            total_users=stats['total_users'],
+            active_users=stats['active_users'],
+            delivery_agents=stats['delivery_agents'],
+            users_by_type=stats['users_by_type']
+        )
 
 
 @strawberry.type
