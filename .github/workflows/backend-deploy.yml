@@ -1,11 +1,6 @@
 name: Backend Deployment
 
 on:
-  # push:
-  #   branches:  
-  #     - main
-  #   paths:
-  #     - 'python/**'
   workflow_dispatch:
 
 env:
@@ -57,7 +52,4 @@ jobs:
           docker build -t ${{ env.ECR_REPO_URL }}:latest .
           docker tag ${{ env.ECR_REPO_URL }}:latest ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_URL }}:latest
           docker push ${{ env.ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ECR_REPO_URL }}:latest
-  update-ecs-task:
-    needs: build
-    uses: ./.github/workflows/update-ecs-task.yml
-    secrets: inherit
+
