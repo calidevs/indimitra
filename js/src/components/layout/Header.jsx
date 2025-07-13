@@ -191,24 +191,26 @@ const Header = () => {
               </Button>
             )}
 
-            {/* Change Store */}
-            <Button
-              variant="outlined"
-              startIcon={<Storefront />}
-              onClick={() => setStoreModalOpen(true)}
-              sx={{
-                color: '#2A2F4F',
-                borderColor: '#2A2F4F',
-                textTransform: 'none',
-                fontSize: '1rem',
-                fontWeight: 500,
-                px: 2,
-                mr: 1,
-                '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
-              }}
-            >
-              Change Store
-            </Button>
+            {/* Change Store - Only show for users who are not signed in or have 'user' role */}
+            {(!cognitoId || (cognitoId && user?.role === 'user')) && (
+              <Button
+                variant="outlined"
+                startIcon={<Storefront />}
+                onClick={() => setStoreModalOpen(true)}
+                sx={{
+                  color: '#2A2F4F',
+                  borderColor: '#2A2F4F',
+                  textTransform: 'none',
+                  fontSize: '1rem',
+                  fontWeight: 500,
+                  px: 2,
+                  mr: 1,
+                  '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
+                }}
+              >
+                Change Store
+              </Button>
+            )}
 
             {/* Cart */}
             {user ? (

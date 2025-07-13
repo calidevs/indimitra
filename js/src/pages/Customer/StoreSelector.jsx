@@ -202,52 +202,50 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
           <b>{tempStore?.name}</b>
         </Typography>
         <Stack spacing={3}>
-          {/* Pickup Address Section */}
-          <Paper
-            elevation={deliveryType === 'pickup' ? 4 : 1}
-            sx={{
-              p: 2,
-              bgcolor: deliveryType === 'pickup' ? 'primary.lighter' : 'grey.50',
-              opacity: deliveryType === 'delivery' && deliveryAddress ? 0.5 : 1,
-              border: deliveryType === 'pickup' ? '2px solid #1976d2' : '1px solid #eee',
-              transition: 'all 0.2s',
-            }}
-          >
-            <Typography
-              variant="subtitle1"
-              sx={{ mb: 1, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <StoreIcon fontSize="small" color="primary" /> Pickup Address
-            </Typography>
-            {addresses.length === 0 ? (
-              <Typography color="error" align="center">
-                No pickup addresses available for this store.
-              </Typography>
-            ) : (
-              <RadioGroup value={selectedPickupId || ''} onChange={handlePickupRadioChange}>
-                {addresses.map((addr) => (
-                  <FormControlLabel
-                    key={addr.id}
-                    value={String(addr.id)}
-                    control={<Radio color="primary" />}
-                    label={addr.address}
-                  />
-                ))}
-              </RadioGroup>
-            )}
-            <Button
-              onClick={handlePickupConfirm}
-              variant="contained"
-              color="primary"
-              fullWidth
-              startIcon={<LocalShippingIcon />}
-              disabled={deliveryType !== 'pickup' || !selectedPickupId}
-              sx={{ mt: 2, fontWeight: 600, py: 1.2, fontSize: '1rem' }}
-            >
-              Confirm Pickup
-            </Button>
-          </Paper>
-          <Divider>OR</Divider>
+          {/* Pickup Address Section - Only show if addresses are available */}
+          {addresses.length > 0 && (
+            <>
+              <Paper
+                elevation={deliveryType === 'pickup' ? 4 : 1}
+                sx={{
+                  p: 2,
+                  bgcolor: deliveryType === 'pickup' ? 'primary.lighter' : 'grey.50',
+                  opacity: deliveryType === 'delivery' && deliveryAddress ? 0.5 : 1,
+                  border: deliveryType === 'pickup' ? '2px solid #1976d2' : '1px solid #eee',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <Typography
+                  variant="subtitle1"
+                  sx={{ mb: 1, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
+                >
+                  <StoreIcon fontSize="small" color="primary" /> Pickup Address
+                </Typography>
+                <RadioGroup value={selectedPickupId || ''} onChange={handlePickupRadioChange}>
+                  {addresses.map((addr) => (
+                    <FormControlLabel
+                      key={addr.id}
+                      value={String(addr.id)}
+                      control={<Radio color="primary" />}
+                      label={addr.address}
+                    />
+                  ))}
+                </RadioGroup>
+                <Button
+                  onClick={handlePickupConfirm}
+                  variant="contained"
+                  color="primary"
+                  fullWidth
+                  startIcon={<LocalShippingIcon />}
+                  disabled={deliveryType !== 'pickup' || !selectedPickupId}
+                  sx={{ mt: 2, fontWeight: 600, py: 1.2, fontSize: '1rem' }}
+                >
+                  Confirm Pickup
+                </Button>
+              </Paper>
+              <Divider>OR</Divider>
+            </>
+          )}
           {/* Home Delivery Section */}
           <Paper
             elevation={deliveryType === 'delivery' ? 4 : 1}

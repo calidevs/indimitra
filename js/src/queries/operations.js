@@ -275,6 +275,28 @@ export const GET_USER_PROFILE = `
   }
 `;
 
+export const GET_DASHBOARD_STATS = `
+  query GetDashboardStats {
+    getDashboardStats {
+      totalUsers
+      activeUsers
+      deliveryAgents
+      usersByType
+    }
+  }
+`;
+
+export const GET_ORDER_STATS = `
+  query GetOrderStats {
+    getOrderStats {
+      totalOrders
+      recentOrders
+      ordersByStatus
+      ordersByType
+    }
+  }
+`;
+
 export const GET_ORDERS_BY_STORE = `
   query GetOrdersByStore($storeId: Int!) {
     getOrdersByStore(storeId: $storeId) {

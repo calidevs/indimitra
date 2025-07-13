@@ -38,3 +38,4 @@ export { default as Toolbar } from './Toolbar/Toolbar';
 export { default as Tooltip } from './Tooltip/Tooltip';
 export { default as Badge } from './Badge/Badge';
 export { default as Menu } from './Menu/Menu';
+export { default as ErrorHandler } from './ErrorHandler/ErrorHandler';

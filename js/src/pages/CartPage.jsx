@@ -27,6 +27,7 @@ import {
   Radio,
   InputAdornment,
 } from '@mui/material';
+import { ErrorHandler } from '@/components';
 import {
   Remove,
   Add,
@@ -389,11 +390,6 @@ const CartPage = () => {
       });
     },
     onSuccess: (response) => {
-      if (response.errors) {
-        console.error('Order Placement Error:', response.errors);
-        setError('Failed to place order. Please try again.');
-        return;
-      }
       console.log('Order placed successfully:', response);
       clearCart();
       setCustomOrder(''); // Clear the custom order
@@ -405,8 +401,7 @@ const CartPage = () => {
       queryClient.invalidateQueries(['userAddresses', userProfile.id]);
     },
     onError: (error) => {
-      console.error('GraphQL Order Placement Failed:', error);
-      setError('Failed to place order. Please try again.');
+      setError(error.message || 'Failed to place order. Please try again.');
     },
   });
 
@@ -555,11 +550,7 @@ const CartPage = () => {
           {/* Cart Items Section */}
           <Grid item xs={12} md={8}>
             <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-              {error && (
-                <Alert severity="error" sx={{ mb: 2 }}>
-                  {error}
-                </Alert>
-              )}
+              {error && <ErrorHandler error={error} title="Order Error" severity="error" />}
 
               {Object.values(cart).length > 0 || customOrder ? (
                 <>

@@ -127,7 +127,8 @@ def create_data():
             pincodes=["12345", "23456", "34567"],
             tnc="Rule 1. Rule 2. Rule 3.",
             storeDeliveryFee=5.99,  # Default delivery fee (optional field)
-            taxPercentage=10  # Default tax percentage (optional field)
+            taxPercentage=10,       # <--- Add a comma here!
+            display_field="Main Store"  # or any appropriate value
         )
         db.add(store)
         db.commit()
