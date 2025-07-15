@@ -365,6 +365,8 @@ const StoreManagement = () => {
 
     if (!formData.mobile.trim()) {
       errors.mobile = 'Manager mobile is required';
+    } else if (!/^\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/.test(formData.mobile.trim())) {
+      errors.mobile = 'Enter a valid US phone number (e.g., 123-456-7890)';
     }
 
     if (!formData.managerUserId) {
@@ -537,9 +539,29 @@ const StoreManagement = () => {
                 label="Manager Mobile"
                 name="mobile"
                 value={formData.mobile}
-                onChange={handleChange}
+                onChange={(e) => {
+                  // Remove all non-digit characters
+                  let digits = e.target.value.replace(/\D/g, '');
+                  // Limit to 10 digits
+                  digits = digits.slice(0, 10);
+                  // Format as (XXX) XXX-XXXX
+                  let formatted = digits;
+                  if (digits.length > 0) {
+                    formatted = '(' + digits.substring(0, 3);
+                  }
+                  if (digits.length >= 4) {
+                    formatted += ') ' + digits.substring(3, 6);
+                  }
+                  if (digits.length >= 7) {
+                    formatted += '-' + digits.substring(6, 10);
+                  }
+                  // Remove trailing formatting if not enough digits
+                  formatted = formatted.replace(/\(\) /g, '');
+                  handleChange({ target: { name: 'mobile', value: formatted } });
+                }}
                 error={!!validationErrors.mobile}
                 helperText={validationErrors.mobile}
+                inputProps={{ maxLength: 14 }}
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -1528,6 +1550,23 @@ const StoreManagement = () => {
                   label="Mobile Number"
                   defaultValue={editStore?.mobile}
                   fullWidth
+                  inputProps={{ maxLength: 14 }}
+                  onInput={e => {
+                    let digits = e.target.value.replace(/\D/g, '');
+                    digits = digits.slice(0, 10);
+                    let formatted = digits;
+                    if (digits.length > 0) {
+                      formatted = '(' + digits.substring(0, 3);
+                    }
+                    if (digits.length >= 4) {
+                      formatted += ') ' + digits.substring(3, 6);
+                    }
+                    if (digits.length >= 7) {
+                      formatted += '-' + digits.substring(6, 10);
+                    }
+                    formatted = formatted.replace(/\(\) /g, '');
+                    e.target.value = formatted;
+                  }}
                 />
               </Grid>
               <Grid item xs={12} md={6}>
