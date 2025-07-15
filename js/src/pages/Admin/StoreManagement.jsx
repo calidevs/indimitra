@@ -50,6 +50,7 @@ import {
 } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_STORES } from '@/queries/operations';
+import { GET_ALL_USERS } from '@/queries/operations';
 
 // Define the GraphQL mutation for creating a store
 const CREATE_STORE = `
@@ -196,6 +197,9 @@ const StoreManagement = () => {
   const [editStore, setEditStore] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
+  // Add state to store users
+  const [users, setUsers] = useState([]);
+
   // Fetch stores
   const {
     data: storesData,
@@ -206,6 +210,22 @@ const StoreManagement = () => {
     queryFn: () => fetchGraphQL(GET_STORES),
     enabled: shouldFetch,
   });
+
+  // Fetch all users for manager dropdown
+  const { data: usersData, isLoading: isLoadingUsers } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const response = await fetchGraphQL(GET_ALL_USERS);
+      return response?.getAllUsers || [];
+    },
+    enabled: true,
+  });
+
+  useEffect(() => {
+    if (usersData) {
+      setUsers(usersData.filter(u => u.type === 'STORE_MANAGER' || u.type === 'ADMIN'));
+    }
+  }, [usersData]);
 
   // Create store mutation
   const createStoreMutation = useMutation({
@@ -565,20 +585,28 @@ const StoreManagement = () => {
               />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField
-                required
-                fullWidth
-                label="Manager User ID"
-                name="managerUserId"
-                type="number"
-                value={formData.managerUserId}
-                onChange={handleChange}
-                error={!!validationErrors.managerUserId}
-                helperText={
-                  validationErrors.managerUserId ||
-                  'Enter the ID of the user who will manage this store'
-                }
-              />
+              <FormControl required fullWidth error={!!validationErrors.managerUserId}>
+                <InputLabel>Manager User ID</InputLabel>
+                <Select
+                  label="Manager User ID"
+                  name="managerUserId"
+                  value={formData.managerUserId}
+                  onChange={handleChange}
+                >
+                  {isLoadingUsers ? (
+                    <MenuItem value=""><em>Loading...</em></MenuItem>
+                  ) : users.length === 0 ? (
+                    <MenuItem value=""><em>No managers found</em></MenuItem>
+                  ) : (
+                    users.map(user => (
+                      <MenuItem key={user.id} value={user.id}>
+                        {user.id} - {user.email}
+                      </MenuItem>
+                    ))
+                  )}
+                </Select>
+                <Typography variant="caption" color="error">{validationErrors.managerUserId}</Typography>
+              </FormControl>
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
@@ -1570,14 +1598,27 @@ const StoreManagement = () => {
                 />
               </Grid>
               <Grid item xs={12} md={6}>
-                <TextField
-                  name="managerUserId"
-                  label="Manager User ID"
-                  type="number"
-                  defaultValue={editStore?.managerUserId}
-                  required
-                  fullWidth
-                />
+                <FormControl required fullWidth error={!!validationErrors.managerUserId}>
+                  <InputLabel>Manager User ID</InputLabel>
+                  <Select
+                    name="managerUserId"
+                    label="Manager User ID"
+                    defaultValue={editStore?.managerUserId}
+                  >
+                    {isLoadingUsers ? (
+                      <MenuItem value=""><em>Loading...</em></MenuItem>
+                    ) : users.length === 0 ? (
+                      <MenuItem value=""><em>No managers found</em></MenuItem>
+                    ) : (
+                      users.map(user => (
+                        <MenuItem key={user.id} value={user.id}>
+                          {user.id} - {user.email}
+                        </MenuItem>
+                      ))
+                    )}
+                  </Select>
+                  <Typography variant="caption" color="error">{validationErrors.managerUserId}</Typography>
+                </FormControl>
               </Grid>
 
               {/* Display Field */}
