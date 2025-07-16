@@ -401,10 +401,18 @@ const InventoryManagement = () => {
           </Alert>
         )}
 
-        {isLoadingStores || (selectedStore && isLoadingInventory) ? (
+        {!selectedStore ? (
+          <Alert severity="info" sx={{ my: 4 }}>
+            Please select a store to view its inventory.
+          </Alert>
+        ) : isLoadingInventory ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
             <CircularProgress />
           </Box>
+        ) : getFilteredData().length === 0 ? (
+          <Alert severity="info" sx={{ my: 4 }}>
+            No inventory found for this store.
+          </Alert>
         ) : (
           <>
             {viewMode === 'table' ? (
