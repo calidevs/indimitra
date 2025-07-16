@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -331,6 +331,51 @@ const InventoryManagement = () => {
       product.name.toLowerCase().includes(productSearchInput.toLowerCase())
     ) || [];
 
+  const gridContainerRef = useRef(null);
+
+  // Function to auto-detect rowsPerPage for grid view
+  const detectGridRowsPerPage = useCallback(() => {
+    if (viewMode !== 'grid' || !gridContainerRef.current) return;
+    const containerWidth = gridContainerRef.current.offsetWidth;
+    const containerHeight = window.innerHeight - gridContainerRef.current.getBoundingClientRect().top - 150; // 150px for header/pagination
+    const cardWidth = 270; // Approximate card width (including margin)
+    const cardHeight = 260; // Approximate card height (including margin)
+    const cardsPerRow = Math.max(1, Math.floor(containerWidth / cardWidth));
+    const rows = Math.max(1, Math.floor(containerHeight / cardHeight));
+    const newRowsPerPage = cardsPerRow * rows;
+    if (newRowsPerPage !== rowsPerPage) setRowsPerPage(newRowsPerPage);
+  }, [viewMode, rowsPerPage]);
+
+  useEffect(() => {
+    if (viewMode === 'grid') {
+      detectGridRowsPerPage();
+      window.addEventListener('resize', detectGridRowsPerPage);
+      return () => window.removeEventListener('resize', detectGridRowsPerPage);
+    }
+  }, [viewMode, detectGridRowsPerPage]);
+
+  // Reset to 10 when switching to table view
+  useEffect(() => {
+    if (viewMode === 'table' && rowsPerPage !== 10) setRowsPerPage(10);
+  }, [viewMode, rowsPerPage]);
+
+  // Add a function to generate rowsPerPageOptions
+  const getRowsPerPageOptions = () => {
+    if (viewMode === 'grid' && gridContainerRef.current) {
+      const containerWidth = gridContainerRef.current.offsetWidth;
+      const containerHeight = window.innerHeight - gridContainerRef.current.getBoundingClientRect().top - 150;
+      const cardWidth = 270;
+      const cardHeight = 260;
+      const cardsPerRow = Math.max(1, Math.floor(containerWidth / cardWidth));
+      const rows = Math.max(1, Math.floor(containerHeight / cardHeight));
+      const multiples = [cardsPerRow * 1, cardsPerRow * 2, cardsPerRow * 3, cardsPerRow * 4, cardsPerRow * 5];
+      const filtered = multiples.filter(n => n < getFilteredData().length);
+      return [...filtered, getFilteredData().length];
+    }
+    // Table view defaults
+    return [10, 25, 50, 100, getFilteredData().length];
+  };
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
@@ -487,7 +532,7 @@ const InventoryManagement = () => {
                 </Table>
               </TableContainer>
             ) : (
-              <Grid container spacing={3}>
+              <Grid container spacing={3} ref={gridContainerRef}>
                 {getFilteredData()
                   .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                   .map((item) => (
@@ -557,6 +602,7 @@ const InventoryManagement = () => {
               onPageChange={handleChangePage}
               rowsPerPage={rowsPerPage}
               onRowsPerPageChange={handleChangeRowsPerPage}
+              rowsPerPageOptions={getRowsPerPageOptions()}
               sx={{ mt: 2 }}
             />
           </>
