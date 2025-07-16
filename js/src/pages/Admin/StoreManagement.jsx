@@ -221,11 +221,25 @@ const StoreManagement = () => {
     enabled: true,
   });
 
+  // Only store managers
   useEffect(() => {
     if (usersData) {
-      setUsers(usersData.filter(u => u.type === 'STORE_MANAGER' || u.type === 'ADMIN'));
+      setUsers(usersData.filter(u => u.type === 'STORE_MANAGER'));
     }
   }, [usersData]);
+
+  // Auto-fill email and mobile when manager changes
+  useEffect(() => {
+    if (!formData.managerUserId) return;
+    const selectedManager = users.find(u => String(u.id) === String(formData.managerUserId));
+    if (selectedManager) {
+      setFormData(prev => ({
+        ...prev,
+        email: selectedManager.email || '',
+        mobile: selectedManager.mobile || '',
+      }));
+    }
+  }, [formData.managerUserId, users]);
 
   // Create store mutation
   const createStoreMutation = useMutation({
@@ -607,6 +621,31 @@ const StoreManagement = () => {
                 </Select>
                 <Typography variant="caption" color="error">{validationErrors.managerUserId}</Typography>
               </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                required
+                fullWidth
+                label="Manager Email"
+                name="email"
+                type="email"
+                value={formData.email}
+                InputProps={{ readOnly: true }}
+                error={!!validationErrors.email}
+                helperText={validationErrors.email}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField
+                required
+                fullWidth
+                label="Manager Mobile"
+                name="mobile"
+                value={formData.mobile}
+                InputProps={{ readOnly: true }}
+                error={!!validationErrors.mobile}
+                helperText={validationErrors.mobile}
+              />
             </Grid>
             <Grid item xs={12} md={6}>
               <TextField
