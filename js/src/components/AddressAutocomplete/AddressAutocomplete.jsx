@@ -7,22 +7,27 @@ const AddressAutocomplete = ({ value, onChange, onValidAddress }) => {
   const [isValid, setIsValid] = useState(false);
 
   useEffect(() => {
-    if (window.google && window.google.maps && inputRef.current) {
-      const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current);
-      autocompleteRef.current = autocomplete;
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (place && place.formatted_address) {
-          onChange(place.formatted_address);
-          setIsValid(true);
-          onValidAddress(true);
-        } else {
-          setIsValid(false);
-          onValidAddress(false);
-        }
-      });
-    }
-  }, [value, onValidAddress]);
+    const timer = setTimeout(() => {
+      if (window.google && window.google.maps && inputRef.current) {
+        const autocomplete = new window.google.maps.places.Autocomplete(inputRef.current);
+        autocompleteRef.current = autocomplete;
+  
+        autocomplete.addListener('place_changed', () => {
+          const place = autocomplete.getPlace();
+          if (place && place.formatted_address) {
+            onChange(place.formatted_address);
+            setIsValid(true);
+            onValidAddress(true);
+          } else {
+            setIsValid(false);
+            onValidAddress(false);
+          }
+        });
+      }
+    }, 300); // delay to ensure inputRef is available
+  
+    return () => clearTimeout(timer);
+  }, [onChange, onValidAddress]); // no need to depend on value  
 
   useEffect(() => {
     if (value === '') {
