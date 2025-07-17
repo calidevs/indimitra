@@ -44,7 +44,7 @@ import {
   Edit as EditIcon,
 } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
-import { UPDATE_ORDER_STATUS, GET_STORE_DRIVERS, GET_ALL_ORDERS } from '@/queries/operations';
+import { UPDATE_ORDER_STATUS, GET_STORE_DRIVERS, GET_ALL_ORDERS, GET_STORES } from '@/queries/operations';
 import graphqlService from '@/config/graphql/graphqlService';
 
 // Define order statuses
@@ -92,6 +92,19 @@ const Orders = () => {
     },
     enabled: !!selectedOrder?.storeId,
   });
+
+  const { data: storesData = { stores: [] }, isLoading: isLoadingStores } = useQuery({
+    queryKey: ['stores'],
+    queryFn: () => fetchGraphQL(GET_STORES),
+    enabled: shouldFetch,
+  });
+  const storeMap = React.useMemo(() => {
+    const map = {};
+    (storesData.stores || []).forEach(store => {
+      map[store.id] = store;
+    });
+    return map;
+  }, [storesData]);
 
   // Add the update order status mutation
   const updateOrderStatusMutation = useMutation({
@@ -307,16 +320,6 @@ const Orders = () => {
                 This helps save resources by only loading data when needed
               </Typography>
             </CardContent>
-            <CardActions sx={{ justifyContent: 'center' }}>
-              <Button
-                variant="contained"
-                color="primary"
-                startIcon={<RefreshIcon />}
-                onClick={handleFetchOrders}
-              >
-                Fetch Orders
-              </Button>
-            </CardActions>
           </Card>
         ) : isLoading ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
@@ -333,6 +336,7 @@ const Orders = () => {
                 <TableRow>
                   <TableCell>Order ID</TableCell>
                   <TableCell>Address</TableCell>
+                  <TableCell>Store</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Total Amount</TableCell>
                   <TableCell>Delivery Date</TableCell>
@@ -346,6 +350,7 @@ const Orders = () => {
                     <TableCell>
                       <Typography variant="body2">{order.address?.address || 'N/A'}</Typography>
                     </TableCell>
+                    <TableCell>{storeMap[order.storeId]?.name || 'N/A'}</TableCell>
                     <TableCell>
                       <Chip
                         icon={getStatusIcon(order.status)}
@@ -401,6 +406,9 @@ const Orders = () => {
                 </Typography>
                 <Typography variant="body2">
                   Address: {selectedOrder.address?.address || 'N/A'}
+                </Typography>
+                <Typography variant="body2">
+                  Store: {storeMap[selectedOrder.storeId]?.name || 'N/A'} ({storeMap[selectedOrder.storeId]?.address || ''})
                 </Typography>
                 <Typography variant="body2">
                   Total Amount: {formatCurrency(selectedOrder.totalAmount)}
