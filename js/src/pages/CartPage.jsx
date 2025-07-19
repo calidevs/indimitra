@@ -298,12 +298,6 @@ const CartPage = () => {
     }
   }, [userProfile?.id, fetchAddresses]);
 
-  // Debug effect to log state changes
-  useEffect(() => {
-    console.log('Addresses from store:', addresses);
-    console.log('Selected address ID:', selectedAddressId);
-  }, [addresses, selectedAddressId]);
-
   // Set initial pickup address if available in store
   useEffect(() => {
     if (pickupAddress) {
@@ -315,7 +309,6 @@ const CartPage = () => {
 
   // Recalculate totals when delivery type, cart, or tip amount changes
   useEffect(() => {
-    console.log('Recalculating totals for delivery type:', deliveryType);
     const totals = getCartTotals();
     setCartTotals(totals);
   }, [deliveryType, cart, getCartTotals, tipAmount]);
@@ -390,7 +383,6 @@ const CartPage = () => {
       });
     },
     onSuccess: (response) => {
-      console.log('Order placed successfully:', response);
       clearCart();
       setCustomOrder(''); // Clear the custom order
       setIsOrderPlaced(true);
@@ -465,7 +457,6 @@ const CartPage = () => {
       setIsPrimary(false);
       queryClient.invalidateQueries(['userAddresses', userProfile.id]);
     } catch (error) {
-      console.error('Error adding address:', error);
       setError('Failed to add address. Please try again.');
     } finally {
       setIsAddingAddress(false);

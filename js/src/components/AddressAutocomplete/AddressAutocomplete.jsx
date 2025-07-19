@@ -19,12 +19,10 @@ const AddressAutocomplete = ({ value, onChange, onValidAddress }) => {
           window.google.maps.places &&
           inputRef.current
         ) {
-          console.log('Google Maps API is available');
           setGoogleMapsAvailable(true);
 
           const inputElement = inputRef.current;
           if (!inputElement) {
-            console.error('Input element not found');
             setGoogleMapsAvailable(false);
             return;
           }
@@ -57,7 +55,6 @@ const AddressAutocomplete = ({ value, onChange, onValidAddress }) => {
           });
         } else {
           // Fallback: treat as simple text input
-          console.log('Google Maps API not available, using fallback mode');
           setGoogleMapsAvailable(false);
           // Consider any non-empty address as valid for fallback
           if (value && value.trim().length > 10) {
@@ -69,7 +66,6 @@ const AddressAutocomplete = ({ value, onChange, onValidAddress }) => {
           }
         }
       } catch (error) {
-        console.error('Error initializing Google Maps Autocomplete:', error);
         setGoogleMapsAvailable(false);
         // Fallback to simple text input
         if (value && value.trim().length > 10) {

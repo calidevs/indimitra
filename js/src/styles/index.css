@@ -24,29 +24,3 @@ body {
   border: 1px solid #e0e0e0 !important;
   font-family: 'Roboto', sans-serif !important;
 }
-
-.pac-item {
-  padding: 12px 16px !important;
-  cursor: pointer !important;
-  border-bottom: 1px solid #f0f0f0 !important;
-  font-size: 14px !important;
-  line-height: 1.4 !important;
-}
-
-.pac-item:hover {
-  background-color: #f5f5f5 !important;
-}
-
-.pac-item-selected {
-  background-color: #e3f2fd !important;
-}
-
-.pac-item-query {
-  font-weight: 500 !important;
-  color: #1976d2 !important;
-}
-
-.pac-item-query:before {
-  content: "📍 " !important;
-  margin-right: 8px !important;
-} 
