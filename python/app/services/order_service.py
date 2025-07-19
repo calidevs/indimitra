@@ -342,7 +342,7 @@ def get_order_stats():
             'total_orders': total_orders,
             'recent_orders': recent_orders,
             'orders_by_status': {status.value: count for status, count in orders_by_status},
-            'orders_by_type': {order_type.value: count for order_type, count in orders_by_type if order_type is not None}
+            'orders_by_type': {order_type.value: count for order_type, count in orders_by_type}
         }
     finally:
         db.close()
