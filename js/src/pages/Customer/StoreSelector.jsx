@@ -22,6 +22,7 @@ import StoresList from './StoresList';
 import StoreSelectorTitle from './StoreSelectorTitle';
 import NoStoresMessage from './NoStoresMessage';
 import AddressAutocomplete from '@/components/AddressAutocomplete/AddressAutocomplete';
+import { Select, MenuItem, FormControl, InputLabel } from '@mui/material';
 
 const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   const {
@@ -40,6 +41,21 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   const [isValidDeliveryAddress, setIsValidDeliveryAddress] = useState(false);
   const [deliveryStatus, setDeliveryStatus] = useState(null); // 'success' | 'error' | null
   const [deliveryMessage, setDeliveryMessage] = useState('');
+  const [useDropdown, setUseDropdown] = useState(false); // Toggle between dropdown and autocomplete
+
+  // Common addresses for dropdown
+  const commonAddresses = [
+    '123 Main Street, New York, NY 10001',
+    '456 Oak Avenue, Los Angeles, CA 90210',
+    '789 Pine Road, Chicago, IL 60601',
+    '321 Elm Street, Houston, TX 77001',
+    '654 Maple Drive, Phoenix, AZ 85001',
+    '987 Cedar Lane, Philadelphia, PA 19101',
+    '147 Birch Court, San Antonio, TX 78201',
+    '258 Spruce Way, San Diego, CA 92101',
+    '369 Willow Path, Dallas, TX 75201',
+    '741 Ash Boulevard, San Jose, CA 95101',
+  ];
 
   // If forceStep is provided and modal is opened, set the step accordingly
   useEffect(() => {
@@ -263,11 +279,50 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
             >
               <HomeIcon fontSize="small" color="secondary" /> Home Delivery Address
             </Typography>
-            <AddressAutocomplete
-              value={deliveryAddress}
-              onChange={handleDeliveryAddressChange}
-              onValidAddress={handleValidDeliveryAddress}
-            />
+
+            {/* Toggle between dropdown and autocomplete */}
+            <Box sx={{ mb: 2 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => setUseDropdown(!useDropdown)}
+                sx={{ mb: 1 }}
+              >
+                {useDropdown ? 'Use Google Maps' : 'Use Dropdown'}
+              </Button>
+            </Box>
+
+            {useDropdown ? (
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Select Address</InputLabel>
+                <Select
+                  value={deliveryAddress}
+                  onChange={(e) => {
+                    const address = e.target.value;
+                    handleDeliveryAddressChange(address);
+                    if (address) {
+                      handleValidDeliveryAddress(true);
+                    }
+                  }}
+                  label="Select Address"
+                >
+                  <MenuItem value="">
+                    <em>Select an address...</em>
+                  </MenuItem>
+                  {commonAddresses.map((address, index) => (
+                    <MenuItem key={index} value={address}>
+                      {address}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            ) : (
+              <AddressAutocomplete
+                value={deliveryAddress}
+                onChange={handleDeliveryAddressChange}
+                onValidAddress={handleValidDeliveryAddress}
+              />
+            )}
             {deliveryStatus && (
               <Alert severity={deliveryStatus} sx={{ mt: 1 }}>
                 {deliveryMessage}
