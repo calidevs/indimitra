@@ -4,7 +4,6 @@ import CloseIcon from '@mui/icons-material/Close';
 
 const Dialog = ({ open, onClose, children, title, ...props }) => {
   const theme = useTheme();
-  console.log(title);
   return (
     <MuiDialog
       open={open}

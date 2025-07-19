@@ -95,10 +95,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     // Ensure both pincode and store pincodes are strings and trimmed
     const pincodes = (tempStore?.pincodes || []).map((p) => String(p).trim());
     const pincodeStr = pincode ? String(pincode).trim() : '';
-    // Debug logs
-    console.log('Extracted pincode:', pincodeStr);
-    console.log('Store pincodes:', pincodes);
-    console.log('Match:', pincodes.includes(pincodeStr));
+
     if (pincodeStr && pincodes.includes(pincodeStr)) {
       setDeliveryStatus('success');
       setDeliveryMessage('Store delivers here');
