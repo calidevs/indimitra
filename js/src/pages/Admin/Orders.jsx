@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Box,
@@ -71,6 +71,19 @@ const Orders = () => {
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [driverId, setDriverId] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
+  const [alertOpen, setAlertOpen] = useState(false);
+
+  // Show Alert when error changes, and auto-dismiss after 4 seconds
+  useEffect(() => {
+    if (error) {
+      setAlertOpen(true);
+      const timer = setTimeout(() => {
+        setAlertOpen(false);
+        setError(null);
+      }, 4000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   // Fetch orders with filters
   const {
@@ -117,6 +130,7 @@ const Orders = () => {
     },
     onError: (error) => {
       setError(error.message);
+      setEditDialogOpen(false); // Close the modal on error
     },
   });
 
@@ -204,6 +218,20 @@ const Orders = () => {
   };
 
   const handleStatusUpdate = async () => {
+    // Frontend validation for address and products
+    if (!selectedOrder) return;
+    const isDelivery = selectedOrder.type === 'DELIVERY';
+    const address = selectedOrder.address?.address;
+    const hasAddress = address && address.trim() !== '';
+    const hasProducts =
+      Array.isArray(selectedOrder.orderItems?.edges) &&
+      selectedOrder.orderItems.edges.some(({ node }) => node.quantity > 0);
+
+    if ((isDelivery && !hasAddress) || !hasProducts) {
+      setError('Order must have a valid address and at least one product to update status.');
+      setEditDialogOpen(false);
+      return;
+    }
     try {
       const input = {
         orderId: selectedOrder.id,
@@ -239,8 +267,8 @@ const Orders = () => {
           <Typography variant="h5">Orders Management</Typography>
         </Box>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
+        {error && alertOpen && (
+          <Alert severity="error" sx={{ mb: 3 }} onClose={() => setAlertOpen(false)}>
             {error}
           </Alert>
         )}
