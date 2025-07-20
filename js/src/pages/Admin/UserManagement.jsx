@@ -102,27 +102,26 @@ const UserManagement = () => {
   // Update user type mutation
   const updateUserTypeMutation = useMutation({
     mutationFn: (variables) => fetchGraphQL(UPDATE_USER_TYPE, variables),
-    onSuccess: (response) => {
+    onSuccess: (response, variables) => {
       const result = response?.updateUserType;
-
-      if (result?.error) {
-        setSnackbar({
-          open: true,
-          message: result.error.message || 'Failed to update user role',
-          severity: 'error',
-        });
-      } else if (result?.user) {
+      if (result?.user) {
+        // Update the user in-place in the usersData array
+        if (usersData) {
+          usersData.forEach((user) => {
+            if (user.cognitoId === variables.targetUserId) {
+              user.type = variables.newType;
+            }
+          });
+        }
         setSnackbar({
           open: true,
           message: `Successfully updated user role to ${result.user.type}`,
           severity: 'success',
         });
-        refetchUsers(); // Refresh the user list
       }
       setRoleModalOpen(false);
     },
     onError: (error) => {
-      console.error('Error updating user role:', error);
       setSnackbar({
         open: true,
         message: 'Error updating user role: ' + error.message,

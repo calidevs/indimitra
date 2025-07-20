@@ -128,18 +128,24 @@ const ProductManagement = () => {
   });
 
   const updateProductMutation = useMutation({
-    mutationFn: ({ id, data }) => {
-      console.log('Updating product with data:', { id, data }); // Add logging
+    mutationFn: ({ productId, name, description, categoryId, image }) => {
       return fetchGraphQL(UPDATE_PRODUCT, {
-        productId: id,
-        name: data.name,
-        description: data.description,
-        categoryId: parseInt(data.categoryId, 10),
-        image: data.image || null,
+        productId,
+        name,
+        description,
+        categoryId: parseInt(categoryId, 10),
+        image: image || null,
       });
     },
-    onSuccess: () => {
-      handleFetchProducts();
+    onSuccess: (data, variables) => {
+      // Update the product in-place in allProducts
+      setAllProducts(prevProducts =>
+        prevProducts.map(product =>
+          product.id === variables.productId
+            ? { ...product, name: variables.name, description: variables.description, categoryId: variables.categoryId, image: variables.image }
+            : product
+        )
+      );
       handleCloseDialog();
       setSnackbar({
         open: true,

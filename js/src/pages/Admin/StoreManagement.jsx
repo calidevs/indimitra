@@ -262,14 +262,21 @@ const StoreManagement = () => {
     mutationFn: (variables) => {
       return fetchGraphQL(UPDATE_STORE, variables);
     },
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      // Update the store in-place in the storesData.stores array
+      if (storesData && storesData.stores) {
+        storesData.stores.forEach((store) => {
+          if (store.id === variables.storeId) {
+            Object.assign(store, variables);
+          }
+        });
+      }
       setSnackbar({
         open: true,
         message: 'Store updated successfully',
         severity: 'success',
       });
       setEditStore(null);
-      refetch();
     },
     onError: (error) => {
       setSnackbar({
@@ -1352,7 +1359,8 @@ const StoreManagement = () => {
                                     flexShrink: 0,
                                     fontSize: '1.2rem',
                                   }}
-                                />
+                                >
+                                </PercentIcon>
                                 <Typography
                                   variant="body2"
                                   sx={{

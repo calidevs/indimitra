@@ -106,8 +106,15 @@ const Orders = () => {
         },
       });
     },
-    onSuccess: () => {
-      refetch();
+    onSuccess: (data, variables) => {
+      // Update the order in-place in the orders list
+      if (ordersData && ordersData.getAllOrders) {
+        ordersData.getAllOrders.forEach((order) => {
+          if (order.id === variables.orderId) {
+            Object.assign(order, variables);
+          }
+        });
+      }
       setEditDialogOpen(false);
       setSelectedOrder(null);
       setNewStatus('');

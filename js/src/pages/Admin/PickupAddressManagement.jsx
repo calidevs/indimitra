@@ -223,8 +223,15 @@ const PickupAddressManagement = () => {
         input: variables,
       });
     },
-    onSuccess: () => {
-      refetchPickupAddresses();
+    onSuccess: (data, variables) => {
+      // Update the pickup address in-place in the pickupAddresses list
+      if (pickupAddressesData && pickupAddressesData.getPickupAddressesByStore) {
+        pickupAddressesData.getPickupAddressesByStore.forEach((address) => {
+          if (address.id === variables.id) {
+            Object.assign(address, variables);
+          }
+        });
+      }
       setEditModalOpen(false);
       setSelectedPickupAddress(null);
       setSuccessMessage('Pickup address updated successfully');

@@ -170,8 +170,15 @@ const PaymentOnboarding = () => {
   // Update payment onboarding mutation
   const updateOnboardingMutation = useMutation({
     mutationFn: ({ id, data }) => fetchGraphQL(UPDATE_PAYMENT_ONBOARDING, { id, input: data }),
-    onSuccess: () => {
-      refetch();
+    onSuccess: (data, variables) => {
+      // Update the onboarding record in-place in the onboarding list
+      if (onboardingData) {
+        onboardingData.forEach((record) => {
+          if (record.id === variables.id) {
+            Object.assign(record, variables.data);
+          }
+        });
+      }
       handleCloseDialog();
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
