@@ -33,6 +33,7 @@ import graphqlService from '@/config/graphql/graphqlService';
 import {
   GET_ORDERS_BY_STORE,
 } from '@/queries/operations';
+import { ORDER_STATUSES } from '@/config/constants/constants';
 
 // Define the GraphQL query for getting drivers by store
 const GET_DRIVERS_BY_STORE = `
@@ -51,15 +52,6 @@ const GET_DRIVERS_BY_STORE = `
     }
   }
 `;
-
-const ORDER_STATUSES = [
-  { value: 'PENDING', label: 'Pending' },
-  { value: 'PROCESSING', label: 'Processing' },
-  { value: 'READY_FOR_DELIVERY', label: 'Ready for Delivery' },
-  { value: 'OUT_FOR_DELIVERY', label: 'Out for Delivery' },
-  { value: 'DELIVERED', label: 'Delivered' },
-  { value: 'CANCELLED', label: 'Cancelled' },
-];
 
 const DRIVER_STATUSES = [
   { value: 'ACTIVE', label: 'Active' },

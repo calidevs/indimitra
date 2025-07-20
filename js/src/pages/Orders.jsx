@@ -52,6 +52,7 @@ import {
 import useStore, { useAuthStore } from '@/store/useStore';
 import { useMediaQuery } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { ORDER_STATUSES } from '@/config/constants/constants';
 
 const Orders = () => {
   // Force re-render function
@@ -449,14 +450,12 @@ const Orders = () => {
                     </TableCell>
                     <TableCell>
                       <Chip
-                        label={order.status}
+                        label={
+                          ORDER_STATUSES.find((s) => s.value === order.status)?.label || order.status
+                        }
                         size={isMobile ? 'small' : 'medium'}
                         color={
-                          order.status === 'COMPLETE'
-                            ? 'success'
-                            : order.status === 'PENDING' || order.status === 'ORDER_PLACED'
-                              ? 'warning'
-                              : 'error'
+                          ORDER_STATUSES.find((s) => s.value === order.status)?.color || 'default'
                         }
                       />
                     </TableCell>
