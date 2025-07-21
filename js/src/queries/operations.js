@@ -568,7 +568,7 @@ export const GET_STORE_WITH_INVENTORY = `
 
 export const GET_ALL_STORES = `
   query GetAllStores {
-    stores(disabled: false, isActive: true) {
+    stores(disabled: false) {
       id
       name
       address
