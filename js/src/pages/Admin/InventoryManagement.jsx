@@ -128,13 +128,20 @@ const InventoryManagement = () => {
   // Update inventory item mutation
   const updateInventoryMutation = useMutation({
     mutationFn: (variables) => fetchGraphQL(UPDATE_INVENTORY_ITEM, variables),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      // Update the inventory item in-place in the inventory list
+      if (inventoryData) {
+        inventoryData.forEach((item) => {
+          if (item.id === variables.inventoryId) {
+            Object.assign(item, variables);
+          }
+        });
+      }
       setSnackbar({
         open: true,
         message: 'Inventory item updated successfully',
         severity: 'success',
       });
-      refetchInventory();
       setEditModalOpen(false);
     },
     onError: (error) => {

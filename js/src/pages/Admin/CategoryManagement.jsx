@@ -108,9 +108,17 @@ const CategoryManagement = () => {
   // Update category mutation
   const updateCategoryMutation = useMutation({
     mutationFn: ({ id, name }) => graphqlService(UPDATE_CATEGORY, { categoryId: id, name }),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      // Update the category in-place in the categories list
+      if (categoriesData) {
+        categoriesData.forEach((cat) => {
+          if (cat.id === variables.id) {
+            cat.name = variables.name;
+          }
+        });
+      }
       handleCloseDialog();
-      refetch();
+      setSuccessMessage('Category updated successfully');
     },
     onError: (error) => {
       setError(error.message || 'Failed to update category');

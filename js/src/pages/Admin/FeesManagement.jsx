@@ -235,8 +235,15 @@ const FeesManagement = () => {
         input: variables,
       });
     },
-    onSuccess: () => {
-      refetchFees();
+    onSuccess: (data, variables) => {
+      // Update the fee in-place in the fees list
+      if (feesData) {
+        feesData.forEach((fee) => {
+          if (fee.id === variables.id) {
+            Object.assign(fee, variables);
+          }
+        });
+      }
       setEditModalOpen(false);
       setSelectedFee(null);
       setSuccessMessage('Fee updated successfully');

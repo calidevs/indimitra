@@ -251,8 +251,15 @@ const StoreLocationCodeManagement = () => {
         input: variables,
       });
     },
-    onSuccess: () => {
-      refetchLocationCodes();
+    onSuccess: (data, variables) => {
+      // Update the location code in-place in the locationCodes list
+      if (locationCodesData && locationCodesData.getStoreLocationCodesByStore) {
+        locationCodesData.getStoreLocationCodesByStore.forEach((code) => {
+          if (code.id === variables.id) {
+            Object.assign(code, variables);
+          }
+        });
+      }
       setEditModalOpen(false);
       setSelectedLocationCode(null);
       setSuccessMessage('Location code updated successfully');
