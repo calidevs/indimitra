@@ -643,9 +643,7 @@ const DriverDashboard = () => {
                 <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
                   <LocationIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary', mt: 0.5 }} />
                   <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    {selectedDelivery.order?.address?.address ||
-                      selectedDelivery.address ||
-                      'No address provided'}
+                    {selectedDelivery.order?.pickupAddress?.address || selectedDelivery.order?.address?.address || selectedDelivery.address || 'No address provided'}
                   </Typography>
                 </Box>
               </Box>
