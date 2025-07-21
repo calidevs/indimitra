@@ -46,18 +46,7 @@ import {
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { UPDATE_ORDER_STATUS, GET_STORE_DRIVERS, GET_ALL_ORDERS } from '@/queries/operations';
 import graphqlService from '@/config/graphql/graphqlService';
-
-// Define order statuses
-const ORDER_STATUSES = [
-  { value: 'PENDING', label: 'Pending', color: 'warning' },
-  { value: 'ORDER_PLACED', label: 'Order Placed', color: 'info' },
-  { value: 'ACCEPTED', label: 'Accepted', color: 'primary' },
-  { value: 'READY_FOR_DELIVERY', label: 'Ready for Delivery', color: 'success' },
-  { value: 'SCHEDULED', label: 'Scheduled', color: 'info' },
-  { value: 'PICKED_UP', label: 'Picked Up', color: 'info' },
-  { value: 'DELIVERED', label: 'Delivered', color: 'success' },
-  { value: 'CANCELLED', label: 'Cancelled', color: 'error' },
-];
+import { ORDER_STATUSES } from '@/config/constants/constants';
 
 const Orders = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -356,8 +345,8 @@ const Orders = () => {
                     <TableCell>
                       <Chip
                         icon={getStatusIcon(order.status)}
-                        label={order.status.replace(/_/g, ' ')}
-                        color={getStatusColor(order.status)}
+                        label={ORDER_STATUSES.find((s) => s.value === order.status)?.label || order.status.replace(/_/g, ' ')}
+                        color={ORDER_STATUSES.find((s) => s.value === order.status)?.color || 'default'}
                         size="small"
                       />
                     </TableCell>
@@ -395,8 +384,8 @@ const Orders = () => {
                 </Typography>
                 <Chip
                   icon={getStatusIcon(selectedOrder.status)}
-                  label={selectedOrder.status.replace(/_/g, ' ')}
-                  color={getStatusColor(selectedOrder.status)}
+                  label={ORDER_STATUSES.find((s) => s.value === selectedOrder.status)?.label || selectedOrder.status.replace(/_/g, ' ')}
+                  color={ORDER_STATUSES.find((s) => s.value === selectedOrder.status)?.color || 'default'}
                   sx={{ mb: 2 }}
                 />
               </Grid>

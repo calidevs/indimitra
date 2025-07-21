@@ -74,19 +74,9 @@ import {
   WidthType,
 } from 'docx';
 import { saveAs } from 'file-saver';
+import { ORDER_STATUSES } from '@/config/constants/constants';
 
 const client = generateClient();
-
-const ORDER_STATUSES = [
-  { value: 'PENDING', label: 'Pending', color: 'warning' },
-  { value: 'ORDER_PLACED', label: 'Order Placed', color: 'info' },
-  { value: 'ACCEPTED', label: 'Accepted', color: 'primary' },
-  { value: 'READY_FOR_DELIVERY', label: 'Ready for Delivery', color: 'success' },
-  { value: 'SCHEDULED', label: 'Scheduled', color: 'info' },
-  { value: 'PICKED_UP', label: 'Picked Up', color: 'info' },
-  { value: 'DELIVERED', label: 'Delivered', color: 'success' },
-  { value: 'CANCELLED', label: 'Cancelled', color: 'error' },
-];
 
 const calculateOrderTotal = (order) => {
   console.log('Calculating total for order:', order);
