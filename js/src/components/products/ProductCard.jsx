@@ -139,6 +139,16 @@ const ProductCard = ({ product }) => {
           >
             ${price.toFixed(2)}
           </Typography>
+          {/* Quantity display */}
+          {typeof product.quantity !== 'undefined' && (
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              sx={{ ml: 2, fontWeight: 500 }}
+            >
+              Qty: {product.quantity}
+            </Typography>
+          )}
         </Box>
       </CardContent>
 
