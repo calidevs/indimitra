@@ -685,9 +685,6 @@ const CartPage = () => {
               )}
 
               <Box sx={{ mt: 3 }}>
-                <Typography variant="h6" gutterBottom>
-                  Order Summary
-                </Typography>
                 <Grid container spacing={2}>
                   <Grid item xs={12}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
