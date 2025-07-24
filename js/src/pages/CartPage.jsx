@@ -552,44 +552,46 @@ const CartPage = () => {
                     <Card key={item.id} sx={{ mb: 2, position: 'relative' }}>
                       <CardContent>
                         <Grid container alignItems="center" spacing={2}>
+                          {/* Mobile: Stack image and details vertically */}
                           <Grid item xs={12} sm={4}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexDirection: { xs: 'column', sm: 'row' }, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
                               <img
                                 src={item.image}
                                 alt={item.name}
                                 style={{
-                                  width: 60,
-                                  height: 60,
+                                  width: '48px',
+                                  height: '48px',
                                   objectFit: 'cover',
                                   borderRadius: 8,
+                                  marginBottom: 4,
                                 }}
                               />
-                              <Typography variant="subtitle1" sx={{ fontWeight: 500 }}>
+                              <Typography variant="subtitle1" sx={{ fontWeight: 500, textAlign: { xs: 'center', sm: 'left' }, fontSize: { xs: '1rem', sm: '1.1rem' } }}>
                                 {item.name}
                               </Typography>
                             </Box>
                           </Grid>
-                          <Grid item xs={12} sm={3}>
-                            <Typography color="text.secondary">
+                          <Grid item xs={6} sm={3}>
+                            <Typography color="text.secondary" sx={{ fontSize: { xs: '0.98rem', sm: '1rem' }, textAlign: { xs: 'center', sm: 'left' } }}>
                               ${item.price.toFixed(2)} each
                             </Typography>
                           </Grid>
-                          <Grid item xs={12} sm={3}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                          <Grid item xs={6} sm={3}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
                               <IconButton
                                 size="small"
                                 onClick={() => removeFromCart(item.id)}
-                                sx={{ border: '1px solid', borderColor: 'divider' }}
+                                sx={{ border: '1px solid', borderColor: 'divider', width: 32, height: 32 }}
                               >
                                 <Remove fontSize="small" />
                               </IconButton>
-                              <Typography sx={{ minWidth: 40, textAlign: 'center' }}>
+                              <Typography sx={{ minWidth: 32, textAlign: 'center', fontSize: { xs: '1rem', sm: '1.1rem' } }}>
                                 {item.quantity}
                               </Typography>
                               <IconButton
                                 size="small"
                                 onClick={() => addToCart(item)}
-                                sx={{ border: '1px solid', borderColor: 'divider' }}
+                                sx={{ border: '1px solid', borderColor: 'divider', width: 32, height: 32 }}
                               >
                                 <Add fontSize="small" />
                               </IconButton>
@@ -598,7 +600,7 @@ const CartPage = () => {
                           <Grid item xs={12} sm={2}>
                             <Typography
                               variant="subtitle1"
-                              sx={{ fontWeight: 600, textAlign: 'right' }}
+                              sx={{ fontWeight: 600, textAlign: { xs: 'center', sm: 'right' }, fontSize: { xs: '1rem', sm: '1.1rem' }, mt: { xs: 1, sm: 0 } }}
                             >
                               ${(item.price * item.quantity).toFixed(2)}
                             </Typography>

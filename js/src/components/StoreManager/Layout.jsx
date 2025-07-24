@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
-import { Box, CssBaseline, useTheme } from '@mui/material';
+import { Box, CssBaseline, useTheme, useMediaQuery } from '@mui/material';
 import SideNav from './SideNav';
 import Header from '@/components/layout/Header';
 
@@ -11,6 +11,7 @@ export const DrawerContext = createContext({
 
 const Layout = ({ children }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [open, setOpen] = useState(true);
   const DRAWER_WIDTH = 240;
   const COLLAPSED_DRAWER_WIDTH = 65;
@@ -25,9 +26,15 @@ const Layout = ({ children }) => {
           component="main"
           sx={{
             flexGrow: 1,
-            p: 3,
-            width: { sm: `calc(100% - ${open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH}px)` },
-            ml: { sm: `${open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH}px` },
+            p: { xs: 0, sm: 3 },
+            width: {
+              xs: `calc(100% - ${COLLAPSED_DRAWER_WIDTH}px)`,
+              sm: `calc(100% - ${(open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH)}px)`
+            },
+            ml: {
+              xs: `${COLLAPSED_DRAWER_WIDTH}px`,
+              sm: `${open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH}px`
+            },
             transition: theme.transitions.create(['width', 'margin'], {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.leavingScreen,

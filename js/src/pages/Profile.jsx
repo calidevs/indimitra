@@ -288,43 +288,52 @@ const Profile = () => {
   }
 
   const renderProfileInfo = () => (
-    <Card sx={{ height: '100%' }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+    <Card sx={{ height: '100%', width: { xs: '100%', sm: 'auto' }, p: { xs: 1, sm: 0 }, boxShadow: { xs: 2, sm: 1 } }}>
+      <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'center', sm: 'center' },
+            mb: 3,
+            gap: { xs: 2, sm: 0 },
+          }}
+        >
           <Avatar
             sx={{
-              width: 100,
-              height: 100,
+              width: { xs: 72, sm: 64 },
+              height: { xs: 72, sm: 64 },
               bgcolor: 'primary.main',
-              fontSize: '2.5rem',
-              mr: 3,
+              fontSize: { xs: '2.2rem', sm: '1.8rem' },
+              mb: { xs: 1, sm: 0 },
+              mr: { xs: 0, sm: 2.5 },
             }}
           >
             {userProfile?.firstName?.[0]}
           </Avatar>
-          <Box>
-            <Typography variant="h5" gutterBottom>
+          <Box sx={{ textAlign: { xs: 'center', sm: 'left' }, width: '100%' }}>
+            <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' }, fontWeight: 700 }}>
               {userProfile?.firstName} {userProfile?.lastName}
             </Typography>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Email sx={{ mr: 1, color: 'text.secondary' }} />
-                <Typography color="text.secondary">{userProfile?.email}</Typography>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" flexWrap="wrap" sx={{ rowGap: 1, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(255,107,107,0.08)', px: 1.5, py: 0.5, borderRadius: 2, mb: { xs: 1, sm: 0 }, justifyContent: 'center' }}>
+                <Email sx={{ mr: 1, color: 'primary.main', fontSize: 22 }} />
+                <Typography sx={{ color: 'text.primary', fontWeight: 600, fontSize: { xs: '1.12rem', sm: '1.1rem' }, wordBreak: 'break-all' }}>{userProfile?.email}</Typography>
               </Box>
               {userProfile?.mobile && (
-                <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                  <Phone sx={{ mr: 1, color: 'text.secondary' }} />
-                  <Typography color="text.secondary">{userProfile.mobile}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(76,205,196,0.08)', px: 1.5, py: 0.5, borderRadius: 2, justifyContent: 'center' }}>
+                  <Phone sx={{ mr: 1, color: 'secondary.main', fontSize: 22 }} />
+                  <Typography sx={{ color: 'text.primary', fontWeight: 500, fontSize: { xs: '1.1rem', sm: '1.08rem' } }}>{userProfile.mobile}</Typography>
                 </Box>
               )}
             </Stack>
           </Box>
         </Box>
         <Divider sx={{ my: 2 }} />
-        <Typography variant="h6" gutterBottom>
+        <Typography variant="h6" gutterBottom sx={{ textAlign: { xs: 'center', sm: 'left' }, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
           Referral Program
         </Typography>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 2 }}>
           <TextField
             fullWidth
             value={referralLink}
@@ -338,8 +347,9 @@ const Profile = () => {
                 </Tooltip>
               ),
             }}
+            sx={{ mb: { xs: 1, sm: 0 } }}
           />
-          <Button variant="contained" startIcon={<Share />} onClick={copyToClipboard}>
+          <Button variant="contained" startIcon={<Share />} onClick={copyToClipboard} sx={{ width: { xs: '100%', sm: 'auto' }, py: 1 }}>
             Share
           </Button>
         </Box>
@@ -454,77 +464,143 @@ const Profile = () => {
   );
 
   return (
-    <Container maxWidth="xl" sx={{ py: 4 }}>
-      <Grid container spacing={3}>
-        {/* Side Navigation */}
-        <Grid item xs={12} md={3}>
-          <Paper elevation={0} sx={{ borderRadius: 2, overflow: 'hidden' }}>
-            <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'white' }}>
-              <Typography variant="h6">My Account</Typography>
+    <Container maxWidth="xl" sx={{ py: { xs: 1, sm: 4 }, px: { xs: 0.5, sm: 2 } }}>
+      <Box
+        sx={{
+          display: { xs: 'block', md: 'flex' },
+          gap: { xs: 0, md: 3 },
+        }}
+      >
+        {/* Sidebar: vertical for md+, horizontal for xs/sm */}
+        <Box
+          sx={{
+            width: { xs: '100%', md: 280 },
+            mb: { xs: 2, md: 0 },
+          }}
+        >
+          {/* Vertical sidebar for md+ */}
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 2,
+              overflow: 'hidden',
+              boxShadow: 1,
+              mb: 0,
+              display: { xs: 'none', md: 'block' },
+            }}
+          >
+            <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'white', textAlign: 'left' }}>
+              <Typography variant="h6" sx={{ fontSize: '1.25rem' }}>My Account</Typography>
             </Box>
             <List component="nav" sx={{ pt: 0 }}>
-              <ListItemButton
-                selected={activeTab === 0}
-                onClick={() => setActiveTab(0)}
-                sx={{
-                  borderRadius: '0 0 0 0',
-                  '&.Mui-selected': {
-                    bgcolor: 'rgba(25, 118, 210, 0.08)',
-                    borderLeft: '4px solid',
-                    borderColor: 'primary.main',
-                  },
-                }}
-              >
-                <ListItemIcon>
-                  <Person color={activeTab === 0 ? 'primary' : 'inherit'} />
-                </ListItemIcon>
-                <ListItemText primary="Profile" />
-              </ListItemButton>
-              <ListItemButton
-                selected={activeTab === 1}
-                onClick={() => setActiveTab(1)}
-                sx={{
-                  '&.Mui-selected': {
-                    bgcolor: 'rgba(25, 118, 210, 0.08)',
-                    borderLeft: '4px solid',
-                    borderColor: 'primary.main',
-                  },
-                }}
-              >
-                <ListItemIcon>
-                  <LocationOn color={activeTab === 1 ? 'primary' : 'inherit'} />
-                </ListItemIcon>
-                <ListItemText primary="Addresses" />
-              </ListItemButton>
-              <ListItemButton
-                selected={activeTab === 2}
-                onClick={() => setActiveTab(2)}
-                sx={{
-                  '&.Mui-selected': {
-                    bgcolor: 'rgba(25, 118, 210, 0.08)',
-                    borderLeft: '4px solid',
-                    borderColor: 'primary.main',
-                  },
-                }}
-              >
-                <ListItemIcon>
-                  <Settings color={activeTab === 2 ? 'primary' : 'inherit'} />
-                </ListItemIcon>
-                <ListItemText primary="Settings" />
-              </ListItemButton>
+              {[{ label: 'Profile', icon: <Person />, idx: 0 }, { label: 'Addresses', icon: <LocationOn />, idx: 1 }, { label: 'Settings', icon: <Settings />, idx: 2 }].map(tab => (
+                <ListItemButton
+                  key={tab.label}
+                  selected={activeTab === tab.idx}
+                  onClick={() => setActiveTab(tab.idx)}
+                  sx={{
+                    borderRadius: 0,
+                    '&.Mui-selected': {
+                      bgcolor: 'rgba(25, 118, 210, 0.08)',
+                      borderLeft: '4px solid',
+                      borderColor: 'primary.main',
+                    },
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 0, mr: 2, justifyContent: 'center' }}>
+                    {React.cloneElement(tab.icon, { color: activeTab === tab.idx ? 'primary' : 'inherit' })}
+                  </ListItemIcon>
+                  <ListItemText primary={tab.label} />
+                </ListItemButton>
+              ))}
             </List>
           </Paper>
-        </Grid>
+          {/* Horizontal sidebar for xs/sm */}
+          <Paper
+            elevation={0}
+            sx={{
+              borderRadius: 0,
+              overflow: 'hidden',
+              boxShadow: 0,
+              mb: 1,
+              display: { xs: 'block', md: 'none' },
+            }}
+          >
+            <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'white', textAlign: 'center' }}>
+              <Typography variant="h6" sx={{ fontSize: '1.1rem' }}>My Account</Typography>
+            </Box>
+            <List component="nav" sx={{ pt: 0, display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
+              {[{ label: 'Profile', icon: Person, idx: 0 }, { label: 'Addresses', icon: LocationOn, idx: 1 }, { label: 'Settings', icon: Settings, idx: 2 }].map(tab => (
+                <ListItemButton
+                  key={tab.label}
+                  selected={activeTab === tab.idx}
+                  onClick={() => setActiveTab(tab.idx)}
+                  sx={{
+                    borderRadius: 2,
+                    mx: 0.5,
+                    my: 0.5,
+                    minWidth: 80,
+                    flex: 1,
+                    justifyContent: 'center',
+                    '&.Mui-selected': {
+                      bgcolor: 'primary.light',
+                    },
+                  }}
+                >
+                  <ListItemIcon sx={{ minWidth: 0, mr: 0, justifyContent: 'center' }}>
+                    <tab.icon sx={{ fontSize: 28, color: activeTab === tab.idx ? 'primary.main' : 'text.secondary' }} />
+                  </ListItemIcon>
+                </ListItemButton>
+              ))}
+            </List>
+          </Paper>
+        </Box>
 
         {/* Content Area */}
-        <Grid item xs={12} md={9}>
+        <Box sx={{ flexGrow: 1, width: { xs: '100%', md: 'auto' } }}>
           <Box sx={{ height: '100%' }}>
-            {activeTab === 0 && renderProfileInfo()}
-            {activeTab === 1 && renderAddresses()}
-            {activeTab === 2 && renderSettings()}
+            {activeTab === 0 && (
+              <Box sx={{
+                p: { xs: 1, sm: 2 },
+                bgcolor: { xs: 'background.paper', sm: 'transparent' },
+                borderRadius: { xs: 2, sm: 2 },
+                boxShadow: { xs: 1, sm: 0 },
+                mb: { xs: 2, sm: 0 },
+                maxWidth: { xs: 420, sm: 'none' },
+                mx: { xs: 'auto', sm: 0 },
+              }}>
+                {renderProfileInfo()}
+              </Box>
+            )}
+            {activeTab === 1 && (
+              <Box sx={{
+                p: { xs: 1, sm: 2 },
+                bgcolor: { xs: 'background.paper', sm: 'transparent' },
+                borderRadius: { xs: 2, sm: 2 },
+                boxShadow: { xs: 1, sm: 0 },
+                mb: { xs: 2, sm: 0 },
+                maxWidth: { xs: 420, sm: 'none' },
+                mx: { xs: 'auto', sm: 0 },
+              }}>
+                {renderAddresses()}
+              </Box>
+            )}
+            {activeTab === 2 && (
+              <Box sx={{
+                p: { xs: 1, sm: 2 },
+                bgcolor: { xs: 'background.paper', sm: 'transparent' },
+                borderRadius: { xs: 2, sm: 2 },
+                boxShadow: { xs: 1, sm: 0 },
+                mb: { xs: 2, sm: 0 },
+                maxWidth: { xs: 420, sm: 'none' },
+                mx: { xs: 'auto', sm: 0 },
+              }}>
+                {renderSettings()}
+              </Box>
+            )}
           </Box>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       <Dialog open={addressDialogOpen} onClose={() => setAddressDialogOpen(false)} fullWidth>
         <DialogTitle>{editingAddress ? 'Edit Address' : 'Add Address'}</DialogTitle>

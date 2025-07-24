@@ -999,7 +999,7 @@ const StoreManagement = () => {
 
   return (
     <Box>
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <Paper sx={{ p: { xs: 1, sm: 3 }, mb: 3, mx: { xs: 0, sm: 'auto' }, width: { xs: '100%', sm: 'auto' }, boxShadow: { xs: 0, sm: 3 }, borderRadius: { xs: 0, sm: 2 } }}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
           <StoreIcon sx={{ mr: 1 }} />
           <Typography variant="h5">Store Management</Typography>
@@ -1482,26 +1482,38 @@ const StoreManagement = () => {
           </>
         ) : (
           // Store Onboarding View
-          <Box sx={{ maxWidth: 800, mx: 'auto' }}>
-            <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-              {steps.map((label) => (
-                <Step key={label}>
-                  <StepLabel>{label}</StepLabel>
-                </Step>
-              ))}
-            </Stepper>
+          <Box
+            sx={{
+              maxWidth: { xs: '100%', sm: 600, md: 800 },
+              mx: 'auto',
+              p: { xs: 1, sm: 2 },
+            }}
+          >
+            <Box sx={{ overflowX: { xs: 'auto', sm: 'visible' }, mb: { xs: 2, sm: 4 } }}>
+              <Stepper activeStep={activeStep} sx={{ minWidth: 500 }}>
+                {steps.map((label) => (
+                  <Step key={label}>
+                    <StepLabel>
+                      <Typography sx={{ fontSize: { xs: '0.95rem', sm: '1rem' } }}>{label}</Typography>
+                    </StepLabel>
+                  </Step>
+                ))}
+              </Stepper>
+            </Box>
 
-            {renderStepContent(activeStep)}
+            <Box sx={{ px: { xs: 0.5, sm: 0 } }}>{renderStepContent(activeStep)}</Box>
 
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 4 }}>
-              <Button disabled={activeStep === 0} onClick={handleBack}>
+            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', mt: 3, gap: 2 }}>
+              <Button fullWidth={true} disabled={activeStep === 0} onClick={handleBack} sx={{ py: 1, fontSize: { xs: '1rem', sm: '1.05rem' } }}>
                 Back
               </Button>
               <Button
+                fullWidth={true}
                 variant="contained"
                 color="primary"
                 onClick={activeStep === steps.length - 1 ? handleSubmit : handleNext}
                 disabled={createStoreMutation.isLoading}
+                sx={{ py: 1, fontSize: { xs: '1rem', sm: '1.05rem' } }}
               >
                 {createStoreMutation.isLoading ? (
                   <CircularProgress size={24} />

@@ -11,7 +11,8 @@ import {
   Tooltip,
   Button,
 } from '@components';
-import { ShoppingCart, Person, Storefront } from '@mui/icons-material';
+import { Drawer, List, ListItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
+import { ShoppingCart, Person, Storefront, ShoppingBag } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'aws-amplify/auth';
 import { useMediaQuery } from '@mui/material';
@@ -22,6 +23,7 @@ import LoginModal from '@/pages/Login/LoginModal';
 import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth';
 import { defineUserAbility } from '@/ability/defineAbility';
 import StoreSelector from '@/pages/Customer/StoreSelector';
+import MenuIcon from '@mui/icons-material/Menu';
 
 const Logo = ({ navigate, userRole }) => {
   const { setUser } = useAuthStore();
@@ -79,6 +81,7 @@ const Header = () => {
   const { modalOpen, setModalOpen, currentForm, setCurrentForm } = useAuthStore();
   const [cognitoId, setCognitoId] = useState(null);
   const [storeModalOpen, setStoreModalOpen] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
     const getUserInfo = async () => {
@@ -123,6 +126,99 @@ const Header = () => {
   // Get ability directly from the ability file
   const userAbility = defineUserAbility(user?.role || 'user');
 
+  // Close Drawer if switching to desktop while open
+  useEffect(() => {
+    if (!isMobile && drawerOpen) {
+      setDrawerOpen(false);
+    }
+  }, [isMobile, drawerOpen]);
+
+  // Drawer content for mobile
+  const mobileMenu = (
+    <Box
+      sx={{
+        width: 270,
+        height: '100%',
+        bgcolor: 'background.paper',
+        boxShadow: 3,
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+      role="presentation"
+      onClick={() => setDrawerOpen(false)}
+    >
+      {/* Drawer Header */}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          bgcolor: 'primary.main',
+          color: '#fff',
+          px: 2,
+          py: 2.5,
+          minHeight: 64,
+          boxShadow: 1,
+        }}
+      >
+        <Typography
+          variant="h6"
+          sx={{
+            fontWeight: 800,
+            letterSpacing: 1,
+            fontSize: '1.35rem',
+            color: '#fff',
+            textAlign: 'center',
+          }}
+        >
+          Menu
+        </Typography>
+      </Box>
+      <Divider />
+      <List sx={{ flex: 1, py: 1 }}>
+        {!cognitoId && (
+          <ListItem button onClick={handleSignInClick} sx={{ py: 2 }}>
+            <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><Person /></ListItemIcon>
+            <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Sign In</Typography>} />
+          </ListItem>
+        )}
+        {(!cognitoId || (cognitoId && user?.role === 'user')) && (
+          <ListItem button onClick={() => setStoreModalOpen(true)} sx={{ py: 2 }}>
+            <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><Storefront /></ListItemIcon>
+            <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Change Store</Typography>} />
+          </ListItem>
+        )}
+        <ListItem button onClick={() => navigate(ROUTES.CART)} sx={{ py: 2 }}>
+          <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><ShoppingCart /></ListItemIcon>
+          <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Cart</Typography>} />
+        </ListItem>
+        {cognitoId && userAbility?.can('view', 'orders') && (
+          <ListItem button onClick={() => navigate(ROUTES.ORDERS)} sx={{ py: 2 }}>
+            <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><ShoppingBag /></ListItemIcon>
+            <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Orders</Typography>} />
+          </ListItem>
+        )}
+        {cognitoId && (
+          <>
+            <Divider sx={{ my: 1.5 }} />
+            <ListItem button onClick={() => { navigate(ROUTES.PROFILE); }} sx={{ py: 2 }}>
+              <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><Person /></ListItemIcon>
+              <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Profile</Typography>} />
+            </ListItem>
+            <ListItem button onClick={handleLogout} sx={{ py: 2 }}>
+              <ListItemIcon sx={{ color: 'error.main', minWidth: 40 }}><Person /></ListItemIcon>
+              <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem', color: 'error.main' }}>Logout</Typography>} />
+            </ListItem>
+          </>
+        )}
+      </List>
+      <Divider />
+      <Box sx={{ p: 2, textAlign: 'center', color: 'text.secondary', fontSize: '0.95rem' }}>
+        &copy; {new Date().getFullYear()} Indimitra
+      </Box>
+    </Box>
+  );
+
   return (
     <>
       <Box
@@ -138,8 +234,8 @@ const Header = () => {
       >
         <Toolbar
           sx={{
-            minHeight: { xs: '64px', sm: '70px' },
-            px: { xs: 2, sm: 4 },
+            minHeight: { xs: '56px', sm: '64px', md: '70px' },
+            px: { xs: 1, sm: 2, md: 4 },
           }}
         >
           {/* Logo */}
@@ -148,30 +244,45 @@ const Header = () => {
           {/* Spacer */}
           <Box sx={{ flexGrow: 1 }} />
 
-          {/* Actions */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 1, sm: 2 } }}>
+          {/* Hamburger for mobile */}
+          {isMobile ? (
+            <IconButton
+              edge="end"
+              color="inherit"
+              aria-label="menu"
+              onClick={() => setDrawerOpen(true)}
+              sx={{ ml: 1 }}
+            >
+              <MenuIcon />
+            </IconButton>
+          ) : (
+            // Desktop actions
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: { xs: 0.5, sm: 1, md: 2 },
+                flexDirection: { xs: 'row', sm: 'row' },
+                position: 'relative',
+              }}
+            >
             {!cognitoId && (
               <Button
                 onClick={handleSignInClick}
                 sx={{
                   color: '#2A2F4F',
                   textTransform: 'none',
-                  fontSize: '1rem',
+                    fontSize: { xs: '0.95rem', sm: '1rem' },
                   fontWeight: 500,
-                  px: 2,
+                    px: { xs: 1, sm: 2 },
+                    py: { xs: 0.5, sm: 1 },
+                    minWidth: { xs: 0, sm: 64 },
                   '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
                 }}
               >
                 Sign In
               </Button>
             )}
-
-            <LoginModal
-              open={modalOpen}
-              onClose={handleCloseModal}
-              currentForm={currentForm}
-              setCurrentForm={setCurrentForm}
-            />
             {/* Orders (Desktop) */}
             {!isMobile && cognitoId && userAbility && userAbility.can('view', 'orders') && (
               <Button
@@ -179,9 +290,11 @@ const Header = () => {
                 sx={{
                   color: '#2A2F4F',
                   textTransform: 'none',
-                  fontSize: '1rem',
+                    fontSize: { xs: '0.95rem', sm: '1rem' },
                   fontWeight: 500,
-                  px: 2,
+                    px: { xs: 1, sm: 2 },
+                    py: { xs: 0.5, sm: 1 },
+                    minWidth: { xs: 0, sm: 64 },
                   '&:hover': {
                     backgroundColor: 'rgba(42, 47, 79, 0.08)',
                   },
@@ -190,29 +303,27 @@ const Header = () => {
                 Orders
               </Button>
             )}
-
-            {/* Change Store - Only show for users who are not signed in or have 'user' role */}
             {(!cognitoId || (cognitoId && user?.role === 'user')) && (
               <Button
                 variant="outlined"
-                startIcon={<Storefront />}
+                  startIcon={<Storefront sx={{ fontSize: { xs: 18, sm: 22 } }} />}
                 onClick={() => setStoreModalOpen(true)}
                 sx={{
                   color: '#2A2F4F',
                   borderColor: '#2A2F4F',
                   textTransform: 'none',
-                  fontSize: '1rem',
+                    fontSize: { xs: '0.95rem', sm: '1rem' },
                   fontWeight: 500,
-                  px: 2,
-                  mr: 1,
+                    px: { xs: 1, sm: 2 },
+                    py: { xs: 0.5, sm: 1 },
+                    minWidth: { xs: 0, sm: 64 },
+                    mr: { xs: 0.5, sm: 1 },
                   '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
                 }}
               >
                 Change Store
               </Button>
             )}
-
-            {/* Cart */}
             {user ? (
               userAbility?.can('view', 'cart') && (
                 <Tooltip title="Cart">
@@ -221,6 +332,7 @@ const Header = () => {
                     sx={{
                       background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
                       color: 'white',
+                        p: { xs: 0.75, sm: 1 },
                       '&:hover': {
                         background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
                       },
@@ -234,10 +346,13 @@ const Header = () => {
                           backgroundColor: '#FF6B6B',
                           color: 'white',
                           fontWeight: 'bold',
+                            fontSize: { xs: '0.7rem', sm: '0.8rem' },
+                            minWidth: { xs: 18, sm: 20 },
+                            height: { xs: 18, sm: 20 },
                         },
                       }}
                     >
-                      <ShoppingCart />
+                        <ShoppingCart sx={{ fontSize: { xs: 20, sm: 24 } }} />
                     </Badge>
                   </IconButton>
                 </Tooltip>
@@ -249,6 +364,7 @@ const Header = () => {
                   sx={{
                     background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
                     color: 'white',
+                      p: { xs: 0.75, sm: 1 },
                     '&:hover': {
                       background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
                     },
@@ -262,16 +378,17 @@ const Header = () => {
                         backgroundColor: '#FF6B6B',
                         color: 'white',
                         fontWeight: 'bold',
+                          fontSize: { xs: '0.7rem', sm: '0.8rem' },
+                          minWidth: { xs: 18, sm: 20 },
+                          height: { xs: 18, sm: 20 },
                       },
                     }}
                   >
-                    <ShoppingCart />
+                      <ShoppingCart sx={{ fontSize: { xs: 20, sm: 24 } }} />
                   </Badge>
                 </IconButton>
               </Tooltip>
             )}
-
-            {/* Profile */}
             {cognitoId && (
               <Tooltip title="Profile">
                 <IconButton
@@ -279,18 +396,25 @@ const Header = () => {
                   sx={{
                     background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
                     color: 'white',
+                      p: { xs: 0.75, sm: 1 },
+                      ml: { xs: 0.5, sm: 1 },
                     '&:hover': {
                       background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
                     },
                   }}
                 >
-                  <Person />
+                    <Person sx={{ fontSize: { xs: 20, sm: 24 } }} />
                 </IconButton>
               </Tooltip>
             )}
           </Box>
+          )}
         </Toolbar>
       </Box>
+      {/* Mobile Drawer */}
+      <Drawer anchor="right" open={drawerOpen} onClose={() => setDrawerOpen(false)}>
+        {mobileMenu}
+      </Drawer>
 
       {/* Profile Menu */}
       <Menu
@@ -362,7 +486,13 @@ const Header = () => {
       <StoreSelector open={storeModalOpen} onClose={() => setStoreModalOpen(false)} />
 
       {/* Spacer for fixed header */}
-      <Box sx={{ height: { xs: '64px', sm: '70px' } }} />
+      <Box sx={{ height: { xs: '56px', sm: '64px', md: '70px' } }} />
+      <LoginModal
+        open={modalOpen}
+        onClose={handleCloseModal}
+        currentForm={currentForm}
+        setCurrentForm={setCurrentForm}
+      />
     </>
   );
 };

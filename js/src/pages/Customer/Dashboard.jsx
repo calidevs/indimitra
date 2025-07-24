@@ -83,9 +83,9 @@ const Dashbaord = () => {
             <Box
               sx={{
                 alignItems: 'center',
-                mb: 3,
-                mt: 2,
-                p: 2,
+                mb: { xs: 2, sm: 3 },
+                mt: { xs: 1, sm: 2 },
+                p: { xs: 1, sm: 2 },
                 backgroundColor: 'rgba(0, 0, 0, 0.03)',
                 borderRadius: 2,
               }}
@@ -93,14 +93,16 @@ const Dashbaord = () => {
               <Box
                 sx={{
                   display: 'flex',
+                  flexDirection: { xs: 'column', sm: 'row' },
                   justifyContent: 'space-between',
-                  alignItems: 'center',
+                  alignItems: { xs: 'flex-start', sm: 'center' },
                   width: '100%',
+                  gap: { xs: 1.5, sm: 0 },
                 }}
               >
-                <Box>
-                  <Typography variant="h6">{selectedStore.name}</Typography>
-                  <Typography variant="body2" color="text.secondary">
+                <Box sx={{ mb: { xs: 1, sm: 0 } }}>
+                  <Typography variant="h6" sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>{selectedStore.name}</Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.95rem', sm: '1rem' } }}>
                     {selectedStore.address}
                   </Typography>
                 </Box>
@@ -111,28 +113,32 @@ const Dashbaord = () => {
                     sx={{
                       display: 'flex',
                       flexDirection: 'column',
-                      alignItems: 'flex-end',
-                      minWidth: 180,
+                      alignItems: { xs: 'flex-start', sm: 'flex-end' },
+                      minWidth: { xs: 0, sm: 180 },
                       borderRadius: 2,
                       fontWeight: 600,
                       textTransform: 'none',
+                      fontSize: { xs: '0.95rem', sm: '1rem' },
+                      mt: { xs: 1, sm: 0 },
+                      px: { xs: 1.5, sm: 2 },
+                      py: { xs: 0.5, sm: 1 },
                     }}
                     onClick={() => setStoreSelectorStep2Open(true)}
                   >
-                    <Typography variant="subtitle2" color="primary">
+                    <Typography variant="subtitle2" color="primary" sx={{ fontSize: { xs: '0.95rem', sm: '1rem' } }}>
                       Change Pickup Location
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.85rem', sm: '0.95rem' } }}>
                       {pickupAddress.address}
                     </Typography>
                   </Button>
                 )}
               </Box>
-              <Box sx={{ mt: 1, display: 'flex', justifyContent: 'space-between' }}>
-                <Typography variant="body2" color="text.secondary">
+              <Box sx={{ mt: 1, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', gap: { xs: 0.5, sm: 2 } }}>
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.95rem', sm: '1rem' } }}>
                   {selectedStore.description}
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.95rem', sm: '1rem' } }}>
                   {selectedStore.tnc}
                 </Typography>
               </Box>
@@ -149,25 +155,26 @@ const Dashbaord = () => {
               <Paper
                 elevation={0}
                 sx={{
-                  p: 2,
-                  mb: 3,
+                  p: { xs: 1.5, sm: 2 },
+                  mb: { xs: 2, sm: 3 },
                   backgroundColor: 'rgba(0, 0, 0, 0.03)',
                   borderRadius: 2,
-                  minHeight: 72,
+                  minHeight: { xs: 56, sm: 72 },
                 }}
               >
                 <Box
-                  sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                  sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', alignItems: { xs: 'flex-start', sm: 'center' }, gap: { xs: 1, sm: 0 } }}
                 >
-                  <Typography variant="h6" sx={{ fontWeight: 600 }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
                     {isManualMode ? 'Browse Products' : 'Quick List Entry'}
                   </Typography>
                   <Box
                     sx={{
-                      minWidth: 200,
+                      minWidth: { xs: 0, sm: 200 },
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'flex-end',
+                      justifyContent: { xs: 'flex-start', sm: 'flex-end' },
+                      width: { xs: '100%', sm: 'auto' },
                     }}
                   >
                     <FormControlLabel
@@ -187,13 +194,14 @@ const Dashbaord = () => {
                             overflow: 'hidden',
                             textOverflow: 'ellipsis',
                             whiteSpace: 'nowrap',
+                            fontSize: { xs: '0.95rem', sm: '1rem' },
                           }}
                         >
                           {isManualMode ? 'Manual Browse' : 'Quick List'}
                         </Typography>
                       }
                       labelPlacement="end"
-                      sx={{ marginLeft: 2 }}
+                      sx={{ marginLeft: { xs: 0, sm: 2 } }}
                     />
                   </Box>
                 </Box>
