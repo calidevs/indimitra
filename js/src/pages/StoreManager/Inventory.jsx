@@ -1005,7 +1005,7 @@ const Inventory = () => {
                             <TableCell>{item.product?.category?.name || 'Uncategorized'}</TableCell>
                             <TableCell>${item.price.toFixed(2)}</TableCell>
                             <TableCell>
-                              {item.quantity} {item.unit ? `(${item.unit})` : ''}
+                              {item.quantity}
                             </TableCell>
                             <TableCell>
                               {!item?.isAvailable ? (
