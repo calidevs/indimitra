@@ -79,6 +79,7 @@ const GET_STORE_WITH_INVENTORY = `
             quantity
             price
             measurement
+            unit
             isAvailable
             isListed
             updatedAt
@@ -771,6 +772,8 @@ const Inventory = () => {
         return 'L';
       case 'pcs':
         return 'pcs';
+      case 'pieces':
+        return 'pcs';
       default:
         return unit || '';
     }
@@ -1002,8 +1005,7 @@ const Inventory = () => {
                             <TableCell>{item.product?.category?.name || 'Uncategorized'}</TableCell>
                             <TableCell>${item.price.toFixed(2)}</TableCell>
                             <TableCell>
-                              {item.quantity}{' '}
-                              {item.measurement ? getMeasurementUnitLabel(item.measurement) : ''}
+                              {item.quantity}
                             </TableCell>
                             <TableCell>
                               {!item?.isAvailable ? (
@@ -1059,11 +1061,7 @@ const Inventory = () => {
                                       </Typography>
                                       <Typography variant="subtitle2" gutterBottom>
                                         <strong>Measurement:</strong>{' '}
-                                        {item.measurement
-                                          ? `${item.measurement} ${getMeasurementUnitLabel(
-                                              item.measurement
-                                            )}`
-                                          : 'N/A'}
+                                        {item.measurement && item.unit ? `${item.measurement} ${item.unit}` : 'N/A'}
                                       </Typography>
                                     </Grid>
                                   </Grid>
