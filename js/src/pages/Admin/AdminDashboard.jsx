@@ -67,18 +67,15 @@ const menuItems = [
 ];
 
 const AdminDashboard = () => {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [open, setOpen] = useState(true);
-  const { user, ability, logout } = useAuthStore();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const [open, setOpen] = useState(true);
+  const { user, ability, logout } = useAuthStore();
+  // Sidebar is always fixed, but collapsed on mobile
   const navigate = useNavigate();
   const location = useLocation();
 
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
-
+  // Sidebar toggle for large screens
   const handleSidebarToggle = () => {
     setOpen(!open);
   };
@@ -95,9 +92,7 @@ const AdminDashboard = () => {
 
   const handleNavigation = (path) => {
     navigate(path);
-    if (isMobile) {
-      setMobileOpen(false);
-    }
+    // No mobile drawer logic here
   };
 
   const drawer = (
@@ -106,21 +101,21 @@ const AdminDashboard = () => {
         sx={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: open && !isMobile ? 'space-between' : 'center',
           p: 2,
           minHeight: 64,
         }}
       >
-        {open && (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        {open && !isMobile && (
             <Typography variant="h6" noWrap component="div">
               Admin Panel
             </Typography>
-          </Box>
         )}
+        {!isMobile && (
         <IconButton onClick={handleSidebarToggle}>
           {open ? <ChevronLeftIcon /> : <MenuIcon />}
         </IconButton>
+        )}
       </Box>
       <Divider />
       <List>
@@ -132,7 +127,7 @@ const AdminDashboard = () => {
             selected={location.pathname === item.path}
             sx={{
               minHeight: 48,
-              justifyContent: open ? 'initial' : 'center',
+              justifyContent: open && !isMobile ? 'initial' : 'center',
               px: 2.5,
               '&.Mui-selected': {
                 background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
@@ -150,14 +145,14 @@ const AdminDashboard = () => {
             <ListItemIcon
               sx={{
                 minWidth: 0,
-                mr: open ? 3 : 'auto',
+                mr: open && !isMobile ? 3 : 'auto',
                 justifyContent: 'center',
                 color: location.pathname === item.path ? 'white' : 'inherit',
               }}
             >
               {item.icon}
             </ListItemIcon>
-            <ListItemText primary={item.text} sx={{ opacity: open ? 1 : 0 }} />
+            <ListItemText primary={item.text} sx={{ opacity: open && !isMobile ? 1 : 0 }} />
           </ListItem>
         ))}
         <Divider sx={{ my: 2 }} />
@@ -168,20 +163,20 @@ const AdminDashboard = () => {
           }}
           sx={{
             minHeight: 48,
-            justifyContent: open ? 'initial' : 'center',
+            justifyContent: open && !isMobile ? 'initial' : 'center',
             px: 2.5,
           }}
         >
           <ListItemIcon
             sx={{
               minWidth: 0,
-              mr: open ? 3 : 'auto',
+              mr: open && !isMobile ? 3 : 'auto',
               justifyContent: 'center',
             }}
           >
             <LogoutIcon />
           </ListItemIcon>
-          <ListItemText primary="Logout" sx={{ opacity: open ? 1 : 0 }} />
+          <ListItemText primary="Logout" sx={{ opacity: open && !isMobile ? 1 : 0 }} />
         </ListItem>
       </List>
     </Box>
@@ -193,8 +188,8 @@ const AdminDashboard = () => {
       <Box
         component="nav"
         sx={{
-          width: { sm: open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH },
-          flexShrink: { sm: 0 },
+          width: isMobile ? COLLAPSED_DRAWER_WIDTH : open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH,
+          flexShrink: 0,
           position: 'fixed',
           top: { xs: '64px', sm: '70px' },
           bottom: 0,
@@ -203,16 +198,12 @@ const AdminDashboard = () => {
         }}
       >
         <Drawer
-          variant={isMobile ? 'temporary' : 'persistent'}
+          variant="persistent"
           open={true}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true,
-          }}
           sx={{
             '& .MuiDrawer-paper': {
               boxSizing: 'border-box',
-              width: open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH,
+              width: isMobile ? COLLAPSED_DRAWER_WIDTH : open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH,
               top: { xs: '64px', sm: '70px' },
               transition: theme.transitions.create('width', {
                 easing: theme.transitions.easing.sharp,
@@ -229,9 +220,15 @@ const AdminDashboard = () => {
         component="main"
         sx={{
           flexGrow: 1,
-          p: 3,
-          width: { sm: `calc(100% - ${open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH}px)` },
-          ml: { sm: `${open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH}px` },
+          p: { xs: 0, sm: 3 },
+          width: {
+            xs: `calc(100% - ${COLLAPSED_DRAWER_WIDTH}px)`,
+            sm: `calc(100% - ${(open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH)}px)`
+          },
+          ml: {
+            xs: `${COLLAPSED_DRAWER_WIDTH}px`,
+            sm: `${open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH}px`
+          },
           mt: { xs: '64px', sm: '70px' },
           transition: theme.transitions.create(['width', 'margin'], {
             easing: theme.transitions.easing.sharp,

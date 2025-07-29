@@ -56,9 +56,7 @@ const SideNav = () => {
 
   const handleNavigation = (path) => {
     navigate(path);
-    if (isMobile) {
-      setOpen(false);
-    }
+    // No overlay/temporary drawer logic
   };
 
   const drawer = (
@@ -67,19 +65,21 @@ const SideNav = () => {
         sx={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: open && !isMobile ? 'space-between' : 'center',
           p: 2,
           minHeight: 64,
         }}
       >
-        {open && (
+        {open && !isMobile && (
           <Typography variant="h6" noWrap component="div">
             Store Manager
           </Typography>
         )}
-        <IconButton onClick={handleDrawerToggle}>
-          {open ? <ChevronLeftIcon /> : <MenuIcon />}
-        </IconButton>
+        {!isMobile && (
+          <IconButton onClick={handleDrawerToggle}>
+            {open ? <ChevronLeftIcon /> : <MenuIcon />}
+          </IconButton>
+        )}
       </Box>
       <Divider />
       <List>
@@ -91,7 +91,7 @@ const SideNav = () => {
             selected={location.pathname === item.path}
             sx={{
               minHeight: 48,
-              justifyContent: open ? 'initial' : 'center',
+              justifyContent: open && !isMobile ? 'initial' : 'center',
               px: 2.5,
               '&.Mui-selected': {
                 backgroundColor: 'primary.light',
@@ -104,14 +104,14 @@ const SideNav = () => {
             <ListItemIcon
               sx={{
                 minWidth: 0,
-                mr: open ? 3 : 'auto',
+                mr: open && !isMobile ? 3 : 'auto',
                 justifyContent: 'center',
                 color: location.pathname === item.path ? 'primary.main' : 'inherit',
               }}
             >
               {item.icon}
             </ListItemIcon>
-            <ListItemText primary={item.text} sx={{ opacity: open ? 1 : 0 }} />
+            <ListItemText primary={item.text} sx={{ opacity: open && !isMobile ? 1 : 0 }} />
           </ListItem>
         ))}
       </List>
@@ -119,52 +119,37 @@ const SideNav = () => {
   );
 
   return (
-    <>
-      <IconButton
-        color="inherit"
-        aria-label="open drawer"
-        edge="start"
-        onClick={handleDrawerToggle}
-        sx={{ mr: 2, display: { sm: 'none' } }}
-      >
-        <MenuIcon />
-      </IconButton>
-      <Box
-        component="nav"
+    <Box
+      component="nav"
+      sx={{
+        width: isMobile ? COLLAPSED_DRAWER_WIDTH : open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH,
+        flexShrink: 0,
+        position: 'fixed',
+        top: { xs: '64px', sm: '70px' },
+        bottom: 0,
+        left: 0,
+        zIndex: 1000,
+      }}
+    >
+      <Drawer
+        variant="persistent"
+        open={true}
         sx={{
-          width: { sm: open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH },
-          flexShrink: { sm: 0 },
-          position: 'fixed',
-          top: { xs: '64px', sm: '70px' },
-          bottom: 0,
-          left: 0,
-          zIndex: 1000,
+          '& .MuiDrawer-paper': {
+            boxSizing: 'border-box',
+            width: isMobile ? COLLAPSED_DRAWER_WIDTH : open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH,
+            top: { xs: '64px', sm: '70px' },
+            transition: theme.transitions.create('width', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
+            overflowX: 'hidden',
+          },
         }}
       >
-        <Drawer
-          variant={isMobile ? 'temporary' : 'persistent'}
-          open={true}
-          onClose={handleDrawerToggle}
-          ModalProps={{
-            keepMounted: true,
-          }}
-          sx={{
-            '& .MuiDrawer-paper': {
-              boxSizing: 'border-box',
-              width: open ? DRAWER_WIDTH : COLLAPSED_DRAWER_WIDTH,
-              top: { xs: '64px', sm: '70px' },
-              transition: theme.transitions.create('width', {
-                easing: theme.transitions.easing.sharp,
-                duration: theme.transitions.duration.enteringScreen,
-              }),
-              overflowX: 'hidden',
-            },
-          }}
-        >
-          {drawer}
-        </Drawer>
-      </Box>
-    </>
+        {drawer}
+      </Drawer>
+    </Box>
   );
 };
 

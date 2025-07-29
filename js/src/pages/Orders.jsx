@@ -434,6 +434,12 @@ const Orders = () => {
                       {order.id}
                     </TableCell>
                     <TableCell>
+                      {/* Show Order ID above address on mobile */}
+                      {isMobile && (
+                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main', display: 'block', mb: 0.5 }}>
+                          Order #{order.id}
+                        </Typography>
+                      )}
                       <Typography variant="body2" color="text.secondary">
                         {order.type === 'PICKUP' ? (
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
