@@ -358,7 +358,7 @@ const CartPage = () => {
       !selectedPickupId &&
       !selectedAddressId
     ) {
-      setDeliveryType('pickup');
+      setDeliveryType('delivery');
     }
     // eslint-disable-next-line
   }, [selectedStore?.pickupAddresses?.edges, addresses, userSelectedAddress]);
