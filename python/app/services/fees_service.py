@@ -18,8 +18,8 @@ def create_fee(store_id: int, fee_rate: float, fee_currency: str, type: str, lim
         The created FeesModel instance
     """
     print('type', type)
-    if type not in FeeType:
-        raise ValueError("Fee type must be either 'delivery' or 'pickup'")
+    if type not in [fee_type.value for fee_type in FeeType]:
+        raise ValueError("Fee type must be either 'DELIVERY' or 'PICKUP'")
         
     db = SessionLocal()
     try:
@@ -52,8 +52,8 @@ def update_fee(id: int, fee_rate: Optional[float] = None, fee_currency: Optional
     Returns:
         The updated FeesModel instance, or None if not found
     """
-    if type is not None and type not in FeeType:
-        raise ValueError("Fee type must be either 'delivery' or 'pickup'")
+    if type is not None and type not in [fee_type.value for fee_type in FeeType]:
+        raise ValueError("Fee type must be either 'DELIVERY' or 'PICKUP'")
         
     db = SessionLocal()
     try:

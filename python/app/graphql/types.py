@@ -115,7 +115,7 @@ class Fee:
             store_id=model.store_id,
             fee_rate=model.fee_rate,
             fee_currency=model.fee_currency,
-            type=FeeType(model.type.value),
+            type=model.type,
             limit=model.limit
         )
 

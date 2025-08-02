@@ -65,7 +65,7 @@ class FeeMutation:
                 store_id=input.store_id,
                 fee_rate=input.fee_rate,
                 fee_currency=input.fee_currency,
-                type=input.type,
+                type=input.type.value,
                 limit=input.limit
             )
             return FeeResponse(fee=fee)

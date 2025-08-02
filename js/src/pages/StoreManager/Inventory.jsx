@@ -74,26 +74,28 @@ const GET_STORE_WITH_INVENTORY = `
       radius
       inventory {
         edges {
-          node {
-            id
-            quantity
-            price
-            measurement
-            unit
-            isAvailable
-            isListed
-            updatedAt
-            product {
+                      node {
               id
-              name
-              description
-              category {
+              storeId
+              productId
+              quantity
+              price
+              measurement
+              unit
+              isAvailable
+              isListed
+              updatedAt
+              product {
                 id
                 name
+                description
+                category {
+                  id
+                  name
+                }
+                image
               }
-              image
             }
-          }
         }
       }
     }
@@ -110,7 +112,7 @@ const GET_STORE_WITH_INVENTORY = `
 `;
 
 const UPDATE_INVENTORY_ITEM = `
-  mutation UpdateInventoryItem($inventoryId: ID!, $price: Float!, $quantity: Int!) {
+  mutation UpdateInventoryItem($inventoryId: Int!, $price: Float!, $quantity: Int!) {
     updateInventoryItem(inventoryId: $inventoryId, price: $price, quantity: $quantity) {
       id
       price
@@ -120,28 +122,36 @@ const UPDATE_INVENTORY_ITEM = `
   }
 `;
 
-const DELETE_INVENTORY_ITEM = `
-  mutation DeleteInventoryItem($inventoryId: ID!) {
-    deleteInventoryItem(inventoryId: $inventoryId) {
-      id
-    }
+const REMOVE_FROM_INVENTORY = `
+  mutation RemoveFromInventory($storeId: Int!, $productId: Int!) {
+    removeFromInventory(storeId: $storeId, productId: $productId)
   }
 `;
 
 const ADD_PRODUCT_TO_INVENTORY = `
-  mutation AddProductToInventory($storeId: ID!, $productId: ID!, $price: Float!, $quantity: Int!, $size: Float, $measurement_unit: Int) {
+  mutation AddProductToInventory(
+    $productId: Int!
+    $storeId: Int!
+    $price: Float!
+    $quantity: Int!
+    $measurement: Int
+    $unit: String
+  ) {
     addProductToInventory(
-      storeId: $storeId
       productId: $productId
+      storeId: $storeId
       price: $price
       quantity: $quantity
-      size: $size
-      measurement_unit: $measurement_unit
+      measurement: $measurement
+      unit: $unit
     ) {
       id
-      price
-      quantity
       measurement
+      price
+      productId
+      quantity
+      storeId
+      unit
       updatedAt
       product {
         id
@@ -299,7 +309,7 @@ const AddProductDialogNew = React.memo(
     const [formState, setFormState] = useState({
       price: '',
       quantity: '',
-      size: '',
+      measurement: '',
       unit: '',
       searchInput: '',
     });
@@ -346,8 +356,8 @@ const AddProductDialogNew = React.memo(
         productId: selectedProduct.id,
         price: formState.price,
         quantity: formState.quantity,
-        size: formState.size || null,
-        measurementUnit: formState.unit || null,
+        measurement: formState.measurement || null,
+        unit: formState.unit || null,
       });
     };
 
@@ -356,7 +366,7 @@ const AddProductDialogNew = React.memo(
       setFormState({
         price: '',
         quantity: '',
-        size: '',
+        measurement: '',
         unit: '',
         searchInput: '',
       });
@@ -494,14 +504,14 @@ const AddProductDialogNew = React.memo(
           </Box>
 
           <Box sx={{ mt: 2 }}>
-            <label htmlFor="size" style={labelStyles}>
+            <label htmlFor="measurement" style={labelStyles}>
               Measurement
             </label>
             <input
-              id="size"
-              name="size"
+              id="measurement"
+              name="measurement"
               type="number"
-              value={formState.size}
+              value={formState.measurement}
               onChange={handleInputChange}
               min="0"
               style={inputStyles}
@@ -704,9 +714,10 @@ const Inventory = () => {
 
   // Mutation for deleting inventory
   const deleteMutation = useMutation({
-    mutationFn: ({ inventoryId }) => {
-      return fetchGraphQL(DELETE_INVENTORY_ITEM, {
-        inventoryId,
+    mutationFn: ({ storeId, productId }) => {
+      return fetchGraphQL(REMOVE_FROM_INVENTORY, {
+        storeId,
+        productId,
       });
     },
     onSuccess: () => {
@@ -723,14 +734,14 @@ const Inventory = () => {
 
   // Mutation for adding product to inventory
   const addMutation = useMutation({
-    mutationFn: ({ storeId, productId, price, quantity, size, measurementUnit }) => {
+    mutationFn: ({ storeId, productId, price, quantity, measurement, unit }) => {
       return fetchGraphQL(ADD_PRODUCT_TO_INVENTORY, {
-        storeId,
+        storeId: parseInt(storeId, 10),
         productId: parseInt(productId, 10),
         price: parseFloat(price),
         quantity: parseInt(quantity, 10),
-        size: size ? parseFloat(size) : null,
-        measurement_unit: measurementUnit ? parseInt(measurementUnit, 10) : null,
+        measurement: measurement ? parseInt(measurement, 10) : null,
+        unit: unit || null,
       });
     },
     onSuccess: () => {
@@ -1159,7 +1170,10 @@ const Inventory = () => {
             <Button
               variant="contained"
               color="error"
-              onClick={() => deleteMutation.mutate({ inventoryId: selectedItem.id })}
+              onClick={() => deleteMutation.mutate({ 
+                storeId: selectedItem.storeId, 
+                productId: selectedItem.productId 
+              })}
               disabled={deleteMutation.isLoading}
             >
               {deleteMutation.isLoading ? <CircularProgress size={24} /> : 'Delete'}
