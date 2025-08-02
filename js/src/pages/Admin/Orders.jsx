@@ -44,7 +44,12 @@ import {
   Edit as EditIcon,
 } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
-import { UPDATE_ORDER_STATUS, GET_STORE_DRIVERS, GET_ALL_ORDERS, GET_STORES } from '@/queries/operations';
+import {
+  UPDATE_ORDER_STATUS,
+  GET_STORE_DRIVERS,
+  GET_ALL_ORDERS,
+  GET_STORES,
+} from '@/queries/operations';
 import graphqlService from '@/config/graphql/graphqlService';
 import { ORDER_STATUSES } from '@/config/constants/constants';
 
@@ -60,6 +65,7 @@ const Orders = () => {
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [driverId, setDriverId] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
+  const [isUpdating, setIsUpdating] = useState(false);
 
   // Fetch orders with filters
   const {
@@ -89,7 +95,7 @@ const Orders = () => {
   });
   const storeMap = React.useMemo(() => {
     const map = {};
-    (storesData.stores || []).forEach(store => {
+    (storesData.stores || []).forEach((store) => {
       map[store.id] = store;
     });
     return map;
@@ -108,7 +114,11 @@ const Orders = () => {
         },
       });
     },
+    onMutate: () => {
+      setIsUpdating(true);
+    },
     onSuccess: (data, variables) => {
+      setIsUpdating(false);
       // Update the order in-place in the orders list
       if (ordersData && ordersData.getAllOrders) {
         ordersData.getAllOrders.forEach((order) => {
@@ -125,6 +135,7 @@ const Orders = () => {
       setScheduleTime('');
     },
     onError: (error) => {
+      setIsUpdating(false);
       setError(error.message);
     },
   });
@@ -212,32 +223,28 @@ const Orders = () => {
     setEditDialogOpen(true);
   };
 
-  const handleStatusUpdate = async () => {
-    try {
-      const input = {
-        orderId: selectedOrder.id,
-        status: newStatus,
-        deliveryInstructions: deliveryInstructions,
-      };
+  const handleStatusUpdate = () => {
+    const input = {
+      orderId: selectedOrder.id,
+      status: newStatus,
+      deliveryInstructions: deliveryInstructions,
+    };
 
-      // Add driver and schedule time for READY or READY_FOR_DELIVERY status
-      if (newStatus === 'READY' || newStatus === 'READY_FOR_DELIVERY') {
-        if (!driverId) {
-          setError('Driver ID is required for this status');
-          return;
-        }
-        if (!scheduleTime) {
-          setError('Schedule time is required for this status');
-          return;
-        }
-        input.driverId = parseInt(driverId);
-        input.scheduleTime = scheduleTime;
+    // Add driver and schedule time for READY or READY_FOR_DELIVERY status
+    if (newStatus === 'READY' || newStatus === 'READY_FOR_DELIVERY') {
+      if (!driverId) {
+        setError('Driver ID is required for this status');
+        return;
       }
-
-      await updateOrderStatusMutation.mutateAsync(input);
-    } catch (err) {
-      setError(err.message);
+      if (!scheduleTime) {
+        setError('Schedule time is required for this status');
+        return;
+      }
+      input.driverId = parseInt(driverId);
+      input.scheduleTime = scheduleTime;
     }
+
+    updateOrderStatusMutation.mutate(input);
   };
 
   return (
@@ -350,8 +357,13 @@ const Orders = () => {
                     <TableCell>
                       <Chip
                         icon={getStatusIcon(order.status)}
-                        label={ORDER_STATUSES.find((s) => s.value === order.status)?.label || order.status.replace(/_/g, ' ')}
-                        color={ORDER_STATUSES.find((s) => s.value === order.status)?.color || 'default'}
+                        label={
+                          ORDER_STATUSES.find((s) => s.value === order.status)?.label ||
+                          order.status.replace(/_/g, ' ')
+                        }
+                        color={
+                          ORDER_STATUSES.find((s) => s.value === order.status)?.color || 'default'
+                        }
                         size="small"
                       />
                     </TableCell>
@@ -389,8 +401,13 @@ const Orders = () => {
                 </Typography>
                 <Chip
                   icon={getStatusIcon(selectedOrder.status)}
-                  label={ORDER_STATUSES.find((s) => s.value === selectedOrder.status)?.label || selectedOrder.status.replace(/_/g, ' ')}
-                  color={ORDER_STATUSES.find((s) => s.value === selectedOrder.status)?.color || 'default'}
+                  label={
+                    ORDER_STATUSES.find((s) => s.value === selectedOrder.status)?.label ||
+                    selectedOrder.status.replace(/_/g, ' ')
+                  }
+                  color={
+                    ORDER_STATUSES.find((s) => s.value === selectedOrder.status)?.color || 'default'
+                  }
                   sx={{ mb: 2 }}
                 />
               </Grid>
@@ -404,7 +421,8 @@ const Orders = () => {
                   Address: {selectedOrder.address?.address || 'N/A'}
                 </Typography>
                 <Typography variant="body2">
-                  Store: {storeMap[selectedOrder.storeId]?.name || 'N/A'} ({storeMap[selectedOrder.storeId]?.address || ''})
+                  Store: {storeMap[selectedOrder.storeId]?.name || 'N/A'} (
+                  {storeMap[selectedOrder.storeId]?.address || ''})
                 </Typography>
                 <Typography variant="body2">
                   Total Amount: {formatCurrency(selectedOrder.totalAmount)}
@@ -529,9 +547,9 @@ const Orders = () => {
             onClick={handleStatusUpdate}
             variant="contained"
             color="primary"
-            disabled={updateOrderStatusMutation.isLoading}
+            disabled={isUpdating}
           >
-            {updateOrderStatusMutation.isLoading ? 'Updating...' : 'Update'}
+            {isUpdating ? 'Updating...' : 'Update'}
           </Button>
         </DialogActions>
       </Dialog>
