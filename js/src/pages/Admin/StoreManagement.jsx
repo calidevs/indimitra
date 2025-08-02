@@ -50,6 +50,7 @@ import {
 } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_STORES } from '@/queries/operations';
+import { GET_ALL_USERS } from '@/queries/operations';
 
 // Define the GraphQL mutation for creating a store
 const CREATE_STORE = `
@@ -196,6 +197,9 @@ const StoreManagement = () => {
   const [editStore, setEditStore] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
+  // Add state to store users
+  const [users, setUsers] = useState([]);
+
   // Fetch stores
   const {
     data: storesData,
@@ -206,6 +210,38 @@ const StoreManagement = () => {
     queryFn: () => fetchGraphQL(GET_STORES),
     enabled: shouldFetch,
   });
+
+  // Fetch all users for manager dropdown
+  const { data: usersData, isLoading: isLoadingUsers } = useQuery({
+    queryKey: ['users'],
+    queryFn: async () => {
+      const response = await fetchGraphQL(GET_ALL_USERS);
+      return response?.getAllUsers || [];
+    },
+    enabled: true,
+  });
+
+  // Only show STORE_MANAGER users in the dropdown
+  useEffect(() => {
+    if (usersData) {
+      setUsers(usersData.filter(u => u.type === 'STORE_MANAGER'));
+    }
+  }, [usersData]);
+
+  // When managerUserId changes, auto-fill email and mobile
+  useEffect(() => {
+    const selectedManager = users.find(u => String(u.id) === String(formData.managerUserId));
+    if (selectedManager) {
+      setFormData(prev => ({
+        ...prev,
+        email: selectedManager.email || '',
+        mobile: selectedManager.mobile || '',
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, email: '', mobile: '' }));
+    }
+    // eslint-disable-next-line
+  }, [formData.managerUserId]);
 
   // Create store mutation
   const createStoreMutation = useMutation({
@@ -372,8 +408,6 @@ const StoreManagement = () => {
 
     if (!formData.mobile.trim()) {
       errors.mobile = 'Manager mobile is required';
-    } else if (!/^\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}$/.test(formData.mobile.trim())) {
-      errors.mobile = 'Enter a valid US phone number (e.g., 123-456-7890)';
     }
 
     if (!formData.managerUserId) {
@@ -527,6 +561,30 @@ const StoreManagement = () => {
               />
             </Grid>
             <Grid item xs={12} md={6}>
+              <FormControl required fullWidth error={!!validationErrors.managerUserId}>
+                <InputLabel>Manager User ID</InputLabel>
+                <Select
+                  label="Manager User ID"
+                  name="managerUserId"
+                  value={formData.managerUserId}
+                  onChange={handleChange}
+                >
+                  {isLoadingUsers ? (
+                    <MenuItem value=""><em>Loading...</em></MenuItem>
+                  ) : users.length === 0 ? (
+                    <MenuItem value=""><em>No managers found</em></MenuItem>
+                  ) : (
+                    users.map(user => (
+                      <MenuItem key={user.id} value={user.id}>
+                        {user.id} - {user.email}
+                      </MenuItem>
+                    ))
+                  )}
+                </Select>
+                <Typography variant="caption" color="error">{validationErrors.managerUserId}</Typography>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
               <TextField
                 required
                 fullWidth
@@ -534,7 +592,7 @@ const StoreManagement = () => {
                 name="email"
                 type="email"
                 value={formData.email}
-                onChange={handleChange}
+                InputProps={{ readOnly: true }}
                 error={!!validationErrors.email}
                 helperText={validationErrors.email}
               />
@@ -546,45 +604,9 @@ const StoreManagement = () => {
                 label="Manager Mobile"
                 name="mobile"
                 value={formData.mobile}
-                onChange={(e) => {
-                  // Remove all non-digit characters
-                  let digits = e.target.value.replace(/\D/g, '');
-                  // Limit to 10 digits
-                  digits = digits.slice(0, 10);
-                  // Format as (XXX) XXX-XXXX
-                  let formatted = digits;
-                  if (digits.length > 0) {
-                    formatted = '(' + digits.substring(0, 3);
-                  }
-                  if (digits.length >= 4) {
-                    formatted += ') ' + digits.substring(3, 6);
-                  }
-                  if (digits.length >= 7) {
-                    formatted += '-' + digits.substring(6, 10);
-                  }
-                  // Remove trailing formatting if not enough digits
-                  formatted = formatted.replace(/\(\) /g, '');
-                  handleChange({ target: { name: 'mobile', value: formatted } });
-                }}
+                InputProps={{ readOnly: true }}
                 error={!!validationErrors.mobile}
                 helperText={validationErrors.mobile}
-                inputProps={{ maxLength: 14 }}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                required
-                fullWidth
-                label="Manager User ID"
-                name="managerUserId"
-                type="number"
-                value={formData.managerUserId}
-                onChange={handleChange}
-                error={!!validationErrors.managerUserId}
-                helperText={
-                  validationErrors.managerUserId ||
-                  'Enter the ID of the user who will manage this store'
-                }
               />
             </Grid>
             <Grid item xs={12} md={6}>
@@ -1570,34 +1592,30 @@ const StoreManagement = () => {
                   label="Mobile Number"
                   defaultValue={editStore?.mobile}
                   fullWidth
-                  inputProps={{ maxLength: 14 }}
-                  onInput={e => {
-                    let digits = e.target.value.replace(/\D/g, '');
-                    digits = digits.slice(0, 10);
-                    let formatted = digits;
-                    if (digits.length > 0) {
-                      formatted = '(' + digits.substring(0, 3);
-                    }
-                    if (digits.length >= 4) {
-                      formatted += ') ' + digits.substring(3, 6);
-                    }
-                    if (digits.length >= 7) {
-                      formatted += '-' + digits.substring(6, 10);
-                    }
-                    formatted = formatted.replace(/\(\) /g, '');
-                    e.target.value = formatted;
-                  }}
                 />
               </Grid>
               <Grid item xs={12} md={6}>
-                <TextField
-                  name="managerUserId"
-                  label="Manager User ID"
-                  type="number"
-                  defaultValue={editStore?.managerUserId}
-                  required
-                  fullWidth
-                />
+                <FormControl required fullWidth error={!!validationErrors.managerUserId}>
+                  <InputLabel>Manager User ID</InputLabel>
+                  <Select
+                    name="managerUserId"
+                    label="Manager User ID"
+                    defaultValue={editStore?.managerUserId}
+                  >
+                    {isLoadingUsers ? (
+                      <MenuItem value=""><em>Loading...</em></MenuItem>
+                    ) : users.length === 0 ? (
+                      <MenuItem value=""><em>No managers found</em></MenuItem>
+                    ) : (
+                      users.map(user => (
+                        <MenuItem key={user.id} value={user.id}>
+                          {user.id} - {user.email}
+                        </MenuItem>
+                      ))
+                    )}
+                  </Select>
+                  <Typography variant="caption" color="error">{validationErrors.managerUserId}</Typography>
+                </FormControl>
               </Grid>
 
               {/* Display Field */}
