@@ -32,8 +32,10 @@ import fetchGraphQL from '@/config/graphql/graphqlService';
 import graphqlService from '@/config/graphql/graphqlService';
 import {
   GET_ORDERS_BY_STORE,
+  GET_USER_PROFILE,
 } from '@/queries/operations';
 import { ORDER_STATUSES } from '@/config/constants/constants';
+import { fetchUserAttributes } from 'aws-amplify/auth';
 
 // Define the GraphQL query for getting drivers by store
 const GET_DRIVERS_BY_STORE = `
@@ -59,8 +61,8 @@ const DRIVER_STATUSES = [
 ];
 
 const DeliveryPartners = () => {
-  const { userProfile } = useAuthStore();
-  const [storeId, setStoreId] = useState(null);
+  const { userProfile, setUserProfile } = useAuthStore();
+  const [cognitoId, setCognitoId] = useState('');
   const [expandedDriver, setExpandedDriver] = useState(null);
   const [filters, setFilters] = useState({
     driverStatus: '',
@@ -70,37 +72,34 @@ const DeliveryPartners = () => {
   const [shouldFetch, setShouldFetch] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch store ID when profile is available
+  // Fetch Cognito ID on component mount
   useEffect(() => {
-    const fetchStoreId = async () => {
-      if (userProfile?.id) {
-        try {
-          const response = await fetchGraphQL(
-            `
-            query GetStoreInfo($managerId: Int!) {
-              storesByManager(managerUserId: $managerId) {
-                id
-                name
-              }
-            }
-          `,
-            { managerId: userProfile.id }
-          );
-
-          if (response?.storesByManager && response.storesByManager.length > 0) {
-            setStoreId(response.storesByManager[0].id);
-          } else {
-            setError('No store found for this manager');
-          }
-        } catch (error) {
-          console.error('Error fetching store ID:', error);
-          setError('Failed to fetch store information');
-        }
+    const getUserInfo = async () => {
+      try {
+        const userAttributes = await fetchUserAttributes();
+        setCognitoId(userAttributes.sub);
+      } catch (error) {
+        console.error('Error fetching user info:', error);
       }
     };
+    getUserInfo();
+  }, []);
 
-    fetchStoreId();
-  }, [userProfile]);
+  // Fetch user profile using Cognito ID
+  const { data: profileData, isLoading: profileLoading } = useQuery({
+    queryKey: ['getUserProfile', cognitoId],
+    queryFn: async () => {
+      const response = await graphqlService(GET_USER_PROFILE, { userId: cognitoId });
+      if (response?.getUserProfile) {
+        setUserProfile(response.getUserProfile);
+      }
+      return response;
+    },
+    enabled: !!cognitoId,
+  });
+
+  // Extract store ID from user profile
+  const storeId = profileData?.getUserProfile?.stores?.edges?.[0]?.node?.id;
 
   // Fetch drivers for the store
   const {
@@ -203,8 +202,18 @@ const DeliveryPartners = () => {
     return drivers;
   };
 
-  const isLoading = driversLoading || ordersLoading;
+  const isLoading = driversLoading || ordersLoading || profileLoading;
   const hasError = driversError || ordersError || error;
+
+  // Debug information
+  console.log('Current state:', {
+    cognitoId,
+    userProfile: userProfile?.id,
+    storeId,
+    profileLoading,
+    error,
+    shouldFetch
+  });
 
   return (
     <Layout>
@@ -216,6 +225,12 @@ const DeliveryPartners = () => {
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
             {error}
+          </Alert>
+        )}
+
+        {profileLoading && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Loading user profile...
           </Alert>
         )}
 
@@ -276,10 +291,15 @@ const DeliveryPartners = () => {
                 color="primary"
                 startIcon={<SearchIcon />}
                 onClick={handleFetchData}
-                disabled={!storeId}
+                disabled={!storeId || profileLoading}
               >
-                Get Data
+                {profileLoading ? 'Loading Profile...' : 'Get Data'}
               </Button>
+              {!storeId && !profileLoading && (
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  Store ID not available. Please check if you have a store assigned.
+                </Typography>
+              )}
             </Grid>
           </Grid>
         </Paper>
