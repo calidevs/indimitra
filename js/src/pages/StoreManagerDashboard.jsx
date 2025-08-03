@@ -394,7 +394,7 @@ const StoreManagerDashboard = () => {
             </Grid>
             <Grid item xs={12} md={6}>
               <Typography variant="subtitle1">
-                <strong>Total Products:</strong> {inventory.length}
+                <strong>Total Products:</strong> {inventory.filter(item => item.isListed).length}
               </Typography>
             </Grid>
             <Grid item xs={12} md={6}>
