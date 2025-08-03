@@ -508,6 +508,13 @@ const Orders = () => {
             </Grid>
             {(newStatus === 'READY' || newStatus === 'READY_FOR_DELIVERY') && (
               <>
+                {driversData?.getStoreDrivers?.length === 0 && (
+                  <Grid item xs={12}>
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                      No delivery agents are assigned to this store. Please assign delivery agents before updating the order status.
+                    </Alert>
+                  </Grid>
+                )}
                 <Grid item xs={12} md={6}>
                   <FormControl fullWidth required>
                     <InputLabel>Delivery Agent</InputLabel>
@@ -516,11 +523,17 @@ const Orders = () => {
                       onChange={(e) => setDriverId(e.target.value)}
                       label="Delivery Agent"
                     >
-                      {driversData?.getStoreDrivers?.map((storeDriver) => (
-                        <MenuItem key={storeDriver.userId} value={storeDriver.userId}>
-                          {storeDriver.driver.email} ({storeDriver.driver.mobile})
+                      {driversData?.getStoreDrivers?.length > 0 ? (
+                        driversData.getStoreDrivers.map((storeDriver) => (
+                          <MenuItem key={storeDriver.userId} value={storeDriver.userId}>
+                            {storeDriver.driver.email} ({storeDriver.driver.mobile})
+                          </MenuItem>
+                        ))
+                      ) : (
+                        <MenuItem disabled>
+                          No delivery agents available for this store
                         </MenuItem>
-                      ))}
+                      )}
                     </Select>
                   </FormControl>
                 </Grid>
@@ -547,7 +560,7 @@ const Orders = () => {
             onClick={handleStatusUpdate}
             variant="contained"
             color="primary"
-            disabled={isUpdating}
+            disabled={isUpdating || (newStatus === 'READY' || newStatus === 'READY_FOR_DELIVERY') && (!driverId || driversData?.getStoreDrivers?.length === 0)}
           >
             {isUpdating ? 'Updating...' : 'Update'}
           </Button>
