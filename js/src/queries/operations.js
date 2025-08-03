@@ -151,6 +151,13 @@ query GetAllOrders {
       email
       mobile
     }
+    type
+    pickupId
+    pickupAddress {
+      id
+      address
+      storeId
+    }
     address { 
       id
       address

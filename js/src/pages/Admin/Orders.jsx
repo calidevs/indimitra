@@ -205,9 +205,10 @@ const Orders = () => {
 
   // Filter orders based on search term and status filter
   const filteredOrders = ordersData?.getAllOrders?.filter((order) => {
+    const orderAddress = order.type === 'PICKUP' ? order.pickupAddress?.address : order.address?.address;
     const matchesSearch =
       searchTerm === '' ||
-      order.address?.address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      orderAddress?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       order.id.toString().includes(searchTerm);
 
     const matchesStatus = statusFilter === '' || order.status === statusFilter;
@@ -338,6 +339,7 @@ const Orders = () => {
               <TableHead>
                 <TableRow>
                   <TableCell>Order ID</TableCell>
+                  <TableCell>Type</TableCell>
                   <TableCell>Address</TableCell>
                   <TableCell>Store</TableCell>
                   <TableCell>Status</TableCell>
@@ -351,7 +353,16 @@ const Orders = () => {
                   <TableRow key={order.id}>
                     <TableCell>#{order.id}</TableCell>
                     <TableCell>
-                      <Typography variant="body2">{order.address?.address || 'N/A'}</Typography>
+                      <Chip
+                        label={order.type === 'PICKUP' ? 'Pickup' : 'Delivery'}
+                        color={order.type === 'PICKUP' ? 'secondary' : 'primary'}
+                        size="small"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Typography variant="body2">
+                        {order.type === 'PICKUP' ? order.pickupAddress?.address : order.address?.address || 'N/A'}
+                      </Typography>
                     </TableCell>
                     <TableCell>{storeMap[order.storeId]?.name || 'N/A'}</TableCell>
                     <TableCell>
@@ -400,6 +411,11 @@ const Orders = () => {
                   Order #{selectedOrder.id}
                 </Typography>
                 <Chip
+                  label={selectedOrder.type === 'PICKUP' ? 'Pickup' : 'Delivery'}
+                  color={selectedOrder.type === 'PICKUP' ? 'secondary' : 'primary'}
+                  sx={{ mb: 2 }}
+                />
+                <Chip
                   icon={getStatusIcon(selectedOrder.status)}
                   label={
                     ORDER_STATUSES.find((s) => s.value === selectedOrder.status)?.label ||
@@ -418,7 +434,7 @@ const Orders = () => {
                   Order Information
                 </Typography>
                 <Typography variant="body2">
-                  Address: {selectedOrder.address?.address || 'N/A'}
+                  Address: {selectedOrder.type === 'PICKUP' ? selectedOrder.pickupAddress?.address : selectedOrder.address?.address || 'N/A'}
                 </Typography>
                 <Typography variant="body2">
                   Store: {storeMap[selectedOrder.storeId]?.name || 'N/A'} (
