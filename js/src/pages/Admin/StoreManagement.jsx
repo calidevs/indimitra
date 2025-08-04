@@ -221,12 +221,27 @@ const StoreManagement = () => {
     enabled: true,
   });
 
-  // Only show STORE_MANAGER users in the dropdown
+  // Filter available managers (not already assigned to other stores)
+  const getAvailableManagers = () => {
+    if (!usersData || !storesData?.stores) return [];
+    
+    const assignedManagerIds = storesData.stores
+      .filter(store => store.id !== editStore?.id) // Exclude current store if editing
+      .map(store => store.managerUserId);
+    
+    return usersData.filter(user => 
+      user.type === 'STORE_MANAGER' && 
+      !assignedManagerIds.includes(user.id)
+    );
+  };
+
+  // Only show available STORE_MANAGER users in the dropdown
   useEffect(() => {
     if (usersData) {
-      setUsers(usersData.filter(u => u.type === 'STORE_MANAGER'));
+      const availableManagers = getAvailableManagers();
+      setUsers(availableManagers);
     }
-  }, [usersData]);
+  }, [usersData, storesData, editStore]);
 
   // When managerUserId changes, auto-fill email and mobile
   useEffect(() => {
@@ -572,7 +587,9 @@ const StoreManagement = () => {
                   {isLoadingUsers ? (
                     <MenuItem value=""><em>Loading...</em></MenuItem>
                   ) : users.length === 0 ? (
-                    <MenuItem value=""><em>No managers found</em></MenuItem>
+                    <MenuItem value="" disabled>
+                      <em>No available managers</em>
+                    </MenuItem>
                   ) : (
                     users.map(user => (
                       <MenuItem key={user.id} value={user.id}>
@@ -1605,7 +1622,9 @@ const StoreManagement = () => {
                     {isLoadingUsers ? (
                       <MenuItem value=""><em>Loading...</em></MenuItem>
                     ) : users.length === 0 ? (
-                      <MenuItem value=""><em>No managers found</em></MenuItem>
+                      <MenuItem value="" disabled>
+                        <em>No available managers</em>
+                      </MenuItem>
                     ) : (
                       users.map(user => (
                         <MenuItem key={user.id} value={user.id}>
