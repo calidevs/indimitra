@@ -366,6 +366,15 @@ const StoreLocationCodeManagement = () => {
         </Alert>
       )}
 
+      {/* Initial message when no store is selected */}
+      {!selectedStore && (
+        <Alert severity="info" sx={{ mb: 4 }}>
+          <Typography variant="body1">
+            Please select a store from the dropdown above to view and manage its location codes.
+          </Typography>
+        </Alert>
+      )}
+
       {/* Location Codes Table */}
       {selectedStore && (
         <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
@@ -384,9 +393,13 @@ const StoreLocationCodeManagement = () => {
           </Box>
 
           {locationCodesLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress />
             </Box>
+          ) : locationCodes.length === 0 ? (
+            <Alert severity="info" sx={{ my: 2 }}>
+              No location codes found for this store. Add your first location code to get started.
+            </Alert>
           ) : (
             <TableContainer>
               <Table>
@@ -398,30 +411,20 @@ const StoreLocationCodeManagement = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {locationCodes.length === 0 && !locationCodesLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={3} align="center">
-                        <Alert severity="info" sx={{ my: 2 }}>
-                          No location codes found for this store.
-                        </Alert>
+                  {locationCodes.map((locationCode) => (
+                    <TableRow key={locationCode.id}>
+                      <TableCell>{locationCode.location}</TableCell>
+                      <TableCell>{locationCode.code}</TableCell>
+                      <TableCell>
+                        <IconButton onClick={() => handleEditClick(locationCode)} color="primary">
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton onClick={() => handleDeleteClick(locationCode)} color="error">
+                          <DeleteIcon />
+                        </IconButton>
                       </TableCell>
                     </TableRow>
-                  ) : (
-                    locationCodes.map((locationCode) => (
-                      <TableRow key={locationCode.id}>
-                        <TableCell>{locationCode.location}</TableCell>
-                        <TableCell>{locationCode.code}</TableCell>
-                        <TableCell>
-                          <IconButton onClick={() => handleEditClick(locationCode)} color="primary">
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton onClick={() => handleDeleteClick(locationCode)} color="error">
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </TableContainer>
