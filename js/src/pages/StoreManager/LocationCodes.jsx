@@ -293,11 +293,11 @@ const LocationCodes = () => {
   // Update location code mutation
   const updateMutation = useMutation({
     mutationFn: (variables) => {
+      if (!store?.id) {
+        throw new Error('Store not found');
+      }
       return fetchGraphQL(UPDATE_LOCATION_CODE, {
-        input: {
-          ...variables,
-          storeId: store.id,
-        },
+        input: variables, // Only pass: id, location, code
       });
     },
     onSuccess: () => {
@@ -309,6 +309,7 @@ const LocationCodes = () => {
     },
     onError: (error) => {
       setErrorMessage(`Error updating location code: ${error.message}`);
+      setTimeout(() => setErrorMessage(''), 5000);
     },
   });
 
