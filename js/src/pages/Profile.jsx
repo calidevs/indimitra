@@ -142,7 +142,11 @@ const Profile = () => {
       await deleteAddressMutation(addressToDelete);
       setSnackbar({ open: true, message: 'Address deleted successfully', severity: 'success' });
     } catch (error) {
-      setSnackbar({ open: true, message: 'Failed to delete address. Please try again.', severity: 'error' });
+      setSnackbar({
+        open: true,
+        message: 'Failed to delete address. Please try again.',
+        severity: 'error',
+      });
     } finally {
       setDeleteDialogOpen(false);
       setAddressToDelete(null);
@@ -151,7 +155,11 @@ const Profile = () => {
 
   const handleSaveAddress = async () => {
     if (!effectiveProfile?.id) {
-      setSnackbar({ open: true, message: 'Could not save address: user information not available', severity: 'error' });
+      setSnackbar({
+        open: true,
+        message: 'Could not save address: user information not available',
+        severity: 'error',
+      });
       return;
     }
 
@@ -190,13 +198,22 @@ const Profile = () => {
           await updateAddressMutation(editingAddress.id, newAddress, true);
           setSnackbar({ open: true, message: 'Address updated as primary', severity: 'success' });
         } else {
-          const isOnlyPrimary = editingAddress.isPrimary && addresses.filter(a => a.isPrimary).length === 1;
+          const isOnlyPrimary =
+            editingAddress.isPrimary && addresses.filter((a) => a.isPrimary).length === 1;
           if (isOnlyPrimary) {
             await updateAddressMutation(editingAddress.id, newAddress, true);
-            setSnackbar({ open: true, message: 'At least one address must be primary', severity: 'warning' });
+            setSnackbar({
+              open: true,
+              message: 'At least one address must be primary',
+              severity: 'warning',
+            });
           } else {
             await updateAddressMutation(editingAddress.id, newAddress, false);
-            setSnackbar({ open: true, message: 'Address updated as secondary', severity: 'success' });
+            setSnackbar({
+              open: true,
+              message: 'Address updated as secondary',
+              severity: 'success',
+            });
           }
         }
       }
@@ -207,7 +224,11 @@ const Profile = () => {
       setIsPrimary(false);
       setIsValidAddress(false);
     } catch (error) {
-      setSnackbar({ open: true, message: 'Failed to save address. Please try again.', severity: 'error' });
+      setSnackbar({
+        open: true,
+        message: 'Failed to save address. Please try again.',
+        severity: 'error',
+      });
     } finally {
       setIsSavingAddress(false);
     }
@@ -266,8 +287,8 @@ const Profile = () => {
         <Alert severity="warning" sx={{ mt: 4 }}>
           No profile data available. Please try again.
         </Alert>
-        <Button 
-          variant="contained" 
+        <Button
+          variant="contained"
           onClick={async () => {
             try {
               const session = await fetchAuthSession();
@@ -278,7 +299,7 @@ const Profile = () => {
             } catch (error) {
               console.error('Error loading profile:', error);
             }
-          }} 
+          }}
           sx={{ mt: 2 }}
         >
           Load Profile
@@ -288,7 +309,14 @@ const Profile = () => {
   }
 
   const renderProfileInfo = () => (
-    <Card sx={{ height: '100%', width: { xs: '100%', sm: 'auto' }, p: { xs: 1, sm: 0 }, boxShadow: { xs: 2, sm: 1 } }}>
+    <Card
+      sx={{
+        height: '100%',
+        width: { xs: '100%', sm: 'auto' },
+        p: { xs: 1, sm: 0 },
+        boxShadow: { xs: 2, sm: 1 },
+      }}
+    >
       <CardContent sx={{ p: { xs: 1, sm: 2 } }}>
         <Box
           sx={{
@@ -312,28 +340,90 @@ const Profile = () => {
             {userProfile?.firstName?.[0]}
           </Avatar>
           <Box sx={{ textAlign: { xs: 'center', sm: 'left' }, width: '100%' }}>
-            <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' }, fontWeight: 700 }}>
+            <Typography
+              variant="h5"
+              gutterBottom
+              sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' }, fontWeight: 700 }}
+            >
               {userProfile?.firstName} {userProfile?.lastName}
             </Typography>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center" flexWrap="wrap" sx={{ rowGap: 1, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(255,107,107,0.08)', px: 1.5, py: 0.5, borderRadius: 2, mb: { xs: 1, sm: 0 }, justifyContent: 'center' }}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              alignItems="center"
+              flexWrap="wrap"
+              sx={{ rowGap: 1, justifyContent: { xs: 'center', sm: 'flex-start' } }}
+            >
+              <Box
+                sx={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  bgcolor: 'rgba(255,107,107,0.08)',
+                  px: 1.5,
+                  py: 0.5,
+                  borderRadius: 2,
+                  mb: { xs: 1, sm: 0 },
+                  justifyContent: 'center',
+                }}
+              >
                 <Email sx={{ mr: 1, color: 'primary.main', fontSize: 22 }} />
-                <Typography sx={{ color: 'text.primary', fontWeight: 600, fontSize: { xs: '1.12rem', sm: '1.1rem' }, wordBreak: 'break-all' }}>{userProfile?.email}</Typography>
+                <Typography
+                  sx={{
+                    color: 'text.primary',
+                    fontWeight: 600,
+                    fontSize: { xs: '1.12rem', sm: '1.1rem' },
+                    wordBreak: 'break-all',
+                  }}
+                >
+                  {userProfile?.email}
+                </Typography>
               </Box>
               {userProfile?.mobile && (
-                <Box sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(76,205,196,0.08)', px: 1.5, py: 0.5, borderRadius: 2, justifyContent: 'center' }}>
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    bgcolor: 'rgba(76,205,196,0.08)',
+                    px: 1.5,
+                    py: 0.5,
+                    borderRadius: 2,
+                    justifyContent: 'center',
+                  }}
+                >
                   <Phone sx={{ mr: 1, color: 'secondary.main', fontSize: 22 }} />
-                  <Typography sx={{ color: 'text.primary', fontWeight: 500, fontSize: { xs: '1.1rem', sm: '1.08rem' } }}>{userProfile.mobile}</Typography>
+                  <Typography
+                    sx={{
+                      color: 'text.primary',
+                      fontWeight: 500,
+                      fontSize: { xs: '1.1rem', sm: '1.08rem' },
+                    }}
+                  >
+                    {userProfile.mobile}
+                  </Typography>
                 </Box>
               )}
             </Stack>
           </Box>
         </Box>
         <Divider sx={{ my: 2 }} />
-        <Typography variant="h6" gutterBottom sx={{ textAlign: { xs: 'center', sm: 'left' }, fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>
+        <Typography
+          variant="h6"
+          gutterBottom
+          sx={{
+            textAlign: { xs: 'center', sm: 'left' },
+            fontSize: { xs: '1.1rem', sm: '1.25rem' },
+          }}
+        >
           Referral Program
         </Typography>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: 2 }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', sm: 'row' },
+            alignItems: { xs: 'stretch', sm: 'center' },
+            gap: 2,
+          }}
+        >
           <TextField
             fullWidth
             value={referralLink}
@@ -349,7 +439,12 @@ const Profile = () => {
             }}
             sx={{ mb: { xs: 1, sm: 0 } }}
           />
-          <Button variant="contained" startIcon={<Share />} onClick={copyToClipboard} sx={{ width: { xs: '100%', sm: 'auto' }, py: 1 }}>
+          <Button
+            variant="contained"
+            startIcon={<Share />}
+            onClick={copyToClipboard}
+            sx={{ width: { xs: '100%', sm: 'auto' }, py: 1 }}
+          >
             Share
           </Button>
         </Box>
@@ -359,11 +454,15 @@ const Profile = () => {
 
   const renderAddresses = () => {
     // Sort addresses: primary first, then others
-    const sortedAddresses = [...addresses].sort((a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0));
+    const sortedAddresses = [...addresses].sort(
+      (a, b) => (b.isPrimary ? 1 : 0) - (a.isPrimary ? 1 : 0)
+    );
     return (
       <Card sx={{ height: '100%' }}>
         <CardContent>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Box
+            sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}
+          >
             <Typography variant="h6">My Addresses</Typography>
             <Button
               variant="contained"
@@ -490,10 +589,16 @@ const Profile = () => {
             }}
           >
             <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'white', textAlign: 'left' }}>
-              <Typography variant="h6" sx={{ fontSize: '1.25rem' }}>My Account</Typography>
+              <Typography variant="h6" sx={{ fontSize: '1.25rem' }}>
+                My Account
+              </Typography>
             </Box>
             <List component="nav" sx={{ pt: 0 }}>
-              {[{ label: 'Profile', icon: <Person />, idx: 0 }, { label: 'Addresses', icon: <LocationOn />, idx: 1 }, { label: 'Settings', icon: <Settings />, idx: 2 }].map(tab => (
+              {[
+                { label: 'Profile', icon: <Person />, idx: 0 },
+                { label: 'Addresses', icon: <LocationOn />, idx: 1 },
+                { label: 'Settings', icon: <Settings />, idx: 2 },
+              ].map((tab) => (
                 <ListItemButton
                   key={tab.label}
                   selected={activeTab === tab.idx}
@@ -508,7 +613,9 @@ const Profile = () => {
                   }}
                 >
                   <ListItemIcon sx={{ minWidth: 0, mr: 2, justifyContent: 'center' }}>
-                    {React.cloneElement(tab.icon, { color: activeTab === tab.idx ? 'primary' : 'inherit' })}
+                    {React.cloneElement(tab.icon, {
+                      color: activeTab === tab.idx ? 'primary' : 'inherit',
+                    })}
                   </ListItemIcon>
                   <ListItemText primary={tab.label} />
                 </ListItemButton>
@@ -527,10 +634,25 @@ const Profile = () => {
             }}
           >
             <Box sx={{ p: 2, bgcolor: 'primary.main', color: 'white', textAlign: 'center' }}>
-              <Typography variant="h6" sx={{ fontSize: '1.1rem' }}>My Account</Typography>
+              <Typography variant="h6" sx={{ fontSize: '1.1rem' }}>
+                My Account
+              </Typography>
             </Box>
-            <List component="nav" sx={{ pt: 0, display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
-              {[{ label: 'Profile', icon: Person, idx: 0 }, { label: 'Addresses', icon: LocationOn, idx: 1 }, { label: 'Settings', icon: Settings, idx: 2 }].map(tab => (
+            <List
+              component="nav"
+              sx={{
+                pt: 0,
+                display: 'flex',
+                flexDirection: 'row',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
+            >
+              {[
+                { label: 'Profile', icon: Person, idx: 0 },
+                { label: 'Addresses', icon: LocationOn, idx: 1 },
+                { label: 'Settings', icon: Settings, idx: 2 },
+              ].map((tab) => (
                 <ListItemButton
                   key={tab.label}
                   selected={activeTab === tab.idx}
@@ -548,7 +670,12 @@ const Profile = () => {
                   }}
                 >
                   <ListItemIcon sx={{ minWidth: 0, mr: 0, justifyContent: 'center' }}>
-                    <tab.icon sx={{ fontSize: 28, color: activeTab === tab.idx ? 'primary.main' : 'text.secondary' }} />
+                    <tab.icon
+                      sx={{
+                        fontSize: 28,
+                        color: activeTab === tab.idx ? 'primary.main' : 'text.secondary',
+                      }}
+                    />
                   </ListItemIcon>
                 </ListItemButton>
               ))}
@@ -560,41 +687,47 @@ const Profile = () => {
         <Box sx={{ flexGrow: 1, width: { xs: '100%', md: 'auto' } }}>
           <Box sx={{ height: '100%' }}>
             {activeTab === 0 && (
-              <Box sx={{
-                p: { xs: 1, sm: 2 },
-                bgcolor: { xs: 'background.paper', sm: 'transparent' },
-                borderRadius: { xs: 2, sm: 2 },
-                boxShadow: { xs: 1, sm: 0 },
-                mb: { xs: 2, sm: 0 },
-                maxWidth: { xs: 420, sm: 'none' },
-                mx: { xs: 'auto', sm: 0 },
-              }}>
+              <Box
+                sx={{
+                  p: { xs: 1, sm: 2 },
+                  bgcolor: { xs: 'background.paper', sm: 'transparent' },
+                  borderRadius: { xs: 2, sm: 2 },
+                  boxShadow: { xs: 1, sm: 0 },
+                  mb: { xs: 2, sm: 0 },
+                  maxWidth: { xs: 420, sm: 'none' },
+                  mx: { xs: 'auto', sm: 0 },
+                }}
+              >
                 {renderProfileInfo()}
               </Box>
             )}
             {activeTab === 1 && (
-              <Box sx={{
-                p: { xs: 1, sm: 2 },
-                bgcolor: { xs: 'background.paper', sm: 'transparent' },
-                borderRadius: { xs: 2, sm: 2 },
-                boxShadow: { xs: 1, sm: 0 },
-                mb: { xs: 2, sm: 0 },
-                maxWidth: { xs: 420, sm: 'none' },
-                mx: { xs: 'auto', sm: 0 },
-              }}>
+              <Box
+                sx={{
+                  p: { xs: 1, sm: 2 },
+                  bgcolor: { xs: 'background.paper', sm: 'transparent' },
+                  borderRadius: { xs: 2, sm: 2 },
+                  boxShadow: { xs: 1, sm: 0 },
+                  mb: { xs: 2, sm: 0 },
+                  maxWidth: { xs: 420, sm: 'none' },
+                  mx: { xs: 'auto', sm: 0 },
+                }}
+              >
                 {renderAddresses()}
               </Box>
             )}
             {activeTab === 2 && (
-              <Box sx={{
-                p: { xs: 1, sm: 2 },
-                bgcolor: { xs: 'background.paper', sm: 'transparent' },
-                borderRadius: { xs: 2, sm: 2 },
-                boxShadow: { xs: 1, sm: 0 },
-                mb: { xs: 2, sm: 0 },
-                maxWidth: { xs: 420, sm: 'none' },
-                mx: { xs: 'auto', sm: 0 },
-              }}>
+              <Box
+                sx={{
+                  p: { xs: 1, sm: 2 },
+                  bgcolor: { xs: 'background.paper', sm: 'transparent' },
+                  borderRadius: { xs: 2, sm: 2 },
+                  boxShadow: { xs: 1, sm: 0 },
+                  mb: { xs: 2, sm: 0 },
+                  maxWidth: { xs: 420, sm: 'none' },
+                  mx: { xs: 'auto', sm: 0 },
+                }}
+              >
                 {renderSettings()}
               </Box>
             )}
@@ -620,11 +753,15 @@ const Profile = () => {
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => {
-            setAddressDialogOpen(false);
-            setNewAddress('');
-            setIsValidAddress(false);
-          }}>Cancel</Button>
+          <Button
+            onClick={() => {
+              setAddressDialogOpen(false);
+              setNewAddress('');
+              setIsValidAddress(false);
+            }}
+          >
+            Cancel
+          </Button>
           <Button
             onClick={handleSaveAddress}
             variant="contained"
@@ -644,11 +781,26 @@ const Profile = () => {
       <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
         <DialogTitle>Delete Address</DialogTitle>
         <DialogContent>
-          <Typography>Are you sure you want to delete this address? This action cannot be undone.</Typography>
+          <Typography>
+            Are you sure you want to delete this address? This action cannot be undone.
+          </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
-          <Button onClick={confirmDeleteAddress} color="error" variant="contained">Delete</Button>
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            disabled={isLoadingAddresses} // Disable cancel during deletion
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={confirmDeleteAddress}
+            color="error"
+            variant="contained"
+            disabled={isLoadingAddresses}
+            startIcon={isLoadingAddresses ? <CircularProgress size={18} color="inherit" /> : null}
+          >
+            {isLoadingAddresses ? 'Deleting...' : 'Delete'}
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -658,7 +810,11 @@ const Profile = () => {
         onClose={() => setSnackbar({ ...snackbar, open: false })}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <MuiAlert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: '100%' }}>
+        <MuiAlert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: '100%' }}
+        >
           {snackbar.message}
         </MuiAlert>
       </Snackbar>

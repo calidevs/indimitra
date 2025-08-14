@@ -139,10 +139,16 @@ const ProductManagement = () => {
     },
     onSuccess: (data, variables) => {
       // Update the product in-place in allProducts
-      setAllProducts(prevProducts =>
-        prevProducts.map(product =>
+      setAllProducts((prevProducts) =>
+        prevProducts.map((product) =>
           product.id === variables.productId
-            ? { ...product, name: variables.name, description: variables.description, categoryId: variables.categoryId, image: variables.image }
+            ? {
+                ...product,
+                name: variables.name,
+                description: variables.description,
+                categoryId: variables.categoryId,
+                image: variables.image,
+              }
             : product
         )
       );
@@ -632,18 +638,31 @@ const ProductManagement = () => {
           <Button
             variant="contained"
             onClick={handleSubmit}
-            disabled={createProductMutation.isLoading || updateProductMutation.isLoading}
-          >
-            {createProductMutation.isLoading || updateProductMutation.isLoading ? (
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            disabled={
+              createProductMutation.isPending ||
+              createProductMutation.isLoading ||
+              updateProductMutation.isPending ||
+              updateProductMutation.isLoading
+            }
+            startIcon={
+              createProductMutation.isPending ||
+              createProductMutation.isLoading ||
+              updateProductMutation.isPending ||
+              updateProductMutation.isLoading ? (
                 <CircularProgress size={20} color="inherit" />
-                {editingProduct ? 'Updating...' : 'Creating...'}
-              </Box>
-            ) : editingProduct ? (
-              'Update'
-            ) : (
-              'Add'
-            )}
+              ) : null
+            }
+          >
+            {createProductMutation.isPending ||
+            createProductMutation.isLoading ||
+            updateProductMutation.isPending ||
+            updateProductMutation.isLoading
+              ? editingProduct
+                ? 'Updating...'
+                : 'Creating...'
+              : editingProduct
+                ? 'Update'
+                : 'Add'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -673,9 +692,9 @@ const ProductManagement = () => {
           <Button
             onClick={handleCreateCategory}
             variant="contained"
-            disabled={createCategoryMutation.isLoading}
+            disabled={createCategoryMutation.isPending}
           >
-            {createCategoryMutation.isLoading ? 'Creating...' : 'Create'}
+            {createCategoryMutation.isPending ? 'Creating...' : 'Create'}
           </Button>
         </DialogActions>
       </Dialog>
