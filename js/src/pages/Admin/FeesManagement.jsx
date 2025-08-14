@@ -350,6 +350,15 @@ const FeesManagement = () => {
         </Alert>
       )}
 
+      {/* Initial message when no store is selected */}
+      {!selectedStore && (
+        <Alert severity="info" sx={{ mb: 4 }}>
+          <Typography variant="body1">
+            Please select a store from the dropdown above to view and manage its fees.
+          </Typography>
+        </Alert>
+      )}
+
       {/* Fees Table */}
       {selectedStore && (
         <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
@@ -368,9 +377,13 @@ const FeesManagement = () => {
           </Box>
 
           {feesLoading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
               <CircularProgress />
             </Box>
+          ) : fees.length === 0 ? (
+            <Alert severity="info" sx={{ my: 2 }}>
+              No fees found for this store. Add your first fee to get started.
+            </Alert>
           ) : (
             <TableContainer>
               <Table>
@@ -384,32 +397,22 @@ const FeesManagement = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {fees.length === 0 && !feesLoading ? (
-                    <TableRow>
-                      <TableCell colSpan={5} align="center">
-                        <Alert severity="info" sx={{ my: 2 }}>
-                          No fees found for this store.
-                        </Alert>
+                  {fees.map((fee) => (
+                    <TableRow key={fee.id}>
+                      <TableCell>{fee.type}</TableCell>
+                      <TableCell>{fee.feeCurrency}</TableCell>
+                      <TableCell>{fee.feeRate}</TableCell>
+                      <TableCell>{fee.limit}</TableCell>
+                      <TableCell>
+                        <IconButton onClick={() => handleEditClick(fee)} color="primary">
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton onClick={() => handleDeleteClick(fee)} color="error">
+                          <DeleteIcon />
+                        </IconButton>
                       </TableCell>
                     </TableRow>
-                  ) : (
-                    fees.map((fee) => (
-                      <TableRow key={fee.id}>
-                        <TableCell>{fee.type}</TableCell>
-                        <TableCell>{fee.feeCurrency}</TableCell>
-                        <TableCell>{fee.feeRate}</TableCell>
-                        <TableCell>{fee.limit}</TableCell>
-                        <TableCell>
-                          <IconButton onClick={() => handleEditClick(fee)} color="primary">
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton onClick={() => handleDeleteClick(fee)} color="error">
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
+                  ))}
                 </TableBody>
               </Table>
             </TableContainer>

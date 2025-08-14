@@ -338,6 +338,15 @@ const PickupAddressManagement = () => {
         </Alert>
       )}
 
+      {/* Initial message when no store is selected */}
+      {!selectedStore && (
+        <Alert severity="info" sx={{ mb: 4 }}>
+          <Typography variant="body1">
+            Please select a store from the dropdown above to view and manage its pickup addresses.
+          </Typography>
+        </Alert>
+      )}
+
       {/* Pickup Addresses Table */}
       {selectedStore && (
         <Paper elevation={3} sx={{ p: 3, mb: 4 }}>
@@ -355,9 +364,13 @@ const PickupAddressManagement = () => {
             </Button>
           </Box>
 
-          {pickupAddresses.length === 0 ? (
+          {pickupAddressesLoading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : pickupAddresses.length === 0 ? (
             <Alert severity="info" sx={{ my: 2 }}>
-              No pickup addresses found. Add your first pickup address to get started.
+              No pickup addresses found for this store. Add your first pickup address to get started.
             </Alert>
           ) : (
             <TableContainer>
