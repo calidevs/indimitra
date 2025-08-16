@@ -562,6 +562,32 @@ export const GET_STORE_WITH_INVENTORY = `
       taxPercentage
       displayField
       sectionHeaders
+      inventory {
+        edges {
+          node {
+            id
+            storeId
+            productId
+            quantity
+            price
+            measurement
+            unit
+            isAvailable
+            isListed
+            updatedAt
+            product {
+              id
+              name
+              description
+              category {
+                id
+                name
+              }
+              image
+            }
+          }
+        }
+      }
     }
   }
 `;
