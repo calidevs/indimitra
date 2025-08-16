@@ -30,6 +30,7 @@ import {
   Card,
   CardContent,
   CardActions,
+  Snackbar,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -66,6 +67,7 @@ const Orders = () => {
   const [driverId, setDriverId] = useState('');
   const [scheduleTime, setScheduleTime] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
 
   // Fetch orders with filters
   const {
@@ -133,10 +135,20 @@ const Orders = () => {
       setDeliveryInstructions('');
       setDriverId('');
       setScheduleTime('');
+      setSnackbar({
+        open: true,
+        message: 'Order status updated successfully!',
+        severity: 'success',
+      });
     },
     onError: (error) => {
       setIsUpdating(false);
       setError(error.message);
+      setSnackbar({
+        open: true,
+        message: `Failed to update order status: ${error.message}`,
+        severity: 'error',
+      });
     },
   });
 
@@ -233,11 +245,19 @@ const Orders = () => {
     // Add driver and schedule time for READY or READY_FOR_DELIVERY status
     if (newStatus === 'READY' || newStatus === 'READY_FOR_DELIVERY') {
       if (!driverId) {
-        setError('Driver ID is required for this status');
+        setSnackbar({
+          open: true,
+          message: 'Driver ID is required for this status',
+          severity: 'error',
+        });
         return;
       }
       if (!scheduleTime) {
-        setError('Schedule time is required for this status');
+        setSnackbar({
+          open: true,
+          message: 'Schedule time is required for this status',
+          severity: 'error',
+        });
         return;
       }
       input.driverId = parseInt(driverId);
@@ -553,6 +573,22 @@ const Orders = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))} 
+          severity={snackbar.severity} 
+          sx={{ width: '100%' }}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
