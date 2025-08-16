@@ -236,9 +236,9 @@ const FeesManagement = () => {
       });
     },
     onSuccess: (data, variables) => {
-      // Update the fee in-place in the fees list
-      if (feesData) {
-        feesData.forEach((fee) => {
+      // Fix: Use feesData.getFeesByStore instead of feesData directly
+      if (feesData && feesData.getFeesByStore) {
+        feesData.getFeesByStore.forEach((fee) => {
           if (fee.id === variables.id) {
             Object.assign(fee, variables);
           }
@@ -394,20 +394,20 @@ const FeesManagement = () => {
                     </TableRow>
                   ) : (
                     fees.map((fee) => (
-                      <TableRow key={fee.id}>
-                        <TableCell>{fee.type}</TableCell>
-                        <TableCell>{fee.feeCurrency}</TableCell>
-                        <TableCell>{fee.feeRate}</TableCell>
-                        <TableCell>{fee.limit}</TableCell>
-                        <TableCell>
-                          <IconButton onClick={() => handleEditClick(fee)} color="primary">
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton onClick={() => handleDeleteClick(fee)} color="error">
-                            <DeleteIcon />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
+                    <TableRow key={fee.id}>
+                      <TableCell>{fee.type}</TableCell>
+                      <TableCell>{fee.feeCurrency}</TableCell>
+                      <TableCell>{fee.feeRate}</TableCell>
+                      <TableCell>{fee.limit}</TableCell>
+                      <TableCell>
+                        <IconButton onClick={() => handleEditClick(fee)} color="primary">
+                          <EditIcon />
+                        </IconButton>
+                        <IconButton onClick={() => handleDeleteClick(fee)} color="error">
+                          <DeleteIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
                     ))
                   )}
                 </TableBody>
