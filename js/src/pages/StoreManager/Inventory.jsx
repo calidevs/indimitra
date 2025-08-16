@@ -39,7 +39,7 @@ import {
 } from '@mui/material';
 import {
   Edit,
-  Delete,
+
   KeyboardArrowDown,
   KeyboardArrowUp,
   Add,
@@ -122,11 +122,7 @@ const UPDATE_INVENTORY_ITEM = `
   }
 `;
 
-const REMOVE_FROM_INVENTORY = `
-  mutation RemoveFromInventory($storeId: Int!, $productId: Int!) {
-    removeFromInventory(storeId: $storeId, productId: $productId)
-  }
-`;
+
 
 const ADD_PRODUCT_TO_INVENTORY = `
   mutation AddProductToInventory(
@@ -578,7 +574,7 @@ const Inventory = () => {
   const { userProfile, setUserProfile } = useAuthStore();
   const [selectedItem, setSelectedItem] = useState(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+
   const [expandedItem, setExpandedItem] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -712,25 +708,7 @@ const Inventory = () => {
     },
   });
 
-  // Mutation for deleting inventory
-  const deleteMutation = useMutation({
-    mutationFn: ({ storeId, productId }) => {
-      return fetchGraphQL(REMOVE_FROM_INVENTORY, {
-        storeId,
-        productId,
-      });
-    },
-    onSuccess: () => {
-      refetchInventory();
-      setDeleteModalOpen(false);
-      setSelectedItem(null);
-      setSuccessMessage('Inventory item deleted successfully');
-      setTimeout(() => setSuccessMessage(''), 3000);
-    },
-    onError: (error) => {
-      setErrorMessage(`Error deleting inventory: ${error.message}`);
-    },
-  });
+
 
   // Mutation for adding product to inventory
   const addMutation = useMutation({
@@ -762,10 +740,7 @@ const Inventory = () => {
     setEditModalOpen(true);
   };
 
-  const handleDeleteClick = (item) => {
-    setSelectedItem(item);
-    setDeleteModalOpen(true);
-  };
+
 
   const handleExpandClick = (itemId) => {
     setExpandedItem(expandedItem === itemId ? null : itemId);
@@ -1040,13 +1015,7 @@ const Inventory = () => {
                               >
                                 <Edit />
                               </IconButton>
-                              <IconButton
-                                onClick={() => handleDeleteClick(item)}
-                                size="small"
-                                color="error"
-                              >
-                                <Delete />
-                              </IconButton>
+
                             </TableCell>
                           </TableRow>
                           <TableRow>
@@ -1112,74 +1081,7 @@ const Inventory = () => {
           isLoading={updateMutation.isLoading}
         />
 
-        {/* Delete Dialog */}
-        <Dialog
-          open={deleteModalOpen}
-          onClose={() => {
-            setDeleteModalOpen(false);
-            setErrorMessage('');
-          }}
-          maxWidth="sm"
-          fullWidth
-        >
-          <DialogTitle>Delete Inventory Item</DialogTitle>
-          <DialogContent>
-            {selectedItem && (
-              <>
-                <Typography variant="body1" gutterBottom>
-                  Are you sure you want to delete this inventory item?
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', mt: 2 }}>
-                  {selectedItem.product?.image && (
-                    <CardMedia
-                      component="img"
-                      sx={{ width: 80, height: 80, objectFit: 'contain', mr: 2 }}
-                      image={selectedItem.product.image}
-                      alt={selectedItem.product.name}
-                    />
-                  )}
-                  <Box>
-                    <Typography variant="subtitle1">
-                      <strong>{selectedItem.product?.name}</strong>
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Quantity: {selectedItem.quantity}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Price: ${selectedItem.price.toFixed(2)}
-                    </Typography>
-                  </Box>
-                </Box>
-              </>
-            )}
-            {errorMessage && (
-              <Alert severity="error" sx={{ mt: 2 }}>
-                {errorMessage}
-              </Alert>
-            )}
-          </DialogContent>
-          <DialogActions>
-            <Button
-              onClick={() => {
-                setDeleteModalOpen(false);
-                setErrorMessage('');
-              }}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="contained"
-              color="error"
-              onClick={() => deleteMutation.mutate({ 
-                storeId: selectedItem.storeId, 
-                productId: selectedItem.productId 
-              })}
-              disabled={deleteMutation.isLoading}
-            >
-              {deleteMutation.isLoading ? <CircularProgress size={24} /> : 'Delete'}
-            </Button>
-          </DialogActions>
-        </Dialog>
+
 
         <AddProductDialogNew
           open={addModalOpen}

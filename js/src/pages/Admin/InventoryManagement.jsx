@@ -37,7 +37,7 @@ import {
 import {
   Search as SearchIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
+
   Add as AddIcon,
   Refresh as RefreshIcon,
   ViewModule as GridIcon,
@@ -60,7 +60,7 @@ const InventoryManagement = () => {
   const [selectedStore, setSelectedStore] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [newQuantity, setNewQuantity] = useState('');
   const [newPrice, setNewPrice] = useState('');
@@ -203,10 +203,7 @@ const InventoryManagement = () => {
     setEditModalOpen(true);
   };
 
-  const handleDelete = (item) => {
-    setSelectedItem(item);
-    setDeleteModalOpen(true);
-  };
+
 
   const handleUpdateConfirm = () => {
     if (!selectedItem) return;
@@ -220,15 +217,7 @@ const InventoryManagement = () => {
     });
   };
 
-  const handleDeleteConfirm = () => {
-    // Implement delete functionality
-    setDeleteModalOpen(false);
-    setSnackbar({
-      open: true,
-      message: 'Delete functionality not implemented yet',
-      severity: 'info',
-    });
-  };
+
 
   const handleCloseSnackbar = () => {
     setSnackbar({ ...snackbar, open: false });
@@ -533,13 +522,7 @@ const InventoryManagement = () => {
                             >
                               <EditIcon />
                             </IconButton>
-                            <IconButton
-                              size="small"
-                              color="error"
-                              onClick={() => handleDelete(item)}
-                            >
-                              <DeleteIcon />
-                            </IconButton>
+
                           </TableCell>
                         </TableRow>
                       ))}
@@ -594,14 +577,7 @@ const InventoryManagement = () => {
                             >
                               Edit
                             </Button>
-                            <Button
-                              size="small"
-                              color="error"
-                              startIcon={<DeleteIcon />}
-                              onClick={() => handleDelete(item)}
-                            >
-                              Delete
-                            </Button>
+
                           </Box>
                         </CardContent>
                       </Card>
@@ -704,53 +680,7 @@ const InventoryManagement = () => {
         </DialogActions>
       </Dialog>
 
-      {/* Delete Modal */}
-      <Dialog
-        open={deleteModalOpen}
-        onClose={() => setDeleteModalOpen(false)}
-        fullWidth
-        maxWidth="sm"
-      >
-        <DialogTitle>Delete Inventory Item</DialogTitle>
-        <DialogContent>
-          {selectedItem && (
-            <Box sx={{ mt: 2 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                {selectedItem.product.image && (
-                  <Box
-                    component="img"
-                    src={selectedItem.product.image}
-                    alt={selectedItem.product.name}
-                    sx={{ width: 60, height: 60, mr: 2, objectFit: 'cover', borderRadius: 1 }}
-                  />
-                )}
-                <Box>
-                  <Typography variant="subtitle1">{selectedItem.product.name}</Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {selectedItem.product.category?.name || 'N/A'}
-                  </Typography>
-                </Box>
-              </Box>
 
-              <Typography variant="subtitle1" gutterBottom>
-                Are you sure you want to delete this inventory item?
-              </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Quantity: {selectedItem.quantity}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
-                Price: ₹{selectedItem.price.toFixed(2)}
-              </Typography>
-            </Box>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDeleteModalOpen(false)}>Cancel</Button>
-          <Button onClick={handleDeleteConfirm} variant="contained" color="error">
-            Delete
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Add Product Modal */}
       <Dialog open={addModalOpen} onClose={handleCloseAddModal} fullWidth maxWidth="md">
