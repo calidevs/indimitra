@@ -64,7 +64,7 @@ const UserManagement = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [adminCognitoId, setAdminCognitoId] = useState(null);
 
-  // New state for store assignment
+  // New state for store assignment - Initialize as empty array
   const [storeAssignmentModalOpen, setStoreAssignmentModalOpen] = useState(false);
   const [selectedStore, setSelectedStore] = useState('');
   const [stores, setStores] = useState([]);
@@ -81,10 +81,10 @@ const UserManagement = () => {
       const response = await fetchGraphQL(GET_ALL_USERS);
       return response?.getAllUsers || [];
     },
-    enabled: true, // Fetch data immediately when component mounts
+    enabled: true,
   });
 
-  // Fetch all stores using React Query
+  // Fetch all stores using React Query with proper data normalization
   const {
     data: storesData,
     isLoading: isLoadingStores,
@@ -93,8 +93,36 @@ const UserManagement = () => {
   } = useQuery({
     queryKey: ['stores'],
     queryFn: async () => {
-      const response = await fetchGraphQL(GET_STORES);
-      return response?.stores || [];
+      try {
+        const response = await fetchGraphQL(GET_STORES);
+
+        // Handle different possible response structures
+        let normalizedStores = [];
+
+        if (response?.stores) {
+          // Case 1: Direct array
+          if (Array.isArray(response.stores)) {
+            normalizedStores = response.stores;
+          }
+          // Case 2: Relay-style pagination with edges
+          else if (response.stores.edges && Array.isArray(response.stores.edges)) {
+            normalizedStores = response.stores.edges.map((edge) => edge.node);
+          }
+          // Case 3: Object with nodes array
+          else if (response.stores.nodes && Array.isArray(response.stores.nodes)) {
+            normalizedStores = response.stores.nodes;
+          }
+          // Case 4: Single object wrapped in array
+          else if (typeof response.stores === 'object' && !Array.isArray(response.stores)) {
+            normalizedStores = [response.stores];
+          }
+        }
+
+        return normalizedStores;
+      } catch (error) {
+        console.error('Error fetching stores:', error);
+        return [];
+      }
     },
     enabled: true,
   });
@@ -160,9 +188,7 @@ const UserManagement = () => {
   useEffect(() => {
     const getAdminId = async () => {
       try {
-        // In a real app, you would get this from your auth context
-        // For now, we'll find the admin user from the fetched data
-        if (usersData) {
+        if (usersData && Array.isArray(usersData)) {
           const adminUser = usersData.find((user) => user.type === 'ADMIN');
           if (adminUser) {
             setAdminCognitoId(adminUser.cognitoId);
@@ -178,10 +204,13 @@ const UserManagement = () => {
     }
   }, [usersData]);
 
-  // Update stores state when storesData changes
+  // Update stores state when storesData changes with proper array validation
   useEffect(() => {
-    if (storesData) {
+    if (storesData && Array.isArray(storesData)) {
       setStores(storesData);
+    } else {
+      // Fallback: ensure stores is always an array
+      setStores([]);
     }
   }, [storesData]);
 
@@ -271,7 +300,7 @@ const UserManagement = () => {
   };
 
   const getFilteredData = () => {
-    if (!usersData) return [];
+    if (!usersData || !Array.isArray(usersData)) return [];
 
     // Filter based on active tab
     let filteredData = usersData;
@@ -291,7 +320,7 @@ const UserManagement = () => {
     if (searchTerm) {
       filteredData = filteredData.filter(
         (user) =>
-          user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (user.mobile && user.mobile.includes(searchTerm)) ||
           (user.referralId && user.referralId.toLowerCase().includes(searchTerm.toLowerCase()))
       );
@@ -492,6 +521,12 @@ const UserManagement = () => {
     </TableContainer>
   );
 
+  // Helper function to get selected store data safely
+  const getSelectedStoreData = () => {
+    if (!selectedStore || !Array.isArray(stores)) return null;
+    return stores.find((s) => s.id === parseInt(selectedStore));
+  };
+
   return (
     <Box sx={{ p: isMobile ? 2 : 3 }}>
       <Paper sx={{ p: 3, mb: 3 }}>
@@ -653,7 +688,7 @@ const UserManagement = () => {
                 <Alert severity="error" sx={{ mb: 2 }}>
                   Error loading stores: {storesError.message}
                 </Alert>
-              ) : stores.length === 0 ? (
+              ) : !Array.isArray(stores) || stores.length === 0 ? (
                 <Alert severity="info" sx={{ mb: 2 }}>
                   No stores available
                 </Alert>
@@ -675,24 +710,21 @@ const UserManagement = () => {
                 </FormControl>
               )}
 
-              {selectedStore && (
+              {selectedStore && getSelectedStoreData() && (
                 <Box sx={{ mt: 2 }}>
                   <Typography variant="subtitle2" gutterBottom>
                     Current Drivers
                   </Typography>
-                  {stores.find((s) => s.id === parseInt(selectedStore))?.drivers?.edges?.length >
-                  0 ? (
+                  {getSelectedStoreData()?.drivers?.edges?.length > 0 ? (
                     <Box sx={{ mt: 1 }}>
-                      {stores
-                        .find((s) => s.id === parseInt(selectedStore))
-                        ?.drivers?.edges?.map((edge, index) => (
-                          <Chip
-                            key={index}
-                            label={edge.node.driver.email}
-                            size="small"
-                            sx={{ mr: 1, mb: 1 }}
-                          />
-                        ))}
+                      {getSelectedStoreData().drivers.edges.map((edge, index) => (
+                        <Chip
+                          key={index}
+                          label={edge.node.driver.email}
+                          size="small"
+                          sx={{ mr: 1, mb: 1 }}
+                        />
+                      ))}
                     </Box>
                   ) : (
                     <Typography variant="body2" color="text.secondary">
