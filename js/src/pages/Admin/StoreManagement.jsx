@@ -212,7 +212,6 @@ const StoreManagement = () => {
     queryKey: ['users'],
     queryFn: async () => {
       const response = await fetchGraphQL(GET_ALL_USERS);
-      console.log('GraphQL users response:', response);
       return response?.getAllUsers || [];
     },
     enabled: true,
@@ -254,7 +253,6 @@ const StoreManagement = () => {
       !assignedManagerIds.includes(user.id)
     );
 
-    console.log('Add Mode - Available managers:', availableManagers);
     return availableManagers;
   }, [allStoreManagers, assignedManagerIds]);
 
@@ -269,7 +267,6 @@ const StoreManagement = () => {
       !excludeIds.includes(user.id)
     );
 
-    console.log('Edit Mode - Available managers:', availableManagers);
     return availableManagers;
   }, [allStoreManagers, assignedManagerIds, editStore, addModeManagers]);
 
@@ -278,7 +275,6 @@ const StoreManagement = () => {
     if (activeTab === 1 && !editStore) { // Add new store tab
       const selectedManager = addModeManagers.find(u => String(u.id) === String(formData.managerUserId));
       if (selectedManager) {
-        console.log('Selected manager for add mode:', selectedManager);
         setFormData(prev => ({
           ...prev,
           email: selectedManager.email || '',
