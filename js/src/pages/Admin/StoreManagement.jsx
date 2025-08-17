@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Box,
@@ -187,7 +187,6 @@ const StoreManagement = () => {
     tnc: '',
     displayField: '',
     sectionHeaders: [],
-    // Dummy data for additional steps
     inventory: [],
     drivers: [],
     storeManagers: [],
@@ -196,9 +195,6 @@ const StoreManagement = () => {
 
   const [editStore, setEditStore] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
-
-  // Add state to store users
-  const [users, setUsers] = useState([]);
 
   // Fetch stores
   const {
@@ -216,47 +212,89 @@ const StoreManagement = () => {
     queryKey: ['users'],
     queryFn: async () => {
       const response = await fetchGraphQL(GET_ALL_USERS);
+      console.log('GraphQL users response:', response);
       return response?.getAllUsers || [];
     },
     enabled: true,
   });
 
-  // Filter available managers (not already assigned to other stores)
-  const getAvailableManagers = () => {
-    if (!usersData || !storesData?.stores) return [];
-    
-    const assignedManagerIds = storesData.stores
-      .filter(store => store.id !== editStore?.id) // Exclude current store if editing
-      .map(store => store.managerUserId);
-    
-    return usersData.filter(user => 
-      user.type === 'STORE_MANAGER' && 
+  // Memoized function to get all store managers
+  const allStoreManagers = useMemo(() => {
+    if (!usersData || !Array.isArray(usersData)) {
+      return [];
+    }
+
+    return usersData.filter(user => {
+      if (!user.type) return false;
+      const type = user.type.trim().toUpperCase();
+      return type === 'STORE_MANAGER' || 
+             type === 'STOREMANAGER' ||
+             (type.includes('STORE') && type.includes('MANAGER'));
+    });
+  }, [usersData]);
+
+  // Memoized function to get assigned manager IDs
+  const assignedManagerIds = useMemo(() => {
+    if (!storesData?.stores || !Array.isArray(storesData.stores)) {
+      return [];
+    }
+
+    return storesData.stores
+      .map(store => store.managerUserId)
+      .filter(id => id !== null && id !== undefined);
+  }, [storesData]);
+
+  // Memoized managers for ADD mode - exclude all assigned managers
+  const addModeManagers = useMemo(() => {
+    if (!allStoreManagers.length) {
+      return [];
+    }
+
+    const availableManagers = allStoreManagers.filter(user => 
       !assignedManagerIds.includes(user.id)
     );
-  };
 
-  // Only show available STORE_MANAGER users in the dropdown
-  useEffect(() => {
-    if (usersData) {
-      const availableManagers = getAvailableManagers();
-      setUsers(availableManagers);
-    }
-  }, [usersData, storesData, editStore]);
+    console.log('Add Mode - Available managers:', availableManagers);
+    return availableManagers;
+  }, [allStoreManagers, assignedManagerIds]);
 
-  // When managerUserId changes, auto-fill email and mobile
-  useEffect(() => {
-    const selectedManager = users.find(u => String(u.id) === String(formData.managerUserId));
-    if (selectedManager) {
-      setFormData(prev => ({
-        ...prev,
-        email: selectedManager.email || '',
-        mobile: selectedManager.mobile || '',
-      }));
-    } else {
-      setFormData(prev => ({ ...prev, email: '', mobile: '' }));
+  // Memoized managers for EDIT mode - exclude assigned managers except current store's manager
+  const editModeManagers = useMemo(() => {
+    if (!allStoreManagers.length || !editStore) {
+      return addModeManagers;
     }
-    // eslint-disable-next-line
-  }, [formData.managerUserId]);
+
+    const excludeIds = assignedManagerIds.filter(id => id !== editStore.managerUserId);
+    const availableManagers = allStoreManagers.filter(user => 
+      !excludeIds.includes(user.id)
+    );
+
+    console.log('Edit Mode - Available managers:', availableManagers);
+    return availableManagers;
+  }, [allStoreManagers, assignedManagerIds, editStore, addModeManagers]);
+
+  // Auto-fill email and mobile when manager is selected in ADD mode
+  useEffect(() => {
+    if (activeTab === 1 && !editStore) { // Add new store tab
+      const selectedManager = addModeManagers.find(u => String(u.id) === String(formData.managerUserId));
+      if (selectedManager) {
+        console.log('Selected manager for add mode:', selectedManager);
+        setFormData(prev => ({
+          ...prev,
+          email: selectedManager.email || '',
+          mobile: selectedManager.mobile || '',
+        }));
+      } else if (formData.managerUserId && !selectedManager) {
+        // Clear form if selected manager is no longer available
+        setFormData(prev => ({ 
+          ...prev, 
+          managerUserId: '',
+          email: '', 
+          mobile: '' 
+        }));
+      }
+    }
+  }, [formData.managerUserId, addModeManagers, activeTab, editStore]);
 
   // Create store mutation
   const createStoreMutation = useMutation({
@@ -308,7 +346,7 @@ const StoreManagement = () => {
     },
   });
 
-  // Add the mutation hook
+  // Update store mutation
   const updateStoreMutation = useMutation({
     mutationFn: (variables) => {
       return fetchGraphQL(UPDATE_STORE, variables);
@@ -541,6 +579,11 @@ const StoreManagement = () => {
         store.address.toLowerCase().includes(searchTerm.toLowerCase())
     ) || [];
 
+  // Add this function to check if we need to load stores first
+  const needsStoreData = () => {
+    return activeTab === 1 && !storesData?.stores && !shouldFetch;
+  };
+
   const renderStepContent = (step) => {
     switch (step) {
       case 0:
@@ -585,20 +628,25 @@ const StoreManagement = () => {
                   onChange={handleChange}
                 >
                   {isLoadingUsers ? (
-                    <MenuItem value=""><em>Loading...</em></MenuItem>
-                  ) : users.length === 0 ? (
+                    <MenuItem value="" disabled><em>Loading...</em></MenuItem>
+                  ) : addModeManagers.length === 0 ? (
                     <MenuItem value="" disabled>
-                      <em>No available managers</em>
+                      <em>No available managers (all managers are assigned)</em>
                     </MenuItem>
                   ) : (
-                    users.map(user => (
+                    addModeManagers.map(user => (
                       <MenuItem key={user.id} value={user.id}>
-                        {user.id} - {user.email}
+                        {user.id} - {user.email} {user.name ? `(${user.name})` : ''}
                       </MenuItem>
                     ))
                   )}
                 </Select>
                 <Typography variant="caption" color="error">{validationErrors.managerUserId}</Typography>
+                {addModeManagers.length === 0 && !isLoadingUsers && (
+                  <Typography variant="caption" color="warning.main" sx={{ mt: 1, display: 'block' }}>
+                    All store managers are currently assigned. Please create new manager accounts or unassign existing ones.
+                  </Typography>
+                )}
               </FormControl>
             </Grid>
             <Grid item xs={12} md={6}>
@@ -1519,6 +1567,28 @@ const StoreManagement = () => {
               </Grid>
             )}
           </>
+        ) : needsStoreData() ? (
+          // Show loading message for store data needed for manager filtering
+          <Card sx={{ mb: 3 }}>
+            <CardContent>
+              <Typography variant="h6" align="center" gutterBottom>
+                Loading store data for manager availability check...
+              </Typography>
+              <Typography variant="body2" color="text.secondary" align="center">
+                We need to check which managers are already assigned before showing available options.
+              </Typography>
+            </CardContent>
+            <CardActions sx={{ justifyContent: 'center' }}>
+              <Button
+                variant="contained"
+                color="primary"
+                startIcon={<RefreshIcon />}
+                onClick={handleFetchStores}
+              >
+                Load Store Data
+              </Button>
+            </CardActions>
+          </Card>
         ) : (
           // Store Onboarding View
           <Box
@@ -1612,7 +1682,7 @@ const StoreManagement = () => {
                 />
               </Grid>
               <Grid item xs={12} md={6}>
-                <FormControl required fullWidth error={!!validationErrors.managerUserId}>
+                <FormControl required fullWidth>
                   <InputLabel>Manager User ID</InputLabel>
                   <Select
                     name="managerUserId"
@@ -1620,20 +1690,19 @@ const StoreManagement = () => {
                     defaultValue={editStore?.managerUserId}
                   >
                     {isLoadingUsers ? (
-                      <MenuItem value=""><em>Loading...</em></MenuItem>
-                    ) : users.length === 0 ? (
+                      <MenuItem value="" disabled><em>Loading...</em></MenuItem>
+                    ) : editModeManagers.length === 0 ? (
                       <MenuItem value="" disabled>
                         <em>No available managers</em>
                       </MenuItem>
                     ) : (
-                      users.map(user => (
+                      editModeManagers.map(user => (
                         <MenuItem key={user.id} value={user.id}>
-                          {user.id} - {user.email}
+                          {user.id} - {user.email} {user.name ? `(${user.name})` : ''}
                         </MenuItem>
                       ))
                     )}
                   </Select>
-                  <Typography variant="caption" color="error">{validationErrors.managerUserId}</Typography>
                 </FormControl>
               </Grid>
 
