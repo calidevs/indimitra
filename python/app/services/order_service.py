@@ -341,8 +341,24 @@ def get_order_stats():
         return {
             'total_orders': total_orders,
             'recent_orders': recent_orders,
-            'orders_by_status': {status.value: count for status, count in orders_by_status},
-            'orders_by_type': {order_type.value: count for order_type, count in orders_by_type}
+            # ✅ Fixed: Add null checks for status
+            'orders_by_status': {
+                status.value if status else 'UNKNOWN': count 
+                for status, count in orders_by_status
+            },
+            # ✅ Fixed: Add null checks for type
+            'orders_by_type': {
+                order_type.value if order_type else 'UNKNOWN': count 
+                for order_type, count in orders_by_type
+            }
+        }
+    except Exception as e:
+        print(f"Error in get_order_stats: {e}")
+        return {
+            'total_orders': 0,
+            'recent_orders': 0,
+            'orders_by_status': {},
+            'orders_by_type': {}
         }
     finally:
         db.close()
