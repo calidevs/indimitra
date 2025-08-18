@@ -190,9 +190,9 @@ const EditDialog = ({ open, onClose, selectedFee, onUpdate, isLoading }) => {
           variant="contained"
           onClick={handleSubmit}
           disabled={isLoading}
-          startIcon={isLoading ? <CircularProgress size={20} /> : null}
+          startIcon={isLoading ? <CircularProgress size={18} color="inherit" /> : null}
         >
-          {isLoading ? 'Saving...' : 'Save'}
+          {isLoading ? (selectedFee ? 'Updating...' : 'Adding...') : 'Save'}
         </Button>
       </DialogActions>
     </Dialog>
@@ -369,10 +369,17 @@ const FeesManagement = () => {
             <Button
               variant="contained"
               color="primary"
-              startIcon={<AddIcon />}
+              startIcon={
+                addMutation.isPending || addMutation.isLoading ? (
+                  <CircularProgress size={18} color="inherit" />
+                ) : (
+                  <AddIcon />
+                )
+              }
               onClick={handleAddClick}
+              disabled={addMutation.isPending || addMutation.isLoading}
             >
-              Add Fee
+              {addMutation.isPending || addMutation.isLoading ? 'Adding...' : 'Add Fee'}
             </Button>
           </Box>
 
@@ -397,22 +404,50 @@ const FeesManagement = () => {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {fees.map((fee) => (
-                    <TableRow key={fee.id}>
-                      <TableCell>{fee.type}</TableCell>
-                      <TableCell>{fee.feeCurrency}</TableCell>
-                      <TableCell>{fee.feeRate}</TableCell>
-                      <TableCell>{fee.limit}</TableCell>
-                      <TableCell>
-                        <IconButton onClick={() => handleEditClick(fee)} color="primary">
-                          <EditIcon />
-                        </IconButton>
-                        <IconButton onClick={() => handleDeleteClick(fee)} color="error">
-                          <DeleteIcon />
-                        </IconButton>
+                  {fees.length === 0 && !feesLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} align="center">
+                        <Alert severity="info" sx={{ my: 2 }}>
+                          No fees found for this store.
+                        </Alert>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    fees.map((fee) => (
+                      <TableRow key={fee.id}>
+                        <TableCell>{fee.type}</TableCell>
+                        <TableCell>{fee.feeCurrency}</TableCell>
+                        <TableCell>{fee.feeRate}</TableCell>
+                        <TableCell>{fee.limit}</TableCell>
+                        <TableCell>
+                          <IconButton
+                            onClick={() => handleEditClick(fee)}
+                            color="primary"
+                            disabled={
+                              updateMutation.isPending ||
+                              updateMutation.isLoading ||
+                              deleteMutation.isPending ||
+                              deleteMutation.isLoading
+                            }
+                          >
+                            <EditIcon />
+                          </IconButton>
+                          <IconButton
+                            onClick={() => handleDeleteClick(fee)}
+                            color="error"
+                            disabled={
+                              updateMutation.isPending ||
+                              updateMutation.isLoading ||
+                              deleteMutation.isPending ||
+                              deleteMutation.isLoading
+                            }
+                          >
+                            <DeleteIcon />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </TableContainer>
@@ -420,7 +455,6 @@ const FeesManagement = () => {
         </Paper>
       )}
 
-      {/* Edit/Add Dialog */}
       <EditDialog
         open={editModalOpen}
         onClose={() => {
@@ -436,7 +470,12 @@ const FeesManagement = () => {
             addMutation.mutate(data);
           }
         }}
-        isLoading={updateMutation.isLoading || addMutation.isLoading}
+        isLoading={
+          updateMutation.isPending ||
+          updateMutation.isLoading ||
+          addMutation.isPending ||
+          addMutation.isLoading
+        }
       />
 
       {/* Delete Confirmation Dialog */}
@@ -460,6 +499,7 @@ const FeesManagement = () => {
               setDeleteModalOpen(false);
               setSelectedFee(null);
             }}
+            disabled={deleteMutation.isPending || deleteMutation.isLoading}
           >
             Cancel
           </Button>
@@ -467,9 +507,14 @@ const FeesManagement = () => {
             variant="contained"
             color="error"
             onClick={() => deleteMutation.mutate({ id: selectedFee.id })}
-            disabled={deleteMutation.isLoading}
+            disabled={deleteMutation.isPending || deleteMutation.isLoading}
+            startIcon={
+              deleteMutation.isPending || deleteMutation.isLoading ? (
+                <CircularProgress size={18} color="inherit" />
+              ) : null
+            }
           >
-            {deleteMutation.isLoading ? <CircularProgress size={24} /> : 'Delete'}
+            {deleteMutation.isPending || deleteMutation.isLoading ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>

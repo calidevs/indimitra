@@ -340,9 +340,9 @@ const CategoryManagement = () => {
           <Button
             onClick={handleSubmit}
             variant="contained"
-            disabled={createCategoryMutation.isLoading || updateCategoryMutation.isLoading}
+            disabled={createCategoryMutation.isPending || updateCategoryMutation.isPending}
           >
-            {createCategoryMutation.isLoading || updateCategoryMutation.isLoading ? (
+            {createCategoryMutation.isPending || updateCategoryMutation.isPending ? (
               <CircularProgress size={24} />
             ) : editingCategory ? (
               'Update'
@@ -360,9 +360,26 @@ const CategoryManagement = () => {
           <Typography>Are you sure you want to delete this category?</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
-          <Button onClick={handleConfirmDelete} variant="contained" color="error">
-            Delete
+          <Button
+            onClick={() => setOpenDeleteDialog(false)}
+            disabled={deleteCategoryMutation.isPending || deleteCategoryMutation.isLoading}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            color="error"
+            disabled={deleteCategoryMutation.isPending || deleteCategoryMutation.isLoading}
+            startIcon={
+              deleteCategoryMutation.isPending || deleteCategoryMutation.isLoading ? (
+                <CircularProgress size={18} color="inherit" />
+              ) : null
+            }
+          >
+            {deleteCategoryMutation.isPending || deleteCategoryMutation.isLoading
+              ? 'Deleting...'
+              : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>

@@ -177,9 +177,9 @@ const EditDialog = ({
           variant="contained"
           onClick={handleSubmit}
           disabled={isLoading || !isValidAddress}
-          startIcon={isLoading ? <CircularProgress size={20} /> : null}
+          startIcon={isLoading ? <CircularProgress size={18} color="inherit" /> : null}
         >
-          {isLoading ? 'Saving...' : 'Save'}
+          {isLoading ? (selectedPickupAddress ? 'Updating...' : 'Adding...') : 'Save'}
         </Button>
       </DialogActions>
     </Dialog>
@@ -357,10 +357,17 @@ const PickupAddressManagement = () => {
             <Button
               variant="contained"
               color="primary"
-              startIcon={<AddIcon />}
+              startIcon={
+                addMutation.isPending || addMutation.isLoading ? (
+                  <CircularProgress size={18} color="inherit" />
+                ) : (
+                  <AddIcon />
+                )
+              }
               onClick={handleAddClick}
+              disabled={addMutation.isPending || addMutation.isLoading}
             >
-              Add Pickup Address
+              {addMutation.isPending || addMutation.isLoading ? 'Adding...' : 'Add Pickup Address'}
             </Button>
           </Box>
 
@@ -386,10 +393,28 @@ const PickupAddressManagement = () => {
                     <TableRow key={pickupAddress.id}>
                       <TableCell>{pickupAddress.address}</TableCell>
                       <TableCell>
-                        <IconButton onClick={() => handleEditClick(pickupAddress)} color="primary">
+                        <IconButton
+                          onClick={() => handleEditClick(pickupAddress)}
+                          color="primary"
+                          disabled={
+                            updateMutation.isPending ||
+                            updateMutation.isLoading ||
+                            deleteMutation.isPending ||
+                            deleteMutation.isLoading
+                          }
+                        >
                           <EditIcon />
                         </IconButton>
-                        <IconButton onClick={() => handleDeleteClick(pickupAddress)} color="error">
+                        <IconButton
+                          onClick={() => handleDeleteClick(pickupAddress)}
+                          color="error"
+                          disabled={
+                            updateMutation.isPending ||
+                            updateMutation.isLoading ||
+                            deleteMutation.isPending ||
+                            deleteMutation.isLoading
+                          }
+                        >
                           <DeleteIcon />
                         </IconButton>
                       </TableCell>
@@ -418,7 +443,12 @@ const PickupAddressManagement = () => {
             addMutation.mutate(data);
           }
         }}
-        isLoading={updateMutation.isLoading || addMutation.isLoading}
+        isLoading={
+          updateMutation.isPending ||
+          updateMutation.isLoading ||
+          addMutation.isPending ||
+          addMutation.isLoading
+        }
         existingAddresses={pickupAddresses}
       />
 
@@ -443,6 +473,7 @@ const PickupAddressManagement = () => {
               setDeleteModalOpen(false);
               setSelectedPickupAddress(null);
             }}
+            disabled={deleteMutation.isPending || deleteMutation.isLoading}
           >
             Cancel
           </Button>
@@ -450,9 +481,14 @@ const PickupAddressManagement = () => {
             variant="contained"
             color="error"
             onClick={() => deleteMutation.mutate({ id: selectedPickupAddress.id })}
-            disabled={deleteMutation.isLoading}
+            disabled={deleteMutation.isPending || deleteMutation.isLoading}
+            startIcon={
+              deleteMutation.isPending || deleteMutation.isLoading ? (
+                <CircularProgress size={18} color="inherit" />
+              ) : null
+            }
           >
-            {deleteMutation.isLoading ? <CircularProgress size={24} /> : 'Delete'}
+            {deleteMutation.isPending || deleteMutation.isLoading ? 'Deleting...' : 'Delete'}
           </Button>
         </DialogActions>
       </Dialog>

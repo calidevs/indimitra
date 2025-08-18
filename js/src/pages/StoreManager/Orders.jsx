@@ -355,6 +355,36 @@ const StoreOrders = () => {
     },
   });
 
+  // Cancel order mutation
+  const cancelOrderMutation = useMutation({
+    mutationFn: async (variables) => {
+      return await graphqlService(CANCEL_ORDER, {
+        orderId: variables.orderId,
+        cancelMessage: variables.cancelMessage,
+        cancelledByUserId: variables.cancelledByUserId,
+      });
+    },
+    onSuccess: () => {
+      refetchOrders();
+      setCancelDialogOpen(false);
+      setCancelMessage('');
+      setSelectedOrder(null);
+      setSnackbar({
+        open: true,
+        message: 'Order cancelled successfully',
+        severity: 'success',
+      });
+    },
+    onError: (error) => {
+      setError(error.message);
+      setSnackbar({
+        open: true,
+        message: 'Failed to cancel order. Please try again.',
+        severity: 'error',
+      });
+    },
+  });
+
   const handleEditClick = (order) => {
     setSelectedOrder(order);
     setNewStatus(order.status);
@@ -402,15 +432,11 @@ const StoreOrders = () => {
         return;
       }
 
-      await graphqlService(CANCEL_ORDER, {
+      cancelOrderMutation.mutate({
         orderId: selectedOrder.id,
         cancelMessage: cancelMessage,
         cancelledByUserId: userId,
       });
-      setCancelDialogOpen(false);
-      setCancelMessage('');
-      refetchOrders();
-      setSelectedOrder(null);
     } catch (err) {
       setError(err.message);
     }
@@ -1734,9 +1760,9 @@ const StoreOrders = () => {
               onClick={handleStatusUpdate}
               variant="contained"
               color="primary"
-              disabled={updateOrderStatusMutation.isLoading}
+              disabled={updateOrderStatusMutation.isPending}
             >
-              {updateOrderStatusMutation.isLoading ? 'Updating...' : 'Update'}
+              {updateOrderStatusMutation.isPending ? 'Updating...' : 'Update'}
             </Button>
           </DialogActions>
         </Dialog>
@@ -1760,14 +1786,30 @@ const StoreOrders = () => {
             />
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setCancelDialogOpen(false)}>No</Button>
+            <Button
+              onClick={() => setCancelDialogOpen(false)}
+              disabled={cancelOrderMutation.isPending || cancelOrderMutation.isLoading}
+            >
+              No
+            </Button>
             <Button
               onClick={handleCancelOrder}
               variant="contained"
               color="error"
-              disabled={!cancelMessage.trim()}
+              disabled={
+                !cancelMessage.trim() ||
+                cancelOrderMutation.isPending ||
+                cancelOrderMutation.isLoading
+              }
+              startIcon={
+                cancelOrderMutation.isPending || cancelOrderMutation.isLoading ? (
+                  <CircularProgress size={18} color="inherit" />
+                ) : null
+              }
             >
-              Yes, Cancel Order
+              {cancelOrderMutation.isPending || cancelOrderMutation.isLoading
+                ? 'Cancelling...'
+                : 'Yes, Cancel Order'}
             </Button>
           </DialogActions>
         </Dialog>

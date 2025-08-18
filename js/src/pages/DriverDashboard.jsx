@@ -643,7 +643,10 @@ const DriverDashboard = () => {
                 <Box sx={{ display: 'flex', alignItems: 'flex-start' }}>
                   <LocationIcon fontSize="small" sx={{ mr: 1, color: 'text.secondary', mt: 0.5 }} />
                   <Typography variant="body1" sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}>
-                    {selectedDelivery.order?.pickupAddress?.address || selectedDelivery.order?.address?.address || selectedDelivery.address || 'No address provided'}
+                    {selectedDelivery.order?.pickupAddress?.address ||
+                      selectedDelivery.order?.address?.address ||
+                      selectedDelivery.address ||
+                      'No address provided'}
                   </Typography>
                 </Box>
               </Box>
@@ -839,18 +842,27 @@ const DriverDashboard = () => {
                   color="primary"
                   disabled={
                     (selectedStatus === 'CANCELLED'
-                      ? cancelOrderMutation.isLoading
-                      : updateStatusMutation.isLoading) ||
+                      ? cancelOrderMutation.isPending || cancelOrderMutation.isLoading
+                      : updateStatusMutation.isPending || updateStatusMutation.isLoading) ||
                     selectedStatus === selectedDelivery.orderStatus ||
                     (selectedStatus === 'CANCELLED' && !cancelReason) ||
                     (showItemsChecklist && !areAllItemsChecked(selectedDelivery.order.orderItems))
+                  }
+                  startIcon={
+                    (
+                      selectedStatus === 'CANCELLED'
+                        ? cancelOrderMutation.isPending || cancelOrderMutation.isLoading
+                        : updateStatusMutation.isPending || updateStatusMutation.isLoading
+                    ) ? (
+                      <CircularProgress size={18} color="inherit" />
+                    ) : null
                   }
                   sx={{ minWidth: 120 }}
                 >
                   {(
                     selectedStatus === 'CANCELLED'
-                      ? cancelOrderMutation.isLoading
-                      : updateStatusMutation.isLoading
+                      ? cancelOrderMutation.isPending || cancelOrderMutation.isLoading
+                      : updateStatusMutation.isPending || updateStatusMutation.isLoading
                   )
                     ? 'Updating...'
                     : 'Update'}

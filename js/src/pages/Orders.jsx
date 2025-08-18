@@ -1116,9 +1116,10 @@ const Orders = () => {
             onClick={handleConfirmCancel}
             color="error"
             variant="contained"
-            disabled={!cancelMessage.trim()}
+            disabled={!cancelMessage.trim() || mutation.isPending}
+            startIcon={mutation.isPending ? <CircularProgress size={18} color="inherit" /> : null}
           >
-            Yes, Cancel Order
+            {mutation.isPending ? 'Cancelling...' : 'Yes, Cancel Order'}
           </Button>
         </DialogActions>
       </Dialog>
