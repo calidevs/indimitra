@@ -10,18 +10,36 @@ import {
   Paper,
   Divider,
   Stack,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  InputAdornment,
+  Collapse,
+  Checkbox,
 } from '@mui/material';
 import StoreIcon from '@mui/icons-material/Store';
 import HomeIcon from '@mui/icons-material/Home';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
+import FilterIcon from '@mui/icons-material/FilterList';
+import ExpandLess from '@mui/icons-material/ExpandLess';
+import ExpandMore from '@mui/icons-material/ExpandMore';
+import LocationOn from '@mui/icons-material/LocationOn';
+import { CircularProgress } from '@mui/material';
 
 import Dialog from '@/components/Dialog/Dialog';
-import useStore from '@/store/useStore';
+import useStore, { useAuthStore, useAddressStore } from '@/store/useStore';
 import StoresList from './StoresList';
 import StoreSelectorTitle from './StoreSelectorTitle';
 import NoStoresMessage from './NoStoresMessage';
 import AddressAutocomplete from '@/components/AddressAutocomplete/AddressAutocomplete';
+import { useQueryClient } from '@tanstack/react-query';
+
+// Replace LoadingSpinner with CircularProgress
+const LoadingSpinner = ({ size = 24, sx }) => (
+  <CircularProgress size={size} sx={{ color: 'inherit', ...sx }} />
+);
 
 const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   const {
@@ -33,15 +51,40 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     deliveryType,
     setDeliveryType,
   } = useStore();
-  const [step, setStep] = useState('store'); // 'store' or 'pickup'
+  
+  const { userProfile } = useAuthStore();
+  const queryClient = useQueryClient();
+  
+  // Use the address store
+  const {
+    addresses,
+    selectedAddressId,
+    setSelectedAddressId,
+    fetchAddresses,
+    isLoading: isLoadingAddresses,
+    createAddress: createAddressMutation,
+  } = useAddressStore();
+  
+  const [step, setStep] = useState('store');
   const [tempStore, setTempStore] = useState(null);
   const [selectedPickupId, setSelectedPickupId] = useState(null);
-  const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [isValidDeliveryAddress, setIsValidDeliveryAddress] = useState(false);
-  const [deliveryStatus, setDeliveryStatus] = useState(null); // 'success' | 'error' | null
+  const [deliveryStatus, setDeliveryStatus] = useState(null);
   const [deliveryMessage, setDeliveryMessage] = useState('');
 
-  // If forceStep is provided and modal is opened, set the step accordingly
+  // Address form states
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [newAddress, setNewAddress] = useState('');
+  const [isPrimary, setIsPrimary] = useState(false);
+  const [isAddingAddress, setIsAddingAddress] = useState(false);
+  const [isValidAddress, setIsValidAddress] = useState(false);
+
+  // Fetch addresses when step changes to pickup and user profile is available
+  useEffect(() => {
+    if (step === 'pickup' && tempStore && userProfile?.id) {
+      fetchAddresses(userProfile.id);
+    }
+  }, [step, tempStore, userProfile?.id, fetchAddresses]);
+
   useEffect(() => {
     if (open && forceStep) {
       setStep(forceStep);
@@ -52,47 +95,105 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     if (!open) {
       setStep('store');
       setTempStore(null);
+      resetAddressStates();
     }
   }, [open, forceStep, initialStore]);
 
-  // Handle store selection
-  const handleStoreSelect = (store) => {
-    localStorage.setItem('selectedStoreId', String(store.id));
-    setTempStore(store);
-    clearCart();
-    setStep('pickup');
-  };
-
-  // Handle pickup address selection
-  const handlePickupConfirm = () => {
-    if (!tempStore || !selectedPickupId) return;
-    const addresses = tempStore.pickupAddresses?.edges?.map((e) => e.node) || [];
-    const selectedAddress = addresses.find((addr) => String(addr.id) === String(selectedPickupId));
-    setSelectedStore(tempStore);
-    setPickupAddress(selectedAddress);
-    setDeliveryType('pickup'); // Set delivery type to pickup
-    setStep('store');
-    setTempStore(null);
+  const resetAddressStates = () => {
+    setSelectedAddressId(null);
+    setShowAddressForm(false);
+    setNewAddress('');
+    setIsPrimary(false);
+    setIsAddingAddress(false);
+    setIsValidAddress(false);
+    setDeliveryStatus(null);
+    setDeliveryMessage('');
     setSelectedPickupId(null);
-    onClose();
   };
 
-  // New: validate delivery address as soon as it's valid
-  const handleValidDeliveryAddress = (isValid) => {
-    setIsValidDeliveryAddress(isValid);
+  // Address dropdown change handler
+  const handleAddressDropdownChange = (e) => {
+    const addressId = e.target.value;
+    setSelectedAddressId(addressId);
+    
+    if (addressId) {
+      const selectedAddress = addresses.find(addr => addr.id === addressId);
+      if (selectedAddress) {
+        validateDeliveryAddress(selectedAddress.address);
+        setDeliveryType('delivery');
+        setSelectedPickupId(null);
+      }
+    } else {
+      setDeliveryType(selectedPickupId ? 'pickup' : null);
+      setDeliveryStatus(null);
+      setDeliveryMessage('');
+    }
   };
 
-  // Add useEffect for validation
-  useEffect(() => {
-    if (!isValidDeliveryAddress || !deliveryAddress) {
+  // Add new address handler
+  const handleAddAddress = async () => {
+    if (!newAddress.trim() || !isValidAddress || !userProfile?.id) return;
+
+    // Check for duplicate addresses
+    const isDuplicate = addresses.some(addr => 
+      addr.address.toLowerCase().trim() === newAddress.toLowerCase().trim()
+    );
+
+    if (isDuplicate) {
+      setDeliveryStatus('error');
+      setDeliveryMessage('This address already exists in your list.');
+      return;
+    }
+
+    setIsAddingAddress(true);
+    
+    try {
+      await createAddressMutation(newAddress, userProfile.id, isPrimary);
+      
+      // Refresh addresses after adding
+      await fetchAddresses(userProfile.id);
+      
+      // Find the newly added address and select it
+      const updatedAddresses = await fetchAddresses(userProfile.id);
+      const newAddressObj = updatedAddresses.find(addr => 
+        addr.address.toLowerCase().trim() === newAddress.toLowerCase().trim()
+      );
+      
+      if (newAddressObj) {
+        setSelectedAddressId(newAddressObj.id);
+        validateDeliveryAddress(newAddress);
+        setDeliveryType('delivery');
+        setSelectedPickupId(null);
+      }
+      
+      // Reset form
+      setNewAddress('');
+      setIsPrimary(false);
+      setShowAddressForm(false);
+      setIsValidAddress(false);
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries(['userAddresses', userProfile.id]);
+      
+    } catch (error) {
+      setDeliveryStatus('error');
+      setDeliveryMessage('Failed to add address. Please try again.');
+      console.error('Error adding address:', error);
+    } finally {
+      setIsAddingAddress(false);
+    }
+  };
+
+  // Validate delivery address function
+  const validateDeliveryAddress = (address) => {
+    if (!address || !tempStore) {
       setDeliveryStatus(null);
       setDeliveryMessage('');
       return;
     }
-    // Extract the last 5-digit number (ZIP code) from the address
-    const matches = deliveryAddress.match(/\b(\d{5})(?:-\d{4})?\b/g);
+
+    const matches = address.match(/\b(\d{5})(?:-\d{4})?\b/g);
     const pincode = matches ? matches[matches.length - 1] : null;
-    // Ensure both pincode and store pincodes are strings and trimmed
     const pincodes = (tempStore?.pincodes || []).map((p) => String(p).trim());
     const pincodeStr = pincode ? String(pincode).trim() : '';
 
@@ -103,57 +204,56 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
       setDeliveryStatus('error');
       setDeliveryMessage('Store does not deliver here.');
     }
-  }, [isValidDeliveryAddress, deliveryAddress, tempStore]);
+  };
 
-  // Handle home delivery address validation
+  const handleStoreSelect = (store) => {
+    localStorage.setItem('selectedStoreId', String(store.id));
+    setTempStore(store);
+    clearCart();
+    setStep('pickup');
+  };
+
+  const handlePickupConfirm = () => {
+    if (!tempStore || !selectedPickupId) return;
+    const pickupAddresses = tempStore.pickupAddresses?.edges?.map((e) => e.node) || [];
+    const selectedAddress = pickupAddresses.find((addr) => String(addr.id) === String(selectedPickupId));
+    setSelectedStore(tempStore);
+    setPickupAddress(selectedAddress);
+    setDeliveryType('pickup');
+    setStep('store');
+    setTempStore(null);
+    setSelectedPickupId(null);
+    resetAddressStates();
+    onClose();
+  };
+
   const handleDeliveryConfirm = () => {
-    if (deliveryStatus === 'success') {
+    if (deliveryStatus === 'success' && selectedAddressId) {
       setSelectedStore(tempStore);
       setPickupAddress(null);
-      setDeliveryType('delivery'); // Set delivery type to delivery
+      setDeliveryType('delivery');
+      
       setTimeout(() => {
         setStep('store');
         setTempStore(null);
-        setDeliveryAddress('');
-        setIsValidDeliveryAddress(false);
-        setDeliveryStatus(null);
-        setDeliveryMessage('');
+        resetAddressStates();
         onClose();
       }, 1200);
-    } else {
-      setDeliveryStatus('error');
-      setDeliveryMessage('Store does not deliver here.');
     }
   };
 
   const handleBack = () => {
     setStep('store');
     setTempStore(null);
-    setSelectedPickupId(null);
-    setDeliveryAddress('');
-    setIsValidDeliveryAddress(false);
-    setDeliveryStatus(null);
-    setDeliveryMessage('');
+    resetAddressStates();
   };
 
-  // In handlePickup selection:
   const handlePickupRadioChange = (e) => {
     setSelectedPickupId(e.target.value);
-    setDeliveryType('pickup'); // Set delivery type to pickup
-    setDeliveryAddress('');
-    setIsValidDeliveryAddress(false);
-  };
-
-  // In AddressAutocomplete onChange:
-  const handleDeliveryAddressChange = (value) => {
-    setDeliveryAddress(value);
-    if (value && value.trim() !== '') {
-      setDeliveryType('delivery'); // Set delivery type to delivery
-      setSelectedPickupId(null);
-    } else {
-      // If delivery field is cleared, allow both sections to be active
-      setDeliveryType(selectedPickupId ? 'pickup' : null);
-    }
+    setDeliveryType('pickup');
+    setSelectedAddressId(null);
+    setDeliveryStatus(null);
+    setDeliveryMessage('');
   };
 
   // Step 1: Store selection
@@ -188,26 +288,27 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
 
   // Step 2: Pickup address and home delivery selection
   if (step === 'pickup') {
-    const addresses = tempStore?.pickupAddresses?.edges?.map((e) => e.node) || [];
+    const pickupAddresses = tempStore?.pickupAddresses?.edges?.map((e) => e.node) || [];
+    
     return (
       <Dialog open={open} onClose={onClose} title={<StoreSelectorTitle />}>
         <Typography
           paragraph
           sx={{ textAlign: 'center', fontWeight: 500, color: 'text.secondary', mb: 3 }}
         >
-          Please select a pickup address or enter your home delivery address for{' '}
+          Please select a pickup address or choose your delivery address for{' '}
           <b>{tempStore?.name}</b>
         </Typography>
         <Stack spacing={3}>
-          {/* Pickup Address Section - Only show if addresses are available */}
-          {addresses.length > 0 && (
+          {/* Pickup Address Section */}
+          {pickupAddresses.length > 0 && (
             <>
               <Paper
                 elevation={deliveryType === 'pickup' ? 4 : 1}
                 sx={{
                   p: 2,
                   bgcolor: deliveryType === 'pickup' ? 'primary.lighter' : 'grey.50',
-                  opacity: deliveryType === 'delivery' && deliveryAddress ? 0.5 : 1,
+                  opacity: deliveryType === 'delivery' && selectedAddressId ? 0.5 : 1,
                   border: deliveryType === 'pickup' ? '2px solid #1976d2' : '1px solid #eee',
                   transition: 'all 0.2s',
                 }}
@@ -219,7 +320,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
                   <StoreIcon fontSize="small" color="primary" /> Pickup Address
                 </Typography>
                 <RadioGroup value={selectedPickupId || ''} onChange={handlePickupRadioChange}>
-                  {addresses.map((addr) => (
+                  {pickupAddresses.map((addr) => (
                     <FormControlLabel
                       key={addr.id}
                       value={String(addr.id)}
@@ -256,17 +357,97 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
           >
             <Typography
               variant="subtitle1"
-              sx={{ mb: 1, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
+              sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
             >
-              <HomeIcon fontSize="small" color="secondary" /> Home Delivery Address
+              <HomeIcon fontSize="small" color="secondary" /> Delivery Address
             </Typography>
-            <AddressAutocomplete
-              value={deliveryAddress}
-              onChange={handleDeliveryAddressChange}
-              onValidAddress={handleValidDeliveryAddress}
-            />
+
+            <Box>
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel>Select Address</InputLabel>
+                {isLoadingAddresses ? (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+                    <LoadingSpinner size={24} />
+                  </Box>
+                ) : (
+                  <Select
+                    value={selectedAddressId || ''}
+                    onChange={handleAddressDropdownChange}
+                    label="Select Address"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <FilterIcon />
+                        </InputAdornment>
+                      ),
+                    }}
+                  >
+                    {addresses && addresses.length > 0 ? (
+                      addresses.map((addr) => (
+                        <MenuItem key={addr.id} value={addr.id}>
+                          {addr.address} {addr.isPrimary ? '(Primary)' : ''}
+                        </MenuItem>
+                      ))
+                    ) : (
+                      <MenuItem disabled>No addresses available</MenuItem>
+                    )}
+                  </Select>
+                )}
+              </FormControl>
+
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={showAddressForm ? <ExpandLess /> : <ExpandMore />}
+                onClick={() => setShowAddressForm(!showAddressForm)}
+                sx={{ mb: 2 }}
+              >
+                {showAddressForm ? 'Cancel' : 'Add New Address'}
+              </Button>
+
+              <Collapse in={showAddressForm}>
+                <Box
+                  sx={{
+                    p: 2,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                  }}
+                >
+                  <Stack spacing={2}>
+                    <AddressAutocomplete
+                      value={newAddress}
+                      onChange={setNewAddress}
+                      onValidAddress={setIsValidAddress}
+                    />
+                    <FormControlLabel
+                      control={
+                        <Checkbox
+                          checked={isPrimary}
+                          onChange={(e) => setIsPrimary(e.target.checked)}
+                        />
+                      }
+                      label="Set as Primary Address"
+                    />
+                    <Button
+                      variant="contained"
+                      onClick={handleAddAddress}
+                      disabled={
+                        !newAddress.trim() || isAddingAddress || !isValidAddress
+                      }
+                      startIcon={
+                        isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />
+                      }
+                    >
+                      {isAddingAddress ? 'Adding...' : 'Add Address'}
+                    </Button>
+                  </Stack>
+                </Box>
+              </Collapse>
+            </Box>
+
             {deliveryStatus && (
-              <Alert severity={deliveryStatus} sx={{ mt: 1 }}>
+              <Alert severity={deliveryStatus} sx={{ mt: 2 }}>
                 {deliveryMessage}
               </Alert>
             )}
@@ -276,7 +457,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
               color="secondary"
               fullWidth
               startIcon={<HomeIcon />}
-              disabled={deliveryType !== 'delivery' || !isValidDeliveryAddress}
+              disabled={deliveryType !== 'delivery' || !selectedAddressId || deliveryStatus !== 'success'}
               sx={{ mt: 2, fontWeight: 600, py: 1.2, fontSize: '1rem' }}
             >
               Confirm Delivery
