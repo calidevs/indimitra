@@ -17,6 +17,8 @@ import {
   InputAdornment,
   Collapse,
   Checkbox,
+  IconButton,
+  Tooltip,
 } from '@mui/material';
 import StoreIcon from '@mui/icons-material/Store';
 import HomeIcon from '@mui/icons-material/Home';
@@ -26,6 +28,8 @@ import FilterIcon from '@mui/icons-material/FilterList';
 import ExpandLess from '@mui/icons-material/ExpandLess';
 import ExpandMore from '@mui/icons-material/ExpandMore';
 import LocationOn from '@mui/icons-material/LocationOn';
+import RefreshIcon from '@mui/icons-material/Refresh';
+import LoginIcon from '@mui/icons-material/Login';
 import { CircularProgress } from '@mui/material';
 
 import Dialog from '@/components/Dialog/Dialog';
@@ -35,6 +39,7 @@ import StoreSelectorTitle from './StoreSelectorTitle';
 import NoStoresMessage from './NoStoresMessage';
 import AddressAutocomplete from '@/components/AddressAutocomplete/AddressAutocomplete';
 import { useQueryClient } from '@tanstack/react-query';
+import { fetchAuthSession } from '@aws-amplify/auth';
 
 // Replace LoadingSpinner with CircularProgress
 const LoadingSpinner = ({ size = 24, sx }) => (
@@ -52,12 +57,12 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     setDeliveryType,
   } = useStore();
   
-  const { userProfile } = useAuthStore();
+  const { userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm } = useAuthStore();
   const queryClient = useQueryClient();
   
-  // Use the address store
+  // Use the address store for logged-in users
   const {
-    addresses,
+    addresses: dbAddresses,
     selectedAddressId,
     setSelectedAddressId,
     fetchAddresses,
@@ -70,6 +75,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   const [selectedPickupId, setSelectedPickupId] = useState(null);
   const [deliveryStatus, setDeliveryStatus] = useState(null);
   const [deliveryMessage, setDeliveryMessage] = useState('');
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   // Address form states
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -78,7 +84,48 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [isValidAddress, setIsValidAddress] = useState(false);
 
-  // Fetch addresses when step changes to pickup and user profile is available
+  // Temporary address store for non-logged-in users
+  const [tempAddresses, setTempAddresses] = useState([]);
+  const [selectedTempAddressId, setSelectedTempAddressId] = useState('');
+
+  // Track previous login state to detect changes
+  const [previousLoginState, setPreviousLoginState] = useState(null);
+
+  // Determine which addresses to use based on login status
+  const addresses = userProfile ? dbAddresses : tempAddresses;
+  const currentSelectedAddressId = userProfile ? selectedAddressId : selectedTempAddressId;
+  const isLoggedIn = !!userProfile;
+
+  // Handle user login state changes
+  useEffect(() => {
+    const currentLoginState = !!userProfile;
+    
+    // If user just logged in (was null/false, now true)
+    if (previousLoginState === false && currentLoginState === true) {
+      // Clear temporary data
+      setTempAddresses([]);
+      setSelectedTempAddressId('');
+      
+      // Fetch user addresses
+      if (userProfile?.id && step === 'pickup' && tempStore) {
+        fetchAddresses(userProfile.id);
+      }
+      
+      // Reset delivery status to re-validate with new addresses
+      setDeliveryStatus(null);
+      setDeliveryMessage('');
+    }
+    
+    // If user logged out (was true, now false)
+    if (previousLoginState === true && currentLoginState === false) {
+      // Clear DB-related states
+      setSelectedAddressId(null);
+    }
+    
+    setPreviousLoginState(currentLoginState);
+  }, [userProfile, step, tempStore, fetchAddresses, setSelectedAddressId, previousLoginState]);
+
+  // Initial fetch addresses when step changes to pickup and user profile is available
   useEffect(() => {
     if (step === 'pickup' && tempStore && userProfile?.id) {
       fetchAddresses(userProfile.id);
@@ -100,7 +147,11 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   }, [open, forceStep, initialStore]);
 
   const resetAddressStates = () => {
-    setSelectedAddressId(null);
+    if (userProfile) {
+      setSelectedAddressId(null);
+    } else {
+      setSelectedTempAddressId('');
+    }
     setShowAddressForm(false);
     setNewAddress('');
     setIsPrimary(false);
@@ -111,10 +162,61 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     setSelectedPickupId(null);
   };
 
+  // Enhanced refresh function that checks auth status
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      // Check current authentication status
+      const session = await fetchAuthSession();
+      const cognitoId = session?.tokens?.idToken?.payload?.sub;
+      
+      if (cognitoId) {
+        // User is signed in - fetch user profile if not already loaded
+        if (!userProfile) {
+          await fetchUserProfile(cognitoId);
+        }
+        
+        // Fetch user addresses if profile is available
+        if (userProfile?.id || cognitoId) {
+          const userId = userProfile?.id;
+          if (userId) {
+            await fetchAddresses(userId);
+            // Clear temporary data since user is signed in
+            setTempAddresses([]);
+            setSelectedTempAddressId('');
+          }
+        }
+      } else {
+        // User is not signed in - clear any DB-related data
+        setSelectedAddressId(null);
+      }
+      
+      // Reset delivery status for re-validation
+      setDeliveryStatus(null);
+      setDeliveryMessage('');
+      
+    } catch (error) {
+      console.error('Error refreshing auth/addresses:', error);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
+
+  // Handle login button click
+  const handleLoginClick = () => {
+    setModalOpen(true);
+    setCurrentForm('login');
+  };
+
   // Address dropdown change handler
   const handleAddressDropdownChange = (e) => {
     const addressId = e.target.value;
-    setSelectedAddressId(addressId);
+    
+    if (userProfile) {
+      setSelectedAddressId(addressId);
+    } else {
+      setSelectedTempAddressId(addressId);
+    }
     
     if (addressId) {
       const selectedAddress = addresses.find(addr => addr.id === addressId);
@@ -132,7 +234,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
 
   // Add new address handler
   const handleAddAddress = async () => {
-    if (!newAddress.trim() || !isValidAddress || !userProfile?.id) return;
+    if (!newAddress.trim() || !isValidAddress) return;
 
     // Check for duplicate addresses
     const isDuplicate = addresses.some(addr => 
@@ -148,19 +250,37 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     setIsAddingAddress(true);
     
     try {
-      await createAddressMutation(newAddress, userProfile.id, isPrimary);
-      
-      // Refresh addresses after adding
-      await fetchAddresses(userProfile.id);
-      
-      // Find the newly added address and select it
-      const updatedAddresses = await fetchAddresses(userProfile.id);
-      const newAddressObj = updatedAddresses.find(addr => 
-        addr.address.toLowerCase().trim() === newAddress.toLowerCase().trim()
-      );
-      
-      if (newAddressObj) {
-        setSelectedAddressId(newAddressObj.id);
+      if (userProfile?.id) {
+        // Logged-in user: Save to database
+        await createAddressMutation(newAddress, userProfile.id, isPrimary);
+        await fetchAddresses(userProfile.id);
+        
+        // Find the newly added address and select it
+        const updatedAddresses = await fetchAddresses(userProfile.id);
+        const newAddressObj = updatedAddresses.find(addr => 
+          addr.address.toLowerCase().trim() === newAddress.toLowerCase().trim()
+        );
+        
+        if (newAddressObj) {
+          setSelectedAddressId(newAddressObj.id);
+          validateDeliveryAddress(newAddress);
+          setDeliveryType('delivery');
+          setSelectedPickupId(null);
+        }
+        
+        // Invalidate queries to refresh data
+        queryClient.invalidateQueries(['userAddresses', userProfile.id]);
+        
+      } else {
+        // Non-logged-in user: Save to temporary store
+        const newTempAddress = {
+          id: `temp_${Date.now()}`,
+          address: newAddress,
+          isPrimary: tempAddresses.length === 0 ? true : isPrimary,
+        };
+        
+        setTempAddresses(prev => [...prev, newTempAddress]);
+        setSelectedTempAddressId(newTempAddress.id);
         validateDeliveryAddress(newAddress);
         setDeliveryType('delivery');
         setSelectedPickupId(null);
@@ -171,9 +291,8 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
       setIsPrimary(false);
       setShowAddressForm(false);
       setIsValidAddress(false);
-      
-      // Invalidate queries to refresh data
-      queryClient.invalidateQueries(['userAddresses', userProfile.id]);
+      setDeliveryStatus(null);
+      setDeliveryMessage('');
       
     } catch (error) {
       setDeliveryStatus('error');
@@ -228,7 +347,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   };
 
   const handleDeliveryConfirm = () => {
-    if (deliveryStatus === 'success' && selectedAddressId) {
+    if (deliveryStatus === 'success' && currentSelectedAddressId) {
       setSelectedStore(tempStore);
       setPickupAddress(null);
       setDeliveryType('delivery');
@@ -251,7 +370,11 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   const handlePickupRadioChange = (e) => {
     setSelectedPickupId(e.target.value);
     setDeliveryType('pickup');
-    setSelectedAddressId(null);
+    if (userProfile) {
+      setSelectedAddressId(null);
+    } else {
+      setSelectedTempAddressId('');
+    }
     setDeliveryStatus(null);
     setDeliveryMessage('');
   };
@@ -308,7 +431,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
                 sx={{
                   p: 2,
                   bgcolor: deliveryType === 'pickup' ? 'primary.lighter' : 'grey.50',
-                  opacity: deliveryType === 'delivery' && selectedAddressId ? 0.5 : 1,
+                  opacity: deliveryType === 'delivery' && currentSelectedAddressId ? 0.5 : 1,
                   border: deliveryType === 'pickup' ? '2px solid #1976d2' : '1px solid #eee',
                   transition: 'all 0.2s',
                 }}
@@ -344,6 +467,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
               <Divider>OR</Divider>
             </>
           )}
+
           {/* Home Delivery Section */}
           <Paper
             elevation={deliveryType === 'delivery' ? 4 : 1}
@@ -355,23 +479,68 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
               transition: 'all 0.2s',
             }}
           >
-            <Typography
-              variant="subtitle1"
-              sx={{ mb: 2, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
-            >
-              <HomeIcon fontSize="small" color="secondary" /> Delivery Address
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+              <Typography
+                variant="subtitle1"
+                sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
+              >
+                <HomeIcon fontSize="small" color="secondary" /> Delivery Address
+                {!userProfile && (
+                  <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
+                    (Temporary)
+                  </Typography>
+                )}
+              </Typography>
+              
+              <Box sx={{ display: 'flex', gap: 1 }}>
+                {/* Login Button for Non-logged Users - Only show if not logged in */}
+                {!userProfile && !isRefreshing && (
+                  <Tooltip title="Login to save addresses permanently">
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<LoginIcon />}
+                      onClick={handleLoginClick}
+                      sx={{ fontSize: '0.75rem', py: 0.5, px: 1 }}
+                    >
+                      Login
+                    </Button>
+                  </Tooltip>
+                )}
+                
+                {/* Refresh Button */}
+                <Tooltip title={userProfile ? "Refresh addresses" : "Check login status & refresh"}>
+                  <IconButton
+                    size="small"
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    sx={{ 
+                      border: '1px solid',
+                      borderColor: 'divider',
+                      width: 32,
+                      height: 32
+                    }}
+                  >
+                    {isRefreshing ? (
+                      <LoadingSpinner size={16} />
+                    ) : (
+                      <RefreshIcon fontSize="small" />
+                    )}
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </Box>
 
             <Box>
               <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel>Select Address</InputLabel>
-                {isLoadingAddresses ? (
+                {(isLoadingAddresses && userProfile) || isRefreshing ? (
                   <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
                     <LoadingSpinner size={24} />
                   </Box>
                 ) : (
                   <Select
-                    value={selectedAddressId || ''}
+                    value={currentSelectedAddressId || ''}
                     onChange={handleAddressDropdownChange}
                     label="Select Address"
                     InputProps={{
@@ -389,7 +558,9 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
                         </MenuItem>
                       ))
                     ) : (
-                      <MenuItem disabled>No addresses available</MenuItem>
+                      <MenuItem disabled>
+                        {userProfile ? 'No addresses available' : 'Add an address to continue'}
+                      </MenuItem>
                     )}
                   </Select>
                 )}
@@ -420,15 +591,17 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
                       onChange={setNewAddress}
                       onValidAddress={setIsValidAddress}
                     />
-                    <FormControlLabel
-                      control={
-                        <Checkbox
-                          checked={isPrimary}
-                          onChange={(e) => setIsPrimary(e.target.checked)}
-                        />
-                      }
-                      label="Set as Primary Address"
-                    />
+                    {userProfile && (
+                      <FormControlLabel
+                        control={
+                          <Checkbox
+                            checked={isPrimary}
+                            onChange={(e) => setIsPrimary(e.target.checked)}
+                          />
+                        }
+                        label="Set as Primary Address"
+                      />
+                    )}
                     <Button
                       variant="contained"
                       onClick={handleAddAddress}
@@ -439,7 +612,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
                         isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />
                       }
                     >
-                      {isAddingAddress ? 'Adding...' : 'Add Address'}
+                      {isAddingAddress ? 'Adding...' : userProfile ? 'Add Address' : 'Add Temporary Address'}
                     </Button>
                   </Stack>
                 </Box>
@@ -451,18 +624,20 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
                 {deliveryMessage}
               </Alert>
             )}
+
             <Button
               onClick={handleDeliveryConfirm}
               variant="contained"
               color="secondary"
               fullWidth
               startIcon={<HomeIcon />}
-              disabled={deliveryType !== 'delivery' || !selectedAddressId || deliveryStatus !== 'success'}
+              disabled={deliveryType !== 'delivery' || !currentSelectedAddressId || deliveryStatus !== 'success'}
               sx={{ mt: 2, fontWeight: 600, py: 1.2, fontSize: '1rem' }}
             >
               Confirm Delivery
             </Button>
           </Paper>
+
           <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 1 }}>
             <Button
               onClick={handleBack}
