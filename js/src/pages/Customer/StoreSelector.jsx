@@ -30,6 +30,7 @@ import ExpandMore from '@mui/icons-material/ExpandMore';
 import LocationOn from '@mui/icons-material/LocationOn';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import LoginIcon from '@mui/icons-material/Login';
+import InfoIcon from '@mui/icons-material/Info';
 import { CircularProgress } from '@mui/material';
 
 import Dialog from '@/components/Dialog/Dialog';
@@ -56,10 +57,11 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     deliveryType,
     setDeliveryType,
   } = useStore();
-  
-  const { userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm } = useAuthStore();
+
+  const { userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm } =
+    useAuthStore();
   const queryClient = useQueryClient();
-  
+
   // Use the address store for logged-in users
   const {
     addresses: dbAddresses,
@@ -69,7 +71,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     isLoading: isLoadingAddresses,
     createAddress: createAddressMutation,
   } = useAddressStore();
-  
+
   const [step, setStep] = useState('store');
   const [tempStore, setTempStore] = useState(null);
   const [selectedPickupId, setSelectedPickupId] = useState(null);
@@ -99,29 +101,29 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   // Handle user login state changes
   useEffect(() => {
     const currentLoginState = !!userProfile;
-    
+
     // If user just logged in (was null/false, now true)
     if (previousLoginState === false && currentLoginState === true) {
       // Clear temporary data
       setTempAddresses([]);
       setSelectedTempAddressId('');
-      
+
       // Fetch user addresses
       if (userProfile?.id && step === 'pickup' && tempStore) {
         fetchAddresses(userProfile.id);
       }
-      
+
       // Reset delivery status to re-validate with new addresses
       setDeliveryStatus(null);
       setDeliveryMessage('');
     }
-    
+
     // If user logged out (was true, now false)
     if (previousLoginState === true && currentLoginState === false) {
       // Clear DB-related states
       setSelectedAddressId(null);
     }
-    
+
     setPreviousLoginState(currentLoginState);
   }, [userProfile, step, tempStore, fetchAddresses, setSelectedAddressId, previousLoginState]);
 
@@ -169,13 +171,13 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
       // Check current authentication status
       const session = await fetchAuthSession();
       const cognitoId = session?.tokens?.idToken?.payload?.sub;
-      
+
       if (cognitoId) {
         // User is signed in - fetch user profile if not already loaded
         if (!userProfile) {
           await fetchUserProfile(cognitoId);
         }
-        
+
         // Fetch user addresses if profile is available
         if (userProfile?.id || cognitoId) {
           const userId = userProfile?.id;
@@ -190,11 +192,10 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
         // User is not signed in - clear any DB-related data
         setSelectedAddressId(null);
       }
-      
+
       // Reset delivery status for re-validation
       setDeliveryStatus(null);
       setDeliveryMessage('');
-      
     } catch (error) {
       console.error('Error refreshing auth/addresses:', error);
     } finally {
@@ -211,15 +212,15 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   // Address dropdown change handler
   const handleAddressDropdownChange = (e) => {
     const addressId = e.target.value;
-    
+
     if (userProfile) {
       setSelectedAddressId(addressId);
     } else {
       setSelectedTempAddressId(addressId);
     }
-    
+
     if (addressId) {
-      const selectedAddress = addresses.find(addr => addr.id === addressId);
+      const selectedAddress = addresses.find((addr) => addr.id === addressId);
       if (selectedAddress) {
         validateDeliveryAddress(selectedAddress.address);
         setDeliveryType('delivery');
@@ -237,8 +238,8 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     if (!newAddress.trim() || !isValidAddress) return;
 
     // Check for duplicate addresses
-    const isDuplicate = addresses.some(addr => 
-      addr.address.toLowerCase().trim() === newAddress.toLowerCase().trim()
+    const isDuplicate = addresses.some(
+      (addr) => addr.address.toLowerCase().trim() === newAddress.toLowerCase().trim()
     );
 
     if (isDuplicate) {
@@ -248,29 +249,28 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     }
 
     setIsAddingAddress(true);
-    
+
     try {
       if (userProfile?.id) {
         // Logged-in user: Save to database
         await createAddressMutation(newAddress, userProfile.id, isPrimary);
         await fetchAddresses(userProfile.id);
-        
+
         // Find the newly added address and select it
         const updatedAddresses = await fetchAddresses(userProfile.id);
-        const newAddressObj = updatedAddresses.find(addr => 
-          addr.address.toLowerCase().trim() === newAddress.toLowerCase().trim()
+        const newAddressObj = updatedAddresses.find(
+          (addr) => addr.address.toLowerCase().trim() === newAddress.toLowerCase().trim()
         );
-        
+
         if (newAddressObj) {
           setSelectedAddressId(newAddressObj.id);
           validateDeliveryAddress(newAddress);
           setDeliveryType('delivery');
           setSelectedPickupId(null);
         }
-        
+
         // Invalidate queries to refresh data
         queryClient.invalidateQueries(['userAddresses', userProfile.id]);
-        
       } else {
         // Non-logged-in user: Save to temporary store
         const newTempAddress = {
@@ -278,14 +278,14 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
           address: newAddress,
           isPrimary: tempAddresses.length === 0 ? true : isPrimary,
         };
-        
-        setTempAddresses(prev => [...prev, newTempAddress]);
+
+        setTempAddresses((prev) => [...prev, newTempAddress]);
         setSelectedTempAddressId(newTempAddress.id);
         validateDeliveryAddress(newAddress);
         setDeliveryType('delivery');
         setSelectedPickupId(null);
       }
-      
+
       // Reset form
       setNewAddress('');
       setIsPrimary(false);
@@ -293,7 +293,6 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
       setIsValidAddress(false);
       setDeliveryStatus(null);
       setDeliveryMessage('');
-      
     } catch (error) {
       setDeliveryStatus('error');
       setDeliveryMessage('Failed to add address. Please try again.');
@@ -335,7 +334,9 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   const handlePickupConfirm = () => {
     if (!tempStore || !selectedPickupId) return;
     const pickupAddresses = tempStore.pickupAddresses?.edges?.map((e) => e.node) || [];
-    const selectedAddress = pickupAddresses.find((addr) => String(addr.id) === String(selectedPickupId));
+    const selectedAddress = pickupAddresses.find(
+      (addr) => String(addr.id) === String(selectedPickupId)
+    );
     setSelectedStore(tempStore);
     setPickupAddress(selectedAddress);
     setDeliveryType('pickup');
@@ -351,7 +352,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
       setSelectedStore(tempStore);
       setPickupAddress(null);
       setDeliveryType('delivery');
-      
+
       setTimeout(() => {
         setStep('store');
         setTempStore(null);
@@ -412,7 +413,8 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   // Step 2: Pickup address and home delivery selection
   if (step === 'pickup') {
     const pickupAddresses = tempStore?.pickupAddresses?.edges?.map((e) => e.node) || [];
-    
+    const storePincodes = tempStore?.pincodes || [];
+
     return (
       <Dialog open={open} onClose={onClose} title={<StoreSelectorTitle />}>
         <Typography
@@ -479,7 +481,9 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
               transition: 'all 0.2s',
             }}
           >
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+            <Box
+              sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}
+            >
               <Typography
                 variant="subtitle1"
                 sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
@@ -491,7 +495,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
                   </Typography>
                 )}
               </Typography>
-              
+
               <Box sx={{ display: 'flex', gap: 1 }}>
                 {/* Login Button for Non-logged Users - Only show if not logged in */}
                 {!userProfile && !isRefreshing && (
@@ -507,31 +511,82 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
                     </Button>
                   </Tooltip>
                 )}
-                
+
                 {/* Refresh Button */}
-                <Tooltip title={userProfile ? "Refresh addresses" : "Check login status & refresh"}>
+                <Tooltip title={userProfile ? 'Refresh addresses' : 'Check login status & refresh'}>
                   <IconButton
                     size="small"
                     onClick={handleRefresh}
                     disabled={isRefreshing}
-                    sx={{ 
+                    sx={{
                       border: '1px solid',
                       borderColor: 'divider',
                       width: 32,
-                      height: 32
+                      height: 32,
                     }}
                   >
-                    {isRefreshing ? (
-                      <LoadingSpinner size={16} />
-                    ) : (
-                      <RefreshIcon fontSize="small" />
-                    )}
+                    {isRefreshing ? <LoadingSpinner size={16} /> : <RefreshIcon fontSize="small" />}
                   </IconButton>
                 </Tooltip>
               </Box>
             </Box>
 
             <Box>
+              {/* Store Delivery Pincodes Dropdown for Viewing - MOVED TO TOP */}
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel shrink>Store Delivery Areas (View Only)</InputLabel>
+                <Select
+                  value=""
+                  label="Store Delivery Areas (View Only)"
+                  displayEmpty
+                  renderValue={() => `${storePincodes.length} delivery areas available`}
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <InfoIcon color="text.secondary" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    '& .MuiSelect-select': {
+                      color: 'text.secondary',
+                      paddingTop: '14px', // Add padding to account for shrunken label
+                    },
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
+                        maxHeight: 200, // Limit height to enable scrolling
+                        '& .MuiMenu-list': {
+                          paddingTop: 0,
+                          paddingBottom: 0,
+                        },
+                      },
+                    },
+                  }}
+                >
+                  {storePincodes.length > 0 ? (
+                    storePincodes.map((pincode, index) => (
+                      <MenuItem
+                        key={index}
+                        disabled
+                        sx={{
+                          opacity: '0.9 !important',
+                          '&.Mui-disabled': {
+                            opacity: '0.9 !important',
+                          },
+                        }}
+                      >
+                        {pincode}
+                      </MenuItem>
+                    ))
+                  ) : (
+                    <MenuItem disabled>No delivery areas available</MenuItem>
+                  )}
+                </Select>
+              </FormControl>
+
+              {/* Select Address Dropdown - MOVED BELOW PINCODE DROPDOWN */}
               <FormControl fullWidth sx={{ mb: 2 }}>
                 <InputLabel>Select Address</InputLabel>
                 {(isLoadingAddresses && userProfile) || isRefreshing ? (
@@ -605,14 +660,14 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
                     <Button
                       variant="contained"
                       onClick={handleAddAddress}
-                      disabled={
-                        !newAddress.trim() || isAddingAddress || !isValidAddress
-                      }
-                      startIcon={
-                        isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />
-                      }
+                      disabled={!newAddress.trim() || isAddingAddress || !isValidAddress}
+                      startIcon={isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />}
                     >
-                      {isAddingAddress ? 'Adding...' : userProfile ? 'Add Address' : 'Add Temporary Address'}
+                      {isAddingAddress
+                        ? 'Adding...'
+                        : userProfile
+                          ? 'Add Address'
+                          : 'Add Temporary Address'}
                     </Button>
                   </Stack>
                 </Box>
@@ -631,7 +686,11 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
               color="secondary"
               fullWidth
               startIcon={<HomeIcon />}
-              disabled={deliveryType !== 'delivery' || !currentSelectedAddressId || deliveryStatus !== 'success'}
+              disabled={
+                deliveryType !== 'delivery' ||
+                !currentSelectedAddressId ||
+                deliveryStatus !== 'success'
+              }
               sx={{ mt: 2, fontWeight: 600, py: 1.2, fontSize: '1rem' }}
             >
               Confirm Delivery
