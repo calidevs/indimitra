@@ -288,11 +288,18 @@ const EditDialog = React.memo(({ open, onClose, selectedItem, onUpdate, isLoadin
             setError('');
             onClose();
           }}
+          disabled={isLoading}
         >
           Cancel
         </Button>
-        <Button variant="contained" color="primary" onClick={handleUpdate} disabled={isLoading}>
-          {isLoading ? <CircularProgress size={24} /> : 'Update'}
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleUpdate}
+          disabled={isLoading}
+          startIcon={isLoading ? <CircularProgress size={18} color="inherit" /> : null}
+        >
+          {isLoading ? 'Updating...' : 'Update'}
         </Button>
       </DialogActions>
     </Dialog>
@@ -551,6 +558,7 @@ const AddProductDialogNew = React.memo(
               onClose();
               resetForm();
             }}
+            disabled={isLoading}
           >
             Cancel
           </Button>
@@ -559,8 +567,9 @@ const AddProductDialogNew = React.memo(
             color="primary"
             onClick={handleAdd}
             disabled={isLoading || !selectedProduct || !formState.price || !formState.quantity}
+            startIcon={isLoading ? <CircularProgress size={18} color="inherit" /> : null}
           >
-            {isLoading ? <CircularProgress size={24} /> : 'Add Product'}
+            {isLoading ? 'Adding Product...' : 'Add Product'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -924,10 +933,17 @@ const Inventory = () => {
             <Button
               variant="contained"
               color="primary"
-              startIcon={<Add />}
+              startIcon={
+                addMutation.isPending || addMutation.isPending ? (
+                  <CircularProgress size={18} color="inherit" />
+                ) : (
+                  <Add />
+                )
+              }
               onClick={() => setAddModalOpen(true)}
+              disabled={addMutation.isPending || addMutation.isPending}
             >
-              Add Product
+              {addMutation.isPending || addMutation.isPending ? 'Adding...' : 'Add Product'}
             </Button>
           </Box>
 
@@ -990,9 +1006,7 @@ const Inventory = () => {
                             </TableCell>
                             <TableCell>{item.product?.category?.name || 'Uncategorized'}</TableCell>
                             <TableCell>${item.price.toFixed(2)}</TableCell>
-                            <TableCell>
-                              {item.quantity}
-                            </TableCell>
+                            <TableCell>{item.quantity}</TableCell>
                             <TableCell>
                               {!item?.isAvailable ? (
                                 <Chip label="Low Stock" color="error" size="small" />
@@ -1012,10 +1026,32 @@ const Inventory = () => {
                                 onClick={() => handleEditClick(item)}
                                 size="small"
                                 color="primary"
+                                disabled={
+                                  updateMutation.isPending ||
+                                  updateMutation.isLoading ||
+                                  deleteMutation.isPending ||
+                                  deleteMutation.isLoading ||
+                                  addMutation.isPending ||
+                                  addMutation.isLoading
+                                }
                               >
                                 <Edit />
                               </IconButton>
-
+                              <IconButton
+                                onClick={() => handleDeleteClick(item)}
+                                size="small"
+                                color="error"
+                                disabled={
+                                  updateMutation.isPending ||
+                                  updateMutation.isLoading ||
+                                  deleteMutation.isPending ||
+                                  deleteMutation.isLoading ||
+                                  addMutation.isPending ||
+                                  addMutation.isLoading
+                                }
+                              >
+                                <Delete />
+                              </IconButton>
                             </TableCell>
                           </TableRow>
                           <TableRow>
@@ -1041,7 +1077,9 @@ const Inventory = () => {
                                       </Typography>
                                       <Typography variant="subtitle2" gutterBottom>
                                         <strong>Measurement:</strong>{' '}
-                                        {item.measurement && item.unit ? `${item.measurement} ${item.unit}` : 'N/A'}
+                                        {item.measurement && item.unit
+                                          ? `${item.measurement} ${item.unit}`
+                                          : 'N/A'}
                                       </Typography>
                                     </Grid>
                                   </Grid>
@@ -1078,7 +1116,7 @@ const Inventory = () => {
           }}
           selectedItem={selectedItem}
           onUpdate={(data) => updateMutation.mutate(data)}
-          isLoading={updateMutation.isLoading}
+          isLoading={updateMutation.isPending}
         />
 
 
@@ -1089,7 +1127,7 @@ const Inventory = () => {
           storeId={store?.id}
           availableProducts={availableProducts}
           onAdd={addMutation.mutate}
-          isLoading={addMutation.isLoading}
+          isLoading={addMutation.isPending}
           errorMessage={errorMessage}
         />
       </>
