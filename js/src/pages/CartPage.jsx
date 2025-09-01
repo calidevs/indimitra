@@ -247,6 +247,7 @@ const CartPage = () => {
   const [tipPercentage, setTipPercentage] = useState(0);
   const [customTip, setCustomTip] = useState('');
   const [selectedPickupId, setSelectedPickupId] = useState(null);
+  const [isDuplicateAddress, setIsDuplicateAddress] = useState(false);
 
   // Track if user has manually selected an address
   const [userSelectedAddress, setUserSelectedAddress] = useState(false);
@@ -397,6 +398,18 @@ const CartPage = () => {
     },
   });
 
+  const checkDuplicateAddress = (addressValue) => {
+    if (!addressValue.trim() || !addresses) {
+      setIsDuplicateAddress(false);
+      return;
+    }
+
+    const normalizedNew = addressValue.toLowerCase().trim();
+    const duplicate = addresses.some((addr) => addr.address.toLowerCase().trim() === normalizedNew);
+
+    setIsDuplicateAddress(duplicate);
+  };
+
   const handleOrderPlacement = async () => {
     setError(''); // Clear any previous errors
 
@@ -449,7 +462,20 @@ const CartPage = () => {
       return;
     }
 
+    // ✅ Check for duplicate addresses
+    const trimmedAddress = newAddress.trim().toLowerCase();
+    const isDuplicate = addresses?.some(
+      (addr) => addr.address.toLowerCase().trim() === trimmedAddress
+    );
+
+    if (isDuplicate) {
+      setError('This address already exists in your address book');
+      return;
+    }
+
     setIsAddingAddress(true);
+    setError(''); // Clear any previous errors
+
     try {
       await createAddressMutation(newAddress, userProfile.id, isPrimary);
       setShowAddressForm(false);
@@ -554,7 +580,15 @@ const CartPage = () => {
                         <Grid container alignItems="center" spacing={2}>
                           {/* Mobile: Stack image and details vertically */}
                           <Grid item xs={12} sm={4}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flexDirection: { xs: 'column', sm: 'row' }, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 2,
+                                flexDirection: { xs: 'column', sm: 'row' },
+                                justifyContent: { xs: 'center', sm: 'flex-start' },
+                              }}
+                            >
                               <img
                                 src={item.image}
                                 alt={item.name}
@@ -566,32 +600,68 @@ const CartPage = () => {
                                   marginBottom: 4,
                                 }}
                               />
-                              <Typography variant="subtitle1" sx={{ fontWeight: 500, textAlign: { xs: 'center', sm: 'left' }, fontSize: { xs: '1rem', sm: '1.1rem' } }}>
+                              <Typography
+                                variant="subtitle1"
+                                sx={{
+                                  fontWeight: 500,
+                                  textAlign: { xs: 'center', sm: 'left' },
+                                  fontSize: { xs: '1rem', sm: '1.1rem' },
+                                }}
+                              >
                                 {item.name}
                               </Typography>
                             </Box>
                           </Grid>
                           <Grid item xs={6} sm={3}>
-                            <Typography color="text.secondary" sx={{ fontSize: { xs: '0.98rem', sm: '1rem' }, textAlign: { xs: 'center', sm: 'left' } }}>
+                            <Typography
+                              color="text.secondary"
+                              sx={{
+                                fontSize: { xs: '0.98rem', sm: '1rem' },
+                                textAlign: { xs: 'center', sm: 'left' },
+                              }}
+                            >
                               ${item.price.toFixed(2)} each
                             </Typography>
                           </Grid>
                           <Grid item xs={6} sm={3}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, justifyContent: { xs: 'center', sm: 'flex-start' } }}>
+                            <Box
+                              sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                justifyContent: { xs: 'center', sm: 'flex-start' },
+                              }}
+                            >
                               <IconButton
                                 size="small"
                                 onClick={() => removeFromCart(item.id)}
-                                sx={{ border: '1px solid', borderColor: 'divider', width: 32, height: 32 }}
+                                sx={{
+                                  border: '1px solid',
+                                  borderColor: 'divider',
+                                  width: 32,
+                                  height: 32,
+                                }}
                               >
                                 <Remove fontSize="small" />
                               </IconButton>
-                              <Typography sx={{ minWidth: 32, textAlign: 'center', fontSize: { xs: '1rem', sm: '1.1rem' } }}>
+                              <Typography
+                                sx={{
+                                  minWidth: 32,
+                                  textAlign: 'center',
+                                  fontSize: { xs: '1rem', sm: '1.1rem' },
+                                }}
+                              >
                                 {item.quantity}
                               </Typography>
                               <IconButton
                                 size="small"
                                 onClick={() => addToCart(item)}
-                                sx={{ border: '1px solid', borderColor: 'divider', width: 32, height: 32 }}
+                                sx={{
+                                  border: '1px solid',
+                                  borderColor: 'divider',
+                                  width: 32,
+                                  height: 32,
+                                }}
                               >
                                 <Add fontSize="small" />
                               </IconButton>
@@ -600,7 +670,12 @@ const CartPage = () => {
                           <Grid item xs={12} sm={2}>
                             <Typography
                               variant="subtitle1"
-                              sx={{ fontWeight: 600, textAlign: { xs: 'center', sm: 'right' }, fontSize: { xs: '1rem', sm: '1.1rem' }, mt: { xs: 1, sm: 0 } }}
+                              sx={{
+                                fontWeight: 600,
+                                textAlign: { xs: 'center', sm: 'right' },
+                                fontSize: { xs: '1rem', sm: '1.1rem' },
+                                mt: { xs: 1, sm: 0 },
+                              }}
                             >
                               ${(item.price * item.quantity).toFixed(2)}
                             </Typography>
@@ -976,11 +1051,28 @@ const CartPage = () => {
                               }}
                             >
                               <Stack spacing={2}>
-                                <AddressAutocomplete
-                                  value={newAddress}
-                                  onChange={setNewAddress}
-                                  onValidAddress={setIsValidAddress}
-                                />
+                                <Box>
+                                  <AddressAutocomplete
+                                    value={newAddress}
+                                    onChange={(value) => {
+                                      setNewAddress(value);
+                                      checkDuplicateAddress(value);
+                                    }}
+                                    onValidAddress={setIsValidAddress}
+                                  />
+
+                                  {/* ✅ External error message display */}
+                                  {isDuplicateAddress && (
+                                    <Typography
+                                      variant="body2"
+                                      color="error"
+                                      sx={{ mt: 0.5, fontSize: '0.875rem' }}
+                                    >
+                                      ⚠️ This address already exists in your address book
+                                    </Typography>
+                                  )}
+                                </Box>
+
                                 <FormControlLabel
                                   control={
                                     <Checkbox
@@ -994,7 +1086,10 @@ const CartPage = () => {
                                   variant="contained"
                                   onClick={handleAddAddress}
                                   disabled={
-                                    !newAddress.trim() || isAddingAddress || !isValidAddress
+                                    !newAddress.trim() ||
+                                    isAddingAddress ||
+                                    !isValidAddress ||
+                                    isDuplicateAddress // ✅ Disable if duplicate
                                   }
                                   startIcon={
                                     isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />
