@@ -13,6 +13,7 @@ from app.graphql.resolvers.category_resolver import CategoryQuery, CategoryMutat
 from app.graphql.resolvers.store_location_code_resolver import StoreLocationCodeQuery, StoreLocationCodeMutation
 from app.graphql.resolvers.pickup_address_resolver import PickupAddressQuery, PickupAddressMutation
 from app.graphql.resolvers.fee_resolver import FeeQuery, FeeMutation
+from app.graphql.resolvers.notification_resolver import NotificationMutation
 
 
 @strawberry.type
@@ -45,7 +46,8 @@ class Mutation(
     CategoryMutation,
     StoreLocationCodeMutation,
     PickupAddressMutation,
-    FeeMutation
+    FeeMutation,
+    NotificationMutation
 ):
     pass
 

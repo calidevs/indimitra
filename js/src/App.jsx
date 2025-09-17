@@ -1,6 +1,8 @@
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ApolloProvider } from '@apollo/client';
+import { client } from './config/graphql/apolloClient';
 import theme from './theme';
 
 import Products from './pages/Products';
@@ -33,9 +35,10 @@ const App = () => {
   const { user } = useAuthStore();
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Routes>
+    <ApolloProvider client={client}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Routes>
         {/* Public Routes */}
         <Route path={ROUTES.LOGIN} element={<LoginPage />} />
         <Route path={ROUTES.SIGNUP} element={<SignUpPage />} />
@@ -170,7 +173,8 @@ const App = () => {
         {/* Catch-all route for 404 Not Found */}
         <Route path="*" element={<NotFound />} />
       </Routes>
-    </ThemeProvider>
+      </ThemeProvider>
+    </ApolloProvider>
   );
 };
 
