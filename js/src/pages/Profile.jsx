@@ -43,9 +43,11 @@ import {
   Email,
   Phone,
   Badge,
+  NotificationsActive,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'aws-amplify/auth';
+import NotificationSettings from '@/components/NotificationSettings/NotificationSettings';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import {
   GET_ADDRESSES_BY_USER,
@@ -598,7 +600,8 @@ const Profile = () => {
                 { label: 'Profile', icon: <Person />, idx: 0 },
                 { label: 'Addresses', icon: <LocationOn />, idx: 1 },
                 { label: 'Settings', icon: <Settings />, idx: 2 },
-              ].map((tab) => (
+                { label: 'Notifications', icon: <NotificationsActive />, idx: 3 }
+              ].map(tab => (
                 <ListItemButton
                   key={tab.label}
                   selected={activeTab === tab.idx}
@@ -638,21 +641,13 @@ const Profile = () => {
                 My Account
               </Typography>
             </Box>
-            <List
-              component="nav"
-              sx={{
-                pt: 0,
-                display: 'flex',
-                flexDirection: 'row',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
+            <List component="nav" sx={{ pt: 0, display: 'flex', flexDirection: 'row', justifyContent: 'center', alignItems: 'center' }}>
               {[
                 { label: 'Profile', icon: Person, idx: 0 },
                 { label: 'Addresses', icon: LocationOn, idx: 1 },
                 { label: 'Settings', icon: Settings, idx: 2 },
-              ].map((tab) => (
+                { label: 'Notifications', icon: NotificationsActive, idx: 3 }
+              ].map(tab => (
                 <ListItemButton
                   key={tab.label}
                   selected={activeTab === tab.idx}
@@ -717,18 +712,42 @@ const Profile = () => {
               </Box>
             )}
             {activeTab === 2 && (
-              <Box
-                sx={{
-                  p: { xs: 1, sm: 2 },
-                  bgcolor: { xs: 'background.paper', sm: 'transparent' },
-                  borderRadius: { xs: 2, sm: 2 },
-                  boxShadow: { xs: 1, sm: 0 },
-                  mb: { xs: 2, sm: 0 },
-                  maxWidth: { xs: 420, sm: 'none' },
-                  mx: { xs: 'auto', sm: 0 },
-                }}
-              >
+              <Box sx={{
+                p: { xs: 1, sm: 2 },
+                bgcolor: { xs: 'background.paper', sm: 'transparent' },
+                borderRadius: { xs: 2, sm: 2 },
+                boxShadow: { xs: 1, sm: 0 },
+                mb: { xs: 2, sm: 0 },
+                maxWidth: { xs: 420, sm: 'none' },
+                mx: { xs: 'auto', sm: 0 },
+              }}>
                 {renderSettings()}
+              </Box>
+            )}
+            {activeTab === 3 && (
+              <Box sx={{
+                p: { xs: 1, sm: 2 },
+                bgcolor: { xs: 'background.paper', sm: 'transparent' },
+                borderRadius: { xs: 2, sm: 2 },
+                boxShadow: { xs: 1, sm: 0 },
+                mb: { xs: 2, sm: 0 },
+                maxWidth: { xs: 420, sm: 'none' },
+                mx: { xs: 'auto', sm: 0 },
+              }}>
+                <NotificationSettings />
+              </Box>
+            )}
+            {activeTab === 3 && (
+              <Box sx={{
+                p: { xs: 1, sm: 2 },
+                bgcolor: { xs: 'background.paper', sm: 'transparent' },
+                borderRadius: { xs: 2, sm: 2 },
+                boxShadow: { xs: 1, sm: 0 },
+                mb: { xs: 2, sm: 0 },
+                maxWidth: { xs: 420, sm: 'none' },
+                mx: { xs: 'auto', sm: 0 },
+              }}>
+                <NotificationSettings />
               </Box>
             )}
           </Box>
