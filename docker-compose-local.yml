@@ -30,8 +30,8 @@ services:
       - PYTHONUNBUFFERED=1
       - DEBUG=1
       - PYTHONPATH=/app
-      - POSTGRES_HOST=db
-      - POSTGRES_PORT=5432
+      # - POSTGRES_HOST=db
+      # - POSTGRES_PORT=5432
     depends_on:
       - db
     command: >
