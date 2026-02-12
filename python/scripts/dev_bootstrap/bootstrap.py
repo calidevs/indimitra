@@ -7,6 +7,7 @@ from app.db.models.user import UserModel, UserType
 from app.db.models.address import AddressModel
 from app.db.models.store import StoreModel
 from app.db.models.inventory import InventoryModel
+from app.db.models.pickup_address import PickupAddressModel
 
 def create_data():
     db = SessionLocal()
@@ -37,7 +38,7 @@ def create_data():
         db.commit()
     
     # User 2 - ADMIN
-    user2 = db.query(UserModel).filter_by(cognitoId="2458b428-10b1-702f-3110-1f45a3bc6bcd").first()
+    user2 = db.query(UserModel).filter_by(cognitoId="7408a498-3071-7036-4234-606ee5d70934").first()
     if not user2:
         user2 = UserModel(
             email="anddhenconsulting@gmail.com",
@@ -45,7 +46,7 @@ def create_data():
             active=True,
             type=UserType.ADMIN,
             referralId="",
-            cognitoId="2458b428-10b1-702f-3110-1f45a3bc6bcd",
+            cognitoId="7408a498-3071-7036-4234-606ee5d70934",
             secondary_phone=None
         )
         db.add(user2)
@@ -133,6 +134,27 @@ def create_data():
         db.add(store)
         db.commit()
         db.refresh(store)
+
+    # Create pickup addresses for the store
+    existing_pickup = db.query(PickupAddressModel).filter_by(store_id=store.id).first()
+    if not existing_pickup:
+        pickup_addresses = [
+            PickupAddressModel(
+                store_id=store.id,
+                address="123 Store St, Store City, SC 12345"  # Main store address
+            ),
+            PickupAddressModel(
+                store_id=store.id,
+                address="456 Pickup Point A, Store City, SC 12346"
+            ),
+            PickupAddressModel(
+                store_id=store.id,
+                address="789 Pickup Point B, Store City, SC 12347"
+            )
+        ]
+        db.add_all(pickup_addresses)
+        db.commit()
+        print(f"Created {len(pickup_addresses)} pickup addresses for {store.name}")
 
     # Check if there is already at least one product.
     # if db.query(ProductModel).first():

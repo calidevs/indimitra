@@ -11,6 +11,9 @@ from app.db.models.inventory import InventoryModel
 from app.db.models.store_location_code import StoreLocationCodeModel
 from app.db.models.pickup_address import PickupAddressModel
 from app.db.models.fee_type import FeeType
+from app.db.models.payment import PaymentModel, PaymentType, PaymentStatus
+from app.db.models.user import UserModel
+from app.db.models.store import StoreModel
 from app.services.validation_service import validate_delivery_pincode
 
 def get_order_by_id(order_id: int) -> Optional[OrderModel]:
@@ -229,6 +232,413 @@ def create_order(user_id: int, store_id: int, product_items: List[dict],
         return order
     finally:
         db.close()
+
+def create_order_with_payment(
+    user_id: int,
+    store_id: int,
+    product_items: List[dict],
+    total_amount: float,
+    order_total_amount: float,
+    pickup_or_delivery: str,
+    square_payment_id: str,
+    idempotency_key: str,
+    payment_status: str,
+    address_id: Optional[int] = None,
+    pickup_id: Optional[int] = None,
+    delivery_fee: Optional[float] = None,
+    tip_amount: Optional[float] = None,
+    tax_amount: Optional[float] = None,
+    delivery_instructions: Optional[str] = None,
+    custom_order: Optional[str] = None,
+    receipt_url: Optional[str] = None
+) -> OrderModel:
+    """
+    Create an order with Square payment atomically in a single DB transaction.
+
+    Creates PaymentModel and OrderModel together. If this transaction fails,
+    the caller (resolver) is responsible for logging for recovery since the
+    Square payment has already been captured.
+
+    Args:
+        user_id: User placing the order
+        store_id: Store the order is from
+        product_items: List of [{"product_id": int, "quantity": int}, ...]
+        total_amount: Subtotal of products
+        order_total_amount: Final total including fees and tax
+        pickup_or_delivery: "pickup" or "delivery"
+        square_payment_id: Square payment ID from successful payment
+        idempotency_key: Idempotency key used for payment
+        payment_status: Status from Square (COMPLETED, etc.)
+        address_id: Delivery address ID
+        pickup_id: Pickup address ID
+        delivery_fee: Delivery/pickup fee
+        tip_amount: Tip amount
+        tax_amount: Tax amount
+        delivery_instructions: Special instructions
+        custom_order: Custom order notes
+        receipt_url: Square receipt URL
+
+    Returns:
+        Created OrderModel with payment linked
+
+    Raises:
+        ValueError: If validation fails
+        Exception: If database transaction fails (caller must handle orphan recovery)
+    """
+    if pickup_or_delivery not in ["pickup", "delivery"]:
+        raise ValueError("pickup_or_delivery must be 'pickup' or 'delivery'")
+
+    db = SessionLocal()
+    try:
+        # Handle address validation based on order type (same as create_order)
+        if pickup_or_delivery == "delivery":
+            if not address_id:
+                raise ValueError("Delivery address ID is required for delivery orders")
+
+            address = db.query(AddressModel).filter(
+                AddressModel.id == address_id,
+                AddressModel.userId == user_id
+            ).first()
+
+            if not address:
+                raise ValueError(f"Address with ID {address_id} not found or does not belong to user {user_id}")
+
+            validate_delivery_pincode(address_id, store_id)
+
+            location_code = "00"
+            if address.address:
+                address_parts = address.address.split(',')
+                if len(address_parts) >= 2:
+                    city_name = address_parts[1].strip()
+                    location_code_record = db.query(StoreLocationCodeModel).filter(
+                        StoreLocationCodeModel.store_id == store_id,
+                        StoreLocationCodeModel.location == city_name
+                    ).first()
+                    if location_code_record:
+                        location_code = location_code_record.code
+        else:  # pickup
+            if not pickup_id:
+                raise ValueError("Pickup address ID is required for pickup orders")
+
+            pickup_address = db.query(PickupAddressModel).filter(
+                PickupAddressModel.id == pickup_id,
+                PickupAddressModel.store_id == store_id
+            ).first()
+
+            if not pickup_address:
+                raise ValueError(f"Pickup address with ID {pickup_id} not found or does not belong to store {store_id}")
+
+            location_code = "00"
+            if pickup_address.address:
+                address_parts = pickup_address.address.split(',')
+                if len(address_parts) >= 2:
+                    city_name = address_parts[1].strip()
+                    location_code_record = db.query(StoreLocationCodeModel).filter(
+                        StoreLocationCodeModel.store_id == store_id,
+                        StoreLocationCodeModel.location == city_name
+                    ).first()
+                    if location_code_record:
+                        location_code = location_code_record.code
+
+        # Verify products exist in inventory
+        product_ids = [item["product_id"] for item in product_items]
+        inventory_items = db.query(InventoryModel).filter(
+            InventoryModel.storeId == store_id,
+            InventoryModel.productId.in_(product_ids)
+        ).all()
+        inventory_dict = {item.productId: item for item in inventory_items}
+
+        for item in product_items:
+            if item["product_id"] not in inventory_dict:
+                raise ValueError(f"Product with ID {item['product_id']} not found in store inventory")
+
+        # Create PaymentModel and OrderModel in single transaction
+        # If this fails, caller is responsible for orphan recovery logging
+
+        payment = PaymentModel(
+            type=PaymentType.SQUARE,
+            square_payment_id=square_payment_id,
+            idempotency_key=idempotency_key,
+            amount=round(order_total_amount, 2),
+            currency="USD",
+            status=PaymentStatus[payment_status] if payment_status in PaymentStatus.__members__ else PaymentStatus.COMPLETED,
+            receipt_url=receipt_url
+        )
+        db.add(payment)
+        db.flush()  # Get payment.id without committing
+
+        order = OrderModel(
+            createdByUserId=user_id,
+            addressId=address_id if pickup_or_delivery == "delivery" else None,
+            pickupId=pickup_id if pickup_or_delivery == "pickup" else None,
+            type=FeeType.DELIVERY if pickup_or_delivery == "delivery" else FeeType.PICKUP,
+            storeId=store_id,
+            status=OrderStatus.PENDING,
+            paymentId=payment.id,  # Link to payment
+            totalAmount=total_amount,
+            orderTotalAmount=order_total_amount,
+            deliveryFee=delivery_fee,
+            tipAmount=tip_amount,
+            taxAmount=tax_amount,
+            deliveryDate=None,
+            deliveryInstructions=delivery_instructions
+        )
+        db.add(order)
+        db.flush()  # Get order.id
+
+        # Set display code and custom order
+        order.display_code = f"{location_code}{order.id}{pickup_or_delivery[0].upper()}"
+        order.custom_order = custom_order
+
+        # Create order items
+        for item in product_items:
+            inventory_item = inventory_dict[item["product_id"]]
+            order_item = OrderItemModel(
+                productId=item["product_id"],
+                quantity=item["quantity"],
+                orderId=order.id,
+                orderAmount=inventory_item.price * item["quantity"],
+                inventoryId=inventory_item.id
+            )
+            db.add(order_item)
+
+        # Commit everything together
+        db.commit()
+        db.refresh(order)
+
+        # Send order confirmation email with payment details (non-blocking)
+        try:
+            from app.services.email_service import EmailService
+
+            # Get user email
+            user = db.query(UserModel).filter(UserModel.id == user_id).first()
+            store = db.query(StoreModel).filter(StoreModel.id == store_id).first()
+
+            if user and user.email:
+                email_service = EmailService()
+                email_service.send_order_confirmation_with_payment(
+                    to_email=user.email,
+                    order_id=str(order.id),
+                    display_code=order.display_code,
+                    order_total=order_total_amount,
+                    payment_id=square_payment_id,
+                    payment_amount=round(order_total_amount, 2),
+                    receipt_url=receipt_url,
+                    order_type=pickup_or_delivery,
+                    store_name=store.name if store else "Indimitra"
+                )
+        except Exception as email_error:
+            # Email failure should not fail the order
+            import logging
+            logging.warning(f"Failed to send order confirmation email: {email_error}")
+
+        return order
+
+    except Exception as e:
+        db.rollback()
+        # Re-raise - caller (resolver) handles orphan payment logging
+        raise
+
+    finally:
+        db.close()
+
+
+def create_order_with_cod_payment(
+    user_id: int,
+    store_id: int,
+    product_items: List[dict],
+    total_amount: float,
+    order_total_amount: float,
+    pickup_or_delivery: str,
+    address_id: Optional[int] = None,
+    pickup_id: Optional[int] = None,
+    delivery_fee: Optional[float] = None,
+    tip_amount: Optional[float] = None,
+    tax_amount: Optional[float] = None,
+    delivery_instructions: Optional[str] = None,
+    custom_order: Optional[str] = None
+) -> OrderModel:
+    """
+    Create an order with Cash on Delivery payment atomically in a single DB transaction.
+
+    Creates PaymentModel (type=CASH) and OrderModel together.
+
+    Args:
+        user_id: User placing the order
+        store_id: Store the order is from
+        product_items: List of [{"product_id": int, "quantity": int}, ...]
+        total_amount: Subtotal of products
+        order_total_amount: Final total including fees and tax
+        pickup_or_delivery: "pickup" or "delivery"
+        address_id: Delivery address ID
+        pickup_id: Pickup address ID
+        delivery_fee: Delivery/pickup fee
+        tip_amount: Tip amount
+        tax_amount: Tax amount
+        delivery_instructions: Special instructions
+        custom_order: Custom order notes
+
+    Returns:
+        Created OrderModel with COD payment linked
+
+    Raises:
+        ValueError: If validation fails
+        Exception: If database transaction fails
+    """
+    if pickup_or_delivery not in ["pickup", "delivery"]:
+        raise ValueError("pickup_or_delivery must be 'pickup' or 'delivery'")
+
+    db = SessionLocal()
+    try:
+        # Handle address validation based on order type (same as create_order_with_payment)
+        if pickup_or_delivery == "delivery":
+            if not address_id:
+                raise ValueError("Delivery address ID is required for delivery orders")
+
+            address = db.query(AddressModel).filter(
+                AddressModel.id == address_id,
+                AddressModel.userId == user_id
+            ).first()
+
+            if not address:
+                raise ValueError(f"Address with ID {address_id} not found or does not belong to user {user_id}")
+
+            validate_delivery_pincode(address_id, store_id)
+
+            location_code = "00"
+            if address.address:
+                address_parts = address.address.split(',')
+                if len(address_parts) >= 2:
+                    city_name = address_parts[1].strip()
+                    location_code_record = db.query(StoreLocationCodeModel).filter(
+                        StoreLocationCodeModel.store_id == store_id,
+                        StoreLocationCodeModel.location == city_name
+                    ).first()
+                    if location_code_record:
+                        location_code = location_code_record.code
+        else:  # pickup
+            if not pickup_id:
+                raise ValueError("Pickup address ID is required for pickup orders")
+
+            pickup_address = db.query(PickupAddressModel).filter(
+                PickupAddressModel.id == pickup_id,
+                PickupAddressModel.store_id == store_id
+            ).first()
+
+            if not pickup_address:
+                raise ValueError(f"Pickup address with ID {pickup_id} not found or does not belong to store {store_id}")
+
+            location_code = "00"
+            if pickup_address.address:
+                address_parts = pickup_address.address.split(',')
+                if len(address_parts) >= 2:
+                    city_name = address_parts[1].strip()
+                    location_code_record = db.query(StoreLocationCodeModel).filter(
+                        StoreLocationCodeModel.store_id == store_id,
+                        StoreLocationCodeModel.location == city_name
+                    ).first()
+                    if location_code_record:
+                        location_code = location_code_record.code
+
+        # Verify products exist in inventory
+        product_ids = [item["product_id"] for item in product_items]
+        inventory_items = db.query(InventoryModel).filter(
+            InventoryModel.storeId == store_id,
+            InventoryModel.productId.in_(product_ids)
+        ).all()
+        inventory_dict = {item.productId: item for item in inventory_items}
+
+        for item in product_items:
+            if item["product_id"] not in inventory_dict:
+                raise ValueError(f"Product with ID {item['product_id']} not found in store inventory")
+
+        # Create PaymentModel for Cash on Delivery
+        payment = PaymentModel(
+            type=PaymentType.CASH,
+            square_payment_id=None,
+            idempotency_key=None,
+            amount=round(order_total_amount, 2),
+            currency="USD",
+            status=PaymentStatus.PENDING,  # COD is pending until delivery
+            receipt_url=None
+        )
+        db.add(payment)
+        db.flush()  # Get payment.id without committing
+
+        order = OrderModel(
+            createdByUserId=user_id,
+            addressId=address_id if pickup_or_delivery == "delivery" else None,
+            pickupId=pickup_id if pickup_or_delivery == "pickup" else None,
+            type=FeeType.DELIVERY if pickup_or_delivery == "delivery" else FeeType.PICKUP,
+            storeId=store_id,
+            status=OrderStatus.PENDING,
+            paymentId=payment.id,  # Link to COD payment
+            totalAmount=total_amount,
+            orderTotalAmount=order_total_amount,
+            deliveryFee=delivery_fee,
+            tipAmount=tip_amount,
+            taxAmount=tax_amount,
+            deliveryDate=None,
+            deliveryInstructions=delivery_instructions
+        )
+        db.add(order)
+        db.flush()  # Get order.id
+
+        # Set display code and custom order
+        order.display_code = f"{location_code}{order.id}{pickup_or_delivery[0].upper()}"
+        order.custom_order = custom_order
+
+        # Create order items
+        for item in product_items:
+            inventory_item = inventory_dict[item["product_id"]]
+            order_item = OrderItemModel(
+                productId=item["product_id"],
+                quantity=item["quantity"],
+                orderId=order.id,
+                orderAmount=inventory_item.price * item["quantity"],
+                inventoryId=inventory_item.id
+            )
+            db.add(order_item)
+
+        # Commit everything together
+        db.commit()
+        db.refresh(order)
+
+        # Send COD order confirmation email (non-blocking)
+        try:
+            from app.services.email_service import EmailService
+
+            # Get user email
+            user = db.query(UserModel).filter(UserModel.id == user_id).first()
+            store = db.query(StoreModel).filter(StoreModel.id == store_id).first()
+
+            if user and user.email:
+                email_service = EmailService()
+                email_service.send_order_confirmation_with_payment(
+                    to_email=user.email,
+                    order_id=str(order.id),
+                    display_code=order.display_code,
+                    order_total=order_total_amount,
+                    payment_id="COD",  # Indicate Cash on Delivery
+                    payment_amount=round(order_total_amount, 2),
+                    receipt_url=None,  # No receipt for COD
+                    order_type=pickup_or_delivery,
+                    store_name=store.name if store else "Indimitra"
+                )
+        except Exception as email_error:
+            # Email failure should not fail the order
+            import logging
+            logging.warning(f"Failed to send COD order confirmation email: {email_error}")
+
+        return order
+
+    except Exception as e:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
+
 
 def update_order_status(order_id: int, status: str, delivery_instructions: Optional[str] = None) -> Optional[OrderModel]:
     """

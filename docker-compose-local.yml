@@ -10,6 +10,8 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      - REACT_APP_SQUARE_APPLICATION_ID=${REACT_APP_SQUARE_APPLICATION_ID:-}
+      - REACT_APP_SQUARE_LOCATION_ID=${REACT_APP_SQUARE_LOCATION_ID:-}
     depends_on:
       - api
 
@@ -21,10 +23,15 @@ services:
       - "8000:8000"
     volumes:
       - ./python:/app
+    env_file:
+      - ./python/.env
     environment:
+      # Override critical Docker-specific settings
       - PYTHONUNBUFFERED=1
       - DEBUG=1
       - PYTHONPATH=/app
+      - POSTGRES_HOST=db
+      - POSTGRES_PORT=5432
     depends_on:
       - db
     command: >

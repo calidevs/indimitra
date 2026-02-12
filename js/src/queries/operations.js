@@ -467,6 +467,7 @@ export const GET_STORE_INFO = `
       name
       address
       radius
+      codEnabled
     }
   }
 `;
@@ -569,6 +570,9 @@ export const GET_STORE_WITH_INVENTORY = `
       taxPercentage
       displayField
       sectionHeaders
+      images
+      codEnabled
+      whatsappNumber
       inventory {
         edges {
           node {
@@ -618,6 +622,9 @@ export const GET_ALL_STORES = `
       taxPercentage
       displayField
       sectionHeaders
+      images
+      codEnabled
+      whatsappNumber
       fees {
         edges {
           node {
@@ -691,6 +698,7 @@ export const GET_STORES = `
       taxPercentage
       displayField
       sectionHeaders
+      images
       drivers {
         edges {
           node {
@@ -860,6 +868,135 @@ export const UPDATE_ORDER_ITEMS = `
           }
         }
       }
+    }
+  }
+`;
+
+export const CREATE_ORDER_WITH_PAYMENT_MUTATION = `
+  mutation CreateOrderWithPayment(
+    $userId: Int!
+    $storeId: Int!
+    $productItems: [OrderItemInput!]!
+    $payment: PaymentInput!
+    $pickupOrDelivery: String!
+    $addressId: Int
+    $pickupId: Int
+    $tipAmount: Float
+    $deliveryInstructions: String
+    $customOrder: String
+  ) {
+    createOrderWithPayment(
+      userId: $userId
+      storeId: $storeId
+      productItems: $productItems
+      payment: $payment
+      pickupOrDelivery: $pickupOrDelivery
+      addressId: $addressId
+      pickupId: $pickupId
+      tipAmount: $tipAmount
+      deliveryInstructions: $deliveryInstructions
+      customOrder: $customOrder
+    ) {
+      id
+      displayCode
+      status
+      totalAmount
+      orderTotalAmount
+      deliveryFee
+      tipAmount
+      taxAmount
+      deliveryInstructions
+      deliveryDate
+      address {
+        id
+        address
+      }
+      orderItems {
+        edges {
+          node {
+            id
+            quantity
+            orderAmount
+            product {
+              id
+              name
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
+export const STORE_PAYMENT_CONFIG = `
+  query StorePaymentConfig($storeId: Int!) {
+    storePaymentConfig(storeId: $storeId) {
+      storeId
+      isSquareConnected
+      codEnabled
+      squareApplicationId
+      squareLocationId
+    }
+  }
+`;
+
+export const GET_SAVED_CART = `
+  query GetSavedCart($userId: Int!, $storeId: Int!) {
+    getSavedCart(userId: $userId, storeId: $storeId) {
+      id
+      userId
+      storeId
+      cartData
+      updatedAt
+    }
+  }
+`;
+
+export const SAVE_CART_MUTATION = `
+  mutation SaveCart($userId: Int!, $storeId: Int!, $cartData: JSON!) {
+    saveCart(userId: $userId, storeId: $storeId, cartData: $cartData) {
+      id
+      userId
+      storeId
+      cartData
+      updatedAt
+    }
+  }
+`;
+
+export const DELETE_SAVED_CART = `
+  mutation DeleteSavedCart($userId: Int!, $storeId: Int!) {
+    deleteSavedCart(userId: $userId, storeId: $storeId)
+  }
+`;
+
+export const CREATE_ORDER_WITH_COD_MUTATION = `
+  mutation CreateOrderWithCod(
+    $userId: Int!
+    $storeId: Int!
+    $productItems: [OrderItemInput!]!
+    $pickupOrDelivery: String!
+    $addressId: Int
+    $pickupId: Int
+    $tipAmount: Float
+    $deliveryInstructions: String
+    $customOrder: String
+  ) {
+    createOrderWithCod(
+      userId: $userId
+      storeId: $storeId
+      productItems: $productItems
+      pickupOrDelivery: $pickupOrDelivery
+      addressId: $addressId
+      pickupId: $pickupId
+      tipAmount: $tipAmount
+      deliveryInstructions: $deliveryInstructions
+      customOrder: $customOrder
+    ) {
+      id
+      displayCode
+      status
+      orderTotalAmount
     }
   }
 `;

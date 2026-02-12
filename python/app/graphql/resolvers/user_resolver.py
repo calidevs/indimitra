@@ -1,7 +1,9 @@
 import strawberry
 from typing import List, Optional, Union
+from strawberry.types import Info
 from app.graphql.types import User, DashboardStats
 from app.services.user_service import get_all_users, create_user, get_user_profile, update_user_type, update_user_mobile, update_secondary_phone, get_dashboard_stats
+from app.graphql.permissions.store_permissions import IsAdmin, IsAuthenticated
 
 @strawberry.type
 class UserError:
@@ -22,21 +24,21 @@ class UpdateMobileResponse:
 
 @strawberry.type
 class UserQuery:
-    @strawberry.field
+    @strawberry.field(permission_classes=[IsAdmin])
     def getAllUsers(self) -> List[User]:
-        """Returns a list of all users"""
+        """Returns a list of all users - Admin only"""
         return get_all_users()
-    
+
     @strawberry.field
     def getUserProfile(self, userId: str) -> Optional[User]:
-        """Fetch a single user's profile without exposing referredBy"""
+        """Fetch a single user's profile without exposing referredBy - Public for now"""
         user_data = get_user_profile(userId) # Create a User instance from sanitized data
-        
+
         return user_data
-    
-    @strawberry.field
+
+    @strawberry.field(permission_classes=[IsAdmin])
     def getDashboardStats(self) -> DashboardStats:
-        """Get dashboard statistics for admin panel"""
+        """Get dashboard statistics for admin panel - Admin only"""
         stats = get_dashboard_stats()
         return DashboardStats(
             total_users=stats['total_users'],
@@ -63,31 +65,37 @@ class UserMutation:
     ) -> User:
         return create_user(cognitoId, firstName, lastName, email, active, type, referralId, mobile, referredBy)
     
-    @strawberry.mutation
+    @strawberry.mutation(permission_classes=[IsAdmin])
     def updateUserType(
         self,
-        requesterId: str,  # ID of the user making the request (must be an admin)
+        info: Info,
         targetUserId: str,  # ID of the user to update
         newType: str  # New user type (as string)
     ) -> UpdateUserTypeResponse:
         """
         Update a user's type/role - only ADMIN users can perform this action
-        
+
         Args:
-            requesterId: ID of the user making the request (must be an admin)
+            info: GraphQL Info context (contains authenticated user)
             targetUserId: ID of the user to update
             newType: New user type (ADMIN, USER, DELIVERY_AGENT, STORE_MANAGER)
-            
+
         Returns:
             Response with either the updated user or an error message
         """
         try:
-            updated_user = update_user_type(requesterId, targetUserId, newType)
+            # Extract requester ID from authenticated user in JWT
+            request = info.context.get("request")
+            if not request or not hasattr(request.state, 'user'):
+                return UpdateUserTypeResponse(error=UserError(message="Authentication required"))
+
+            requester_cognito_id = request.state.user.cognito_id
+            updated_user = update_user_type(requester_cognito_id, targetUserId, newType)
             return UpdateUserTypeResponse(user=updated_user)
         except (ValueError, LookupError) as e:
             return UpdateUserTypeResponse(error=UserError(message=str(e)))
     
-    @strawberry.mutation
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
     def updateUserMobile(
         self,
         userId: str,  # ID of the user to update
@@ -113,7 +121,7 @@ class UserMutation:
         except ValueError as e:
             return UpdateMobileResponse(error=UserError(message=str(e)))
 
-    @strawberry.mutation
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
     def update_secondary_phone(self, user_id: int, secondary_phone: Optional[str] = None) -> Optional[User]:
         """
         Update user's secondary phone number

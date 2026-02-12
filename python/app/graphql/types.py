@@ -6,9 +6,17 @@ from datetime import datetime
 from app.db.models.order import OrderStatus
 from app.db.models.fees import FeeType
 from strawberry.scalars import JSON
+from app.db.custom_types.encrypted import EncryptedType
+from sqlalchemy.sql.sqltypes import LargeBinary
 
 # Create a single mapper instance.
 mapper = StrawberrySQLAlchemyMapper()
+
+# Register EncryptedType to be skipped by the mapper
+# These columns contain sensitive data and should never be exposed via GraphQL
+# Use the same sentinel value that's used for LargeBinary
+SkipTypeSentinel = mapper.sqlalchemy_type_to_strawberry_type_map[LargeBinary]
+mapper.sqlalchemy_type_to_strawberry_type_map[EncryptedType] = SkipTypeSentinel
 
 # Generate a GraphQL type for UserModel.
 @mapper.type(models.UserModel)
@@ -72,6 +80,8 @@ class Inventory:
 
 @mapper.type(models.StoreModel)
 class Store:
+    # EncryptedType columns (square_access_token, square_refresh_token, etc.)
+    # are automatically skipped by the mapper configuration above
     pass
 
 @mapper.type(models.StoreDriverModel)
@@ -134,3 +144,14 @@ class OrderStats:
     recent_orders: int
     orders_by_status: JSON
     orders_by_type: JSON
+
+@strawberry.type
+class Payment:
+    """GraphQL type for Payment model"""
+    id: int
+    type: str
+    square_payment_id: Optional[str] = None
+    amount: Optional[float] = None
+    currency: Optional[str] = None
+    status: Optional[str] = None
+    receipt_url: Optional[str] = None

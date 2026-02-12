@@ -12,8 +12,10 @@ from app.services.store_service import (
     toggle_store_active,
     toggle_store_disabled,
     update_store_delivery_fee,
-    update_store_tax_percentage
+    update_store_tax_percentage,
+    toggle_store_cod
 )
+from app.graphql.permissions.store_permissions import IsAdmin, IsAuthenticated
 
 @strawberry.type
 class StoreQuery:
@@ -39,7 +41,7 @@ class StoreQuery:
 
 @strawberry.type
 class StoreMutation:
-    @strawberry.mutation
+    @strawberry.mutation(permission_classes=[IsAdmin])
     def create_store(
         self,
         name: str,
@@ -54,7 +56,10 @@ class StoreMutation:
         store_delivery_fee: Optional[float] = None,
         tax_percentage: Optional[float] = None,
         section_headers: Optional[List[str]] = None,
-        pincodes: Optional[List[str]] = None
+        pincodes: Optional[List[str]] = None,
+        images: Optional[List[str]] = None,
+        cod_enabled: Optional[bool] = False,
+        whatsapp_number: Optional[str] = None
     ) -> Store:
         """
         Create a new store
@@ -76,24 +81,27 @@ class StoreMutation:
         """
         try:
             return create_store(
-                name, 
-                address, 
-                manager_user_id, 
+                name,
+                address,
+                manager_user_id,
                 email,
                 display_field,
-                radius, 
-                mobile, 
-                description, 
+                radius,
+                mobile,
+                description,
                 tnc,
                 store_delivery_fee,
                 tax_percentage,
                 section_headers=section_headers,
-                pincodes=pincodes
+                pincodes=pincodes,
+                images=images,
+                cod_enabled=cod_enabled,
+                whatsapp_number=whatsapp_number
             )
         except ValueError as e:
             raise Exception(str(e))
     
-    @strawberry.mutation
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
     def update_store(
         self,
         store_id: int,
@@ -111,7 +119,9 @@ class StoreMutation:
         store_delivery_fee: Optional[float] = None,
         tax_percentage: Optional[float] = None,
         section_headers: Optional[List[str]] = None,
-        display_field: Optional[str] = None
+        display_field: Optional[str] = None,
+        images: Optional[List[str]] = None,
+        whatsapp_number: Optional[str] = None
     ) -> Optional[Store]:
         """
         Update an existing store
@@ -151,7 +161,9 @@ class StoreMutation:
                 store_delivery_fee,
                 tax_percentage,
                 section_headers,
-                display_field
+                display_field,
+                images,
+                whatsapp_number
             )
             if not store:
                 raise Exception(f"Store with ID {store_id} not found")
@@ -159,7 +171,7 @@ class StoreMutation:
         except ValueError as e:
             raise Exception(str(e))
     
-    @strawberry.mutation
+    @strawberry.mutation(permission_classes=[IsAdmin])
     def delete_store(self, store_id: int) -> bool:
         """Delete a store"""
         try:
@@ -170,7 +182,7 @@ class StoreMutation:
         except ValueError as e:
             raise Exception(str(e))
     
-    @strawberry.mutation
+    @strawberry.mutation(permission_classes=[IsAdmin])
     def toggle_store_active(self, store_id: int) -> Optional[Store]:
         """Toggle the active status of a store"""
         store = toggle_store_active(store_id)
@@ -178,7 +190,7 @@ class StoreMutation:
             raise Exception(f"Store with ID {store_id} not found")
         return store
     
-    @strawberry.mutation
+    @strawberry.mutation(permission_classes=[IsAdmin])
     def toggle_store_disabled(self, store_id: int) -> Optional[Store]:
         """Toggle the disabled status of a store"""
         store = toggle_store_disabled(store_id)
@@ -186,7 +198,7 @@ class StoreMutation:
             raise Exception(f"Store with ID {store_id} not found")
         return store
 
-    @strawberry.mutation
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
     def update_store_delivery_fee(self, store_id: int, store_delivery_fee: Optional[float] = None) -> Optional[Store]:
         """
         Update a store's delivery fee
@@ -203,19 +215,30 @@ class StoreMutation:
             raise Exception(f"Store with ID {store_id} not found")
         return store
     
-    @strawberry.mutation
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
     def update_store_tax_percentage(self, store_id: int, tax_percentage: Optional[float] = None) -> Optional[Store]:
         """
         Update a store's tax percentage
-        
+
         Args:
             store_id: ID of the store to update
             tax_percentage: New tax percentage (can be None to remove the tax)
-        
+
         Returns:
             Updated store
         """
         store = update_store_tax_percentage(store_id, tax_percentage)
         if not store:
             raise Exception(f"Store with ID {store_id} not found")
-        return store 
+        return store
+
+    @strawberry.mutation(permission_classes=[IsAuthenticated])
+    def toggle_cod(self, store_id: int, enabled: bool) -> Optional[Store]:
+        """Toggle Cash on Delivery for a store"""
+        try:
+            store = toggle_store_cod(store_id, enabled)
+            if not store:
+                raise Exception(f"Store with ID {store_id} not found")
+            return store
+        except ValueError as e:
+            raise Exception(str(e)) 

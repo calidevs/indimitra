@@ -1,8 +1,14 @@
-import { Dialog as MuiDialog, DialogTitle, DialogContent, IconButton } from '@mui/material';
+import {
+  Dialog as MuiDialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton,
+} from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
 
-const Dialog = ({ open, onClose, children, title, ...props }) => {
+const Dialog = ({ open, onClose, children, title, footer, ...props }) => {
   const theme = useTheme();
   return (
     <MuiDialog
@@ -11,8 +17,12 @@ const Dialog = ({ open, onClose, children, title, ...props }) => {
       fullWidth
       PaperProps={{
         sx: {
-          borderRadius: 2,
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.1)',
+          borderRadius: 3,
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
+          height: '60vh',
+          maxHeight: '60vh',
+          display: 'flex',
+          flexDirection: 'column',
         },
       }}
       {...props}
@@ -23,9 +33,9 @@ const Dialog = ({ open, onClose, children, title, ...props }) => {
             textAlign: 'center',
             background: theme.palette.custom.gradientPrimary,
             color: 'white',
-            py: 2.5,
-            mb: 2,
+            py: 2,
             position: 'relative',
+            flexShrink: 0,
           }}
         >
           {title}
@@ -47,7 +57,36 @@ const Dialog = ({ open, onClose, children, title, ...props }) => {
         </DialogTitle>
       )}
 
-      <DialogContent>{children}</DialogContent>
+      <DialogContent
+        sx={{
+          flex: 1,
+          overflowY: 'auto',
+          py: 2,
+          '&::-webkit-scrollbar': {
+            width: 6,
+          },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: 'rgba(0,0,0,0.15)',
+            borderRadius: 3,
+          },
+        }}
+      >
+        {children}
+      </DialogContent>
+
+      {footer && (
+        <DialogActions
+          sx={{
+            px: 3,
+            py: 1.5,
+            borderTop: '1px solid',
+            borderColor: 'divider',
+            flexShrink: 0,
+          }}
+        >
+          {footer}
+        </DialogActions>
+      )}
     </MuiDialog>
   );
 };

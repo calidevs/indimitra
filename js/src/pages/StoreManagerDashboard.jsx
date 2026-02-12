@@ -34,6 +34,7 @@ import {
   TablePagination,
   Snackbar,
   InputAdornment,
+  Chip,
 } from '@mui/material';
 import {
   Edit,
@@ -42,10 +43,11 @@ import {
   Add,
   Store as StoreIcon,
   Delete,
+  CloudUpload,
 } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { useAuthStore } from '@/store/useStore';
-import { fetchUserAttributes } from 'aws-amplify/auth';
+import { fetchUserAttributes, fetchAuthSession } from 'aws-amplify/auth';
 import {
   GET_USER_PROFILE,
   GET_STORE_WITH_INVENTORY,
@@ -53,6 +55,17 @@ import {
   ADD_PRODUCT_TO_INVENTORY,
 } from '@/queries/operations';
 import Layout from '@/components/StoreManager/Layout';
+
+// GraphQL query for Square status
+const STORE_SQUARE_STATUS = `
+  query StoreSquareStatus($storeId: Int!) {
+    storeSquareStatus(storeId: $storeId) {
+      storeId
+      storeName
+      isConnected
+    }
+  }
+`;
 
 // Update the UPDATE_STORE mutation
 const UPDATE_STORE = `
@@ -71,6 +84,8 @@ const UPDATE_STORE = `
     $taxPercentage: Float
     $displayField: String
     $sectionHeaders: [String!]
+    $images: [String!]
+    $whatsappNumber: String
   ) {
     updateStore(
       storeId: $storeId
@@ -87,6 +102,8 @@ const UPDATE_STORE = `
       taxPercentage: $taxPercentage
       displayField: $displayField
       sectionHeaders: $sectionHeaders
+      images: $images
+      whatsappNumber: $whatsappNumber
     ) {
       id
       name
@@ -102,6 +119,8 @@ const UPDATE_STORE = `
       taxPercentage
       displayField
       sectionHeaders
+      images
+      whatsappNumber
     }
   }
 `;
@@ -135,6 +154,8 @@ const StoreManagerDashboard = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
   const [editSectionHeaders, setEditSectionHeaders] = useState([]);
   const [storeStatus, setStoreStatus] = useState(true);
+  const [editStoreImages, setEditStoreImages] = useState([]);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   // Fetch Cognito ID on component mount
   useEffect(() => {
@@ -202,6 +223,18 @@ const StoreManagerDashboard = () => {
   const inventory = store?.inventory?.edges?.map((edge) => edge.node) || [];
   const availableProducts = storeData?.products || [];
 
+  // Fetch Square connection status
+  const {
+    data: squareStatusData,
+    isLoading: squareStatusLoading,
+  } = useQuery({
+    queryKey: ['storeSquareStatus', store?.id],
+    queryFn: () => fetchGraphQL(STORE_SQUARE_STATUS, { storeId: store?.id }),
+    enabled: !!store?.id,
+  });
+
+  const isSquareConnected = squareStatusData?.storeSquareStatus?.isConnected || false;
+
   // Update filtered products when search input or available products change
   useEffect(() => {
     if (!availableProducts.length) return;
@@ -243,12 +276,14 @@ const StoreManagerDashboard = () => {
     if (!store) return;
     setEditStore(store);
     setEditSectionHeaders(store.sectionHeaders || []);
+    setEditStoreImages(store.images || []);
     setStoreStatus(store.isActive);
   };
 
   const handleCloseEdit = () => {
     setEditStore(null);
     setEditSectionHeaders([]);
+    setEditStoreImages([]);
     setStoreStatus(true);
   };
 
@@ -270,6 +305,84 @@ const StoreManagerDashboard = () => {
 
   const handleStoreStatusChange = (event) => {
     setStoreStatus(event.target.value);
+  };
+
+  const handleImageUpload = async (file) => {
+    if (!file || !editStore?.id) return;
+
+    setIsUploadingImage(true);
+    try {
+      const baseUrl = window.location.href?.includes('http://localhost')
+        ? 'http://127.0.0.1:8000'
+        : 'https://indimitra.com';
+      
+      // Get authentication token
+      const session = await fetchAuthSession();
+      const token = session.tokens?.accessToken?.toString();
+      
+      const headers = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      const res = await fetch(
+        `${baseUrl}/s3/generate-store-upload-url?store_id=${editStore.id}&file_name=${encodeURIComponent(file.name)}`,
+        {
+          method: 'GET',
+          headers: headers,
+        }
+      );
+
+      if (!res.ok) {
+        // Try to get error message from response
+        let errorMessage = 'Failed to get upload URL';
+        try {
+          const errorData = await res.json();
+          errorMessage = errorData.detail || errorData.message || errorMessage;
+        } catch (e) {
+          // If response is not JSON, use status text
+          errorMessage = res.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const { upload_url, content_type, key } = await res.json();
+
+      const uploadRes = await fetch(upload_url, {
+        method: 'PUT',
+        headers: { 'Content-Type': content_type },
+        body: file,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error('Failed to upload image');
+      }
+
+      const publicUrl = `https://indimitra-dev-order-files.s3.amazonaws.com/${key}`;
+      setEditStoreImages((prev) => [...prev, publicUrl]);
+
+      setSnackbar({
+        open: true,
+        message: 'Image uploaded successfully!',
+        severity: 'success',
+      });
+    } catch (err) {
+      console.error('Upload error:', err);
+      setSnackbar({
+        open: true,
+        message: 'Failed to upload image. Please try again.',
+        severity: 'error',
+      });
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = (index) => {
+    setEditStoreImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleUpdateStore = (e) => {
@@ -303,6 +416,8 @@ const StoreManagerDashboard = () => {
       taxPercentage: parseFloat(formData.get('taxPercentage')) || null,
       displayField: formData.get('displayField'),
       sectionHeaders: editSectionHeaders.filter((header) => header.trim().length > 0),
+      images: editStoreImages,
+      whatsappNumber: formData.get('whatsappNumber') || null,
     };
 
     updateStoreMutation.mutate(updateData);
@@ -402,6 +517,33 @@ const StoreManagerDashboard = () => {
                 <strong>Display Field:</strong> {store.displayField}
               </Typography>
             </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle1">
+                <strong>Square Payment:</strong>{' '}
+                <Chip
+                  size="small"
+                  label={isSquareConnected ? "Connected" : "Not Connected"}
+                  color={isSquareConnected ? "success" : "default"}
+                />
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <Typography variant="subtitle1">
+                <strong>Cash on Delivery:</strong>{' '}
+                <Chip
+                  size="small"
+                  label={store?.codEnabled ? "Enabled" : "Disabled"}
+                  color={store?.codEnabled ? "success" : "default"}
+                />
+              </Typography>
+            </Grid>
+            {store.whatsappNumber && (
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1">
+                  <strong>WhatsApp:</strong> {store.whatsappNumber}
+                </Typography>
+              </Grid>
+            )}
             {store.description && (
               <Grid item xs={12}>
                 <Typography variant="subtitle1">
@@ -577,6 +719,16 @@ const StoreManagerDashboard = () => {
                     rows={3}
                   />
                 </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    name="whatsappNumber"
+                    label="WhatsApp Support Number"
+                    placeholder="+1234567890"
+                    defaultValue={editStore?.whatsappNumber}
+                    fullWidth
+                    helperText="Include country code. Optional."
+                  />
+                </Grid>
 
                 {/* Display Field */}
                 <Grid item xs={12}>
@@ -625,6 +777,74 @@ const StoreManagerDashboard = () => {
                     >
                       Add Question
                     </Button>
+                  </Box>
+                </Grid>
+
+                {/* Store Images */}
+                <Grid item xs={12}>
+                  <Typography
+                    variant="subtitle1"
+                    color="primary"
+                    sx={{ mb: 2, fontWeight: 600, mt: 2 }}
+                  >
+                    Store Images / Offers Banner
+                  </Typography>
+                </Grid>
+                <Grid item xs={12}>
+                  <Box sx={{ mb: 2 }}>
+                    <input
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      id="edit-store-image-upload"
+                      type="file"
+                      onChange={(e) => {
+                        const file = e.target.files[0];
+                        if (file) handleImageUpload(file);
+                        e.target.value = '';
+                      }}
+                    />
+                    <label htmlFor="edit-store-image-upload">
+                      <Button
+                        variant="outlined"
+                        component="span"
+                        startIcon={isUploadingImage ? <CircularProgress size={16} /> : <CloudUpload />}
+                        disabled={isUploadingImage}
+                        sx={{ mb: 2 }}
+                      >
+                        {isUploadingImage ? 'Uploading...' : 'Upload Image'}
+                      </Button>
+                    </label>
+                    {editStoreImages.length > 0 && (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2 }}>
+                        {editStoreImages.map((imageUrl, index) => (
+                          <Box key={index} sx={{ position: 'relative', width: 150, height: 150 }}>
+                            <img
+                              src={imageUrl}
+                              alt={`Store image ${index + 1}`}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover',
+                                borderRadius: 4,
+                              }}
+                            />
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleRemoveImage(index)}
+                              sx={{
+                                position: 'absolute',
+                                top: 4,
+                                right: 4,
+                                backgroundColor: 'rgba(255, 255, 255, 0.8)',
+                              }}
+                            >
+                              <Delete fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
                   </Box>
                 </Grid>
 

@@ -37,12 +37,12 @@ def get_stores_by_manager(manager_user_id: int) -> List[StoreModel]:
         db.close()
 
 def create_store(
-    name: str, 
-    address: str, 
-    manager_user_id: int, 
-    email: str, 
+    name: str,
+    address: str,
+    manager_user_id: int,
+    email: str,
     display_field: str,
-    radius: Optional[float] = None, 
+    radius: Optional[float] = None,
     mobile: Optional[str] = None,
     description: Optional[str] = None,
     tnc: Optional[str] = None,
@@ -51,7 +51,10 @@ def create_store(
     pincodes: Optional[List[str]] = None,
     is_active: Optional[bool] = True,
     disabled: Optional[bool] = False,
-    section_headers: Optional[List[str]] = None
+    section_headers: Optional[List[str]] = None,
+    images: Optional[List[str]] = None,
+    cod_enabled: Optional[bool] = False,
+    whatsapp_number: Optional[str] = None
 ) -> StoreModel:
     """Create a new store"""
     db = SessionLocal()
@@ -115,7 +118,10 @@ def create_store(
             is_active=is_active,
             disabled=disabled,
             section_headers=section_headers,
-            display_field=display_field
+            display_field=display_field,
+            images=images if images else [],
+            cod_enabled=cod_enabled,
+            whatsapp_number=whatsapp_number.strip() if whatsapp_number and whatsapp_number.strip() else None
         )
         db.add(store)
         db.commit()
@@ -140,7 +146,9 @@ def update_store(
     store_delivery_fee: Optional[float] = None,
     tax_percentage: Optional[float] = None,
     section_headers: Optional[List[str]] = None,
-    display_field: Optional[str] = None
+    display_field: Optional[str] = None,
+    images: Optional[List[str]] = None,
+    whatsapp_number: Optional[str] = None
 ) -> Optional[StoreModel]:
     """Update an existing store"""
     db = SessionLocal()
@@ -253,7 +261,16 @@ def update_store(
                 store.section_headers = [h.strip() for h in section_headers if h.strip()]
             else:
                 store.section_headers = None
-        
+        if images is not None:
+            # Validate and normalize images
+            if images:
+                # Remove any empty strings and strip whitespace
+                store.images = [img.strip() for img in images if img.strip()]
+            else:
+                store.images = []
+        if whatsapp_number is not None:
+            store.whatsapp_number = whatsapp_number.strip() if whatsapp_number.strip() else None
+
         db.commit()
         db.refresh(store)
         return store
@@ -322,6 +339,30 @@ def toggle_store_disabled(store_id: int) -> Optional[StoreModel]:
     if not store:
         return None
     return update_store_status(store_id, disabled=not store.disabled)
+
+def toggle_store_cod(store_id: int, enabled: bool) -> Optional[StoreModel]:
+    """
+    Toggle Cash on Delivery for a store.
+
+    Args:
+        store_id: The ID of the store to update
+        enabled: Whether to enable (True) or disable (False) COD
+
+    Returns:
+        The updated store, or None if the store doesn't exist
+    """
+    db = SessionLocal()
+    try:
+        store = db.query(StoreModel).filter(StoreModel.id == store_id).first()
+        if not store:
+            raise ValueError(f"Store with id {store_id} not found")
+
+        store.cod_enabled = enabled
+        db.commit()
+        db.refresh(store)
+        return store
+    finally:
+        db.close()
 
 def update_store_delivery_fee(store_id: int, store_delivery_fee: Optional[float] = None) -> Optional[StoreModel]:
     """

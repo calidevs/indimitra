@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import { defineUserAbility } from '../ability/defineAbility';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import fetchGraphQL from '../config/graphql/graphqlService';
@@ -10,14 +11,57 @@ import {
   DELETE_ADDRESS,
 } from '../queries/operations';
 
-const useStore = create((set, get) => ({
+const useStore = create(
+  persist(
+    (set, get) => ({
   cart: {},
   selectedStore: null,
   availableStores: [],
 
   setAvailableStores: (stores) => set({ availableStores: stores }),
 
-  setSelectedStore: (store) => set({ selectedStore: store }),
+  setSelectedStore: (store) => {
+    const state = get();
+    const oldStoreId = state.selectedStore?.id;
+
+    // Save current cart for the old store before switching
+    if (oldStoreId) {
+      const cartSnapshot = {
+        cart: state.cart,
+        customOrder: state.customOrder,
+        listInputAnswers: state.listInputAnswers,
+        deliveryType: state.deliveryType,
+        tipAmount: state.tipAmount || 0,
+        pickupAddress: state.pickupAddress,
+      };
+      try {
+        localStorage.setItem(
+          `indimitra-cart-store-${oldStoreId}`,
+          JSON.stringify(cartSnapshot)
+        );
+      } catch (e) { /* localStorage full, ignore */ }
+    }
+
+    // Load saved cart for the new store (or empty)
+    const newStoreId = store?.id;
+    let restored = null;
+    if (newStoreId) {
+      try {
+        const raw = localStorage.getItem(`indimitra-cart-store-${newStoreId}`);
+        if (raw) restored = JSON.parse(raw);
+      } catch (e) { /* corrupted, ignore */ }
+    }
+
+    set({
+      selectedStore: store,
+      cart: restored?.cart || {},
+      customOrder: restored?.customOrder || '',
+      listInputAnswers: restored?.listInputAnswers || {},
+      deliveryType: restored?.deliveryType || 'pickup',
+      tipAmount: restored?.tipAmount || 0,
+      pickupAddress: restored?.pickupAddress || null,
+    });
+  },
 
   getSelectedStore: () => get().selectedStore,
 
@@ -170,7 +214,47 @@ const useStore = create((set, get) => ({
 
   listInputAnswers: {},
   setListInputAnswers: (answers) => set({ listInputAnswers: answers }),
-}));
+
+  // Restore cart state from server data
+  restoreCart: (cartState) => {
+    if (!cartState) return;
+    set({
+      ...(cartState.cart !== undefined && { cart: cartState.cart }),
+      ...(cartState.customOrder !== undefined && { customOrder: cartState.customOrder }),
+      ...(cartState.listInputAnswers !== undefined && { listInputAnswers: cartState.listInputAnswers }),
+      ...(cartState.deliveryType !== undefined && { deliveryType: cartState.deliveryType }),
+      ...(cartState.tipAmount !== undefined && { tipAmount: cartState.tipAmount }),
+      ...(cartState.pickupAddress !== undefined && { pickupAddress: cartState.pickupAddress }),
+    });
+  },
+
+  // Get serializable cart state for saving to server
+  getCartState: () => {
+    const state = get();
+    return {
+      cart: state.cart,
+      customOrder: state.customOrder,
+      listInputAnswers: state.listInputAnswers,
+      deliveryType: state.deliveryType,
+      tipAmount: state.tipAmount || 0,
+      pickupAddress: state.pickupAddress,
+    };
+  },
+    }),
+    {
+      name: 'indimitra-cart-storage',
+      storage: createJSONStorage(() => localStorage),
+      partialize: (state) => ({
+        cart: state.cart,
+        customOrder: state.customOrder,
+        listInputAnswers: state.listInputAnswers,
+        deliveryType: state.deliveryType,
+        tipAmount: state.tipAmount,
+        pickupAddress: state.pickupAddress,
+      }),
+    }
+  )
+);
 
 export const useAuthStore = create((set, get) => ({
   user: null,
