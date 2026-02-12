@@ -19,7 +19,6 @@ import {
   ShoppingCart as OrdersIcon,
   Inventory as InventoryIcon,
   People as CustomersIcon,
-  Settings as SettingsIcon,
   ChevronLeft as ChevronLeftIcon,
   LocalShipping as DeliveryIcon,
   Payments as PaymentsIcon,
@@ -40,7 +39,7 @@ const menuItems = [
   { text: 'Delivery Fees', icon: <PaymentsIcon />, path: '/store_manager/delivery-fees' },
   { text: 'Location Codes', icon: <LocationIcon />, path: '/store_manager/location-codes' },
   { text: 'Pickup Addresses', icon: <PickupIcon />, path: '/store_manager/pickup-addresses' },
-  { text: 'Settings', icon: <SettingsIcon />, path: '/store_manager/settings' },
+  { text: 'Payment Settings', icon: <PaymentsIcon />, path: '/store_manager/payment-settings' },
 ];
 
 const SideNav = () => {

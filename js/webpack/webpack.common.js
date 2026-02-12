@@ -1,4 +1,5 @@
 const path = require('path');
+const webpack = require('webpack');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { CleanWebpackPlugin } = require('clean-webpack-plugin');
 
@@ -44,6 +45,10 @@ module.exports = {
     new CleanWebpackPlugin(),
     new HtmlWebpackPlugin({
       template: path.resolve(__dirname, '..', './src/index.html'),
+    }),
+    new webpack.DefinePlugin({
+      'process.env.REACT_APP_SQUARE_APPLICATION_ID': JSON.stringify(process.env.REACT_APP_SQUARE_APPLICATION_ID),
+      'process.env.REACT_APP_SQUARE_LOCATION_ID': JSON.stringify(process.env.REACT_APP_SQUARE_LOCATION_ID),
     }),
   ],
 };

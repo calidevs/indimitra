@@ -2,35 +2,26 @@ import React, { useState, useEffect } from 'react';
 import {
   Typography,
   Radio,
-  RadioGroup,
-  FormControlLabel,
   Button,
   Box,
   Alert,
   Paper,
-  Divider,
   Stack,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  InputAdornment,
-  Collapse,
-  Checkbox,
   IconButton,
   Tooltip,
+  Tabs,
+  Tab,
+  Divider,
+  Chip,
 } from '@mui/material';
 import StoreIcon from '@mui/icons-material/Store';
 import HomeIcon from '@mui/icons-material/Home';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import LocalShippingIcon from '@mui/icons-material/LocalShipping';
-import FilterIcon from '@mui/icons-material/FilterList';
-import ExpandLess from '@mui/icons-material/ExpandLess';
-import ExpandMore from '@mui/icons-material/ExpandMore';
 import LocationOn from '@mui/icons-material/LocationOn';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import LoginIcon from '@mui/icons-material/Login';
-import InfoIcon from '@mui/icons-material/Info';
+import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
 import { CircularProgress } from '@mui/material';
 
 import Dialog from '@/components/Dialog/Dialog';
@@ -52,13 +43,12 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     selectedStore,
     setSelectedStore,
     availableStores,
-    clearCart,
     setPickupAddress,
     deliveryType,
     setDeliveryType,
   } = useStore();
 
-  const { userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm } =
+  const { user, userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm } =
     useAuthStore();
   const queryClient = useQueryClient();
 
@@ -79,12 +69,16 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   const [deliveryMessage, setDeliveryMessage] = useState('');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // Address form states
-  const [showAddressForm, setShowAddressForm] = useState(false);
+  // Address input states
   const [newAddress, setNewAddress] = useState('');
   const [isPrimary, setIsPrimary] = useState(false);
   const [isAddingAddress, setIsAddingAddress] = useState(false);
   const [isValidAddress, setIsValidAddress] = useState(false);
+  // Track the confirmed delivery address text (from input or saved address selection)
+  const [confirmedDeliveryAddress, setConfirmedDeliveryAddress] = useState('');
+
+  // Tab state for pickup/delivery toggle
+  const [activeTab, setActiveTab] = useState(0);
 
   // Temporary address store for non-logged-in users
   const [tempAddresses, setTempAddresses] = useState([]);
@@ -134,6 +128,27 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     }
   }, [step, tempStore, userProfile?.id, fetchAddresses]);
 
+  // Auto-check auth when delivery tab is shown, or when user logs in (user changes)
+  useEffect(() => {
+    const isDeliveryTab = step === 'pickup' && (activeTab === 1 || !tempStore?.pickupAddresses?.edges?.length);
+    if (!isDeliveryTab || userProfile) return;
+
+    let cancelled = false;
+    const checkAuth = async () => {
+      try {
+        const session = await fetchAuthSession();
+        const cognitoId = session?.tokens?.idToken?.payload?.sub;
+        if (cognitoId && !cancelled) {
+          await fetchUserProfile(cognitoId);
+        }
+      } catch {
+        // Not logged in, ignore
+      }
+    };
+    checkAuth();
+    return () => { cancelled = true; };
+  }, [step, activeTab, userProfile, user, fetchUserProfile, tempStore]);
+
   useEffect(() => {
     if (open && forceStep) {
       setStep(forceStep);
@@ -154,7 +169,6 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     } else {
       setSelectedTempAddressId('');
     }
-    setShowAddressForm(false);
     setNewAddress('');
     setIsPrimary(false);
     setIsAddingAddress(false);
@@ -162,6 +176,8 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     setDeliveryStatus(null);
     setDeliveryMessage('');
     setSelectedPickupId(null);
+    setActiveTab(0);
+    setConfirmedDeliveryAddress('');
   };
 
   // Enhanced refresh function that checks auth status
@@ -209,96 +225,73 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     setCurrentForm('login');
   };
 
-  // Address dropdown change handler
-  const handleAddressDropdownChange = (e) => {
-    const addressId = e.target.value;
-
+  // Handle selecting a saved address card
+  const handleSavedAddressSelect = (addr) => {
     if (userProfile) {
-      setSelectedAddressId(addressId);
+      setSelectedAddressId(addr.id);
     } else {
-      setSelectedTempAddressId(addressId);
+      setSelectedTempAddressId(addr.id);
     }
-
-    if (addressId) {
-      const selectedAddress = addresses.find((addr) => addr.id === addressId);
-      if (selectedAddress) {
-        validateDeliveryAddress(selectedAddress.address);
-        setDeliveryType('delivery');
-        setSelectedPickupId(null);
-      }
-    } else {
-      setDeliveryType(selectedPickupId ? 'pickup' : null);
-      setDeliveryStatus(null);
-      setDeliveryMessage('');
-    }
+    setConfirmedDeliveryAddress(addr.address);
+    setNewAddress('');
+    setIsValidAddress(false);
+    validateDeliveryAddress(addr.address);
+    setDeliveryType('delivery');
+    setSelectedPickupId(null);
   };
 
-  // Add new address handler
-  const handleAddAddress = async () => {
+  // Handle validating and using a new address from the input
+  const handleUseNewAddress = async () => {
     if (!newAddress.trim() || !isValidAddress) return;
 
-    // Check for duplicate addresses
-    const isDuplicate = addresses.some(
-      (addr) => addr.address.toLowerCase().trim() === newAddress.toLowerCase().trim()
-    );
+    // Validate first
+    validateDeliveryAddress(newAddress);
+    setConfirmedDeliveryAddress(newAddress);
+    setDeliveryType('delivery');
+    setSelectedPickupId(null);
 
-    if (isDuplicate) {
-      setDeliveryStatus('error');
-      setDeliveryMessage('This address already exists in your list.');
-      return;
+    // Clear saved address selection
+    if (userProfile) {
+      setSelectedAddressId(null);
+    } else {
+      setSelectedTempAddressId('');
     }
 
-    setIsAddingAddress(true);
-
-    try {
-      if (userProfile?.id) {
-        // Logged-in user: Save to database
-        await createAddressMutation(newAddress, userProfile.id, isPrimary);
-        await fetchAddresses(userProfile.id);
-
-        // Find the newly added address and select it
-        const updatedAddresses = await fetchAddresses(userProfile.id);
-        const newAddressObj = updatedAddresses.find(
-          (addr) => addr.address.toLowerCase().trim() === newAddress.toLowerCase().trim()
-        );
-
-        if (newAddressObj) {
-          setSelectedAddressId(newAddressObj.id);
-          validateDeliveryAddress(newAddress);
-          setDeliveryType('delivery');
-          setSelectedPickupId(null);
+    // Save address if logged in
+    if (userProfile?.id) {
+      const isDuplicate = dbAddresses.some(
+        (addr) => addr.address.toLowerCase().trim() === newAddress.toLowerCase().trim()
+      );
+      if (!isDuplicate) {
+        setIsAddingAddress(true);
+        try {
+          await createAddressMutation(newAddress, userProfile.id, isPrimary);
+          const updatedAddresses = await fetchAddresses(userProfile.id);
+          const saved = updatedAddresses.find(
+            (addr) => addr.address.toLowerCase().trim() === newAddress.toLowerCase().trim()
+          );
+          if (saved) setSelectedAddressId(saved.id);
+          queryClient.invalidateQueries(['userAddresses', userProfile.id]);
+        } catch (error) {
+          console.error('Error saving address:', error);
+        } finally {
+          setIsAddingAddress(false);
         }
-
-        // Invalidate queries to refresh data
-        queryClient.invalidateQueries(['userAddresses', userProfile.id]);
-      } else {
-        // Non-logged-in user: Save to temporary store
+      }
+    } else {
+      // Save as temp address for non-logged users
+      const isDuplicate = tempAddresses.some(
+        (addr) => addr.address.toLowerCase().trim() === newAddress.toLowerCase().trim()
+      );
+      if (!isDuplicate) {
         const newTempAddress = {
           id: `temp_${Date.now()}`,
           address: newAddress,
-          isPrimary: tempAddresses.length === 0 ? true : isPrimary,
+          isPrimary: tempAddresses.length === 0,
         };
-
         setTempAddresses((prev) => [...prev, newTempAddress]);
         setSelectedTempAddressId(newTempAddress.id);
-        validateDeliveryAddress(newAddress);
-        setDeliveryType('delivery');
-        setSelectedPickupId(null);
       }
-
-      // Reset form
-      setNewAddress('');
-      setIsPrimary(false);
-      setShowAddressForm(false);
-      setIsValidAddress(false);
-      setDeliveryStatus(null);
-      setDeliveryMessage('');
-    } catch (error) {
-      setDeliveryStatus('error');
-      setDeliveryMessage('Failed to add address. Please try again.');
-      console.error('Error adding address:', error);
-    } finally {
-      setIsAddingAddress(false);
     }
   };
 
@@ -327,7 +320,6 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   const handleStoreSelect = (store) => {
     localStorage.setItem('selectedStoreId', String(store.id));
     setTempStore(store);
-    clearCart();
     setStep('pickup');
   };
 
@@ -348,7 +340,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   };
 
   const handleDeliveryConfirm = () => {
-    if (deliveryStatus === 'success' && currentSelectedAddressId) {
+    if (deliveryStatus === 'success' && confirmedDeliveryAddress) {
       setSelectedStore(tempStore);
       setPickupAddress(null);
       setDeliveryType('delivery');
@@ -413,303 +405,288 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   // Step 2: Pickup address and home delivery selection
   if (step === 'pickup') {
     const pickupAddresses = tempStore?.pickupAddresses?.edges?.map((e) => e.node) || [];
-    const storePincodes = tempStore?.pincodes || [];
+    const hasPickupAddresses = pickupAddresses.length > 0;
+
+    const backButton = (
+      <Button
+        onClick={handleBack}
+        variant="text"
+        color="inherit"
+        size="small"
+        startIcon={<ArrowBackIcon />}
+        sx={{ fontWeight: 500 }}
+      >
+        Back to stores
+      </Button>
+    );
 
     return (
-      <Dialog open={open} onClose={onClose} title={<StoreSelectorTitle />}>
+      <Dialog open={open} onClose={onClose} title={<StoreSelectorTitle />} footer={backButton}>
         <Typography
-          paragraph
-          sx={{ textAlign: 'center', fontWeight: 500, color: 'text.secondary', mb: 3 }}
+          variant="body2"
+          sx={{ textAlign: 'center', color: 'text.secondary', mb: 2 }}
         >
-          Please select a pickup address or choose your delivery address for{' '}
-          <b>{tempStore?.name}</b>
+          Choose how you'd like to receive your order from <b>{tempStore?.name}</b>
         </Typography>
-        <Stack spacing={3}>
-          {/* Pickup Address Section */}
-          {pickupAddresses.length > 0 && (
-            <>
+
+        {/* Tabs */}
+        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
+          {hasPickupAddresses ? (
+            <Tabs
+              value={activeTab}
+              onChange={(_, newValue) => setActiveTab(newValue)}
+              variant="fullWidth"
+              sx={{
+                minHeight: 42,
+                '& .MuiTabs-indicator': {
+                  height: 3,
+                  borderRadius: '3px 3px 0 0',
+                },
+              }}
+            >
+              <Tab
+                icon={<StoreIcon sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label="Pickup"
+                sx={{ fontWeight: 600, textTransform: 'none', fontSize: '0.9rem', minHeight: 42, py: 0 }}
+              />
+              <Tab
+                icon={<HomeIcon sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label="Delivery"
+                sx={{ fontWeight: 600, textTransform: 'none', fontSize: '0.9rem', minHeight: 42, py: 0 }}
+              />
+            </Tabs>
+          ) : (
+            <Tabs
+              value={0}
+              variant="fullWidth"
+              sx={{
+                minHeight: 42,
+                '& .MuiTabs-indicator': {
+                  height: 3,
+                  borderRadius: '3px 3px 0 0',
+                },
+              }}
+            >
+              <Tab
+                icon={<HomeIcon sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label="Delivery"
+                sx={{ fontWeight: 600, textTransform: 'none', fontSize: '0.9rem', minHeight: 42, py: 0 }}
+              />
+            </Tabs>
+          )}
+        </Box>
+
+        {/* Pickup Tab Content */}
+        {hasPickupAddresses && activeTab === 0 && (
+          <Stack spacing={2}>
+            {pickupAddresses.map((addr) => (
               <Paper
-                elevation={deliveryType === 'pickup' ? 4 : 1}
+                key={addr.id}
+                elevation={0}
+                onClick={() => handlePickupRadioChange({ target: { value: String(addr.id) } })}
                 sx={{
                   p: 2,
-                  bgcolor: deliveryType === 'pickup' ? 'primary.lighter' : 'grey.50',
-                  opacity: deliveryType === 'delivery' && currentSelectedAddressId ? 0.5 : 1,
-                  border: deliveryType === 'pickup' ? '2px solid #1976d2' : '1px solid #eee',
-                  transition: 'all 0.2s',
+                  cursor: 'pointer',
+                  border: '1.5px solid',
+                  borderColor: String(selectedPickupId) === String(addr.id) ? 'primary.main' : 'grey.200',
+                  borderRadius: 2,
+                  bgcolor: String(selectedPickupId) === String(addr.id) ? 'primary.50' : 'transparent',
+                  transition: 'all 0.15s ease',
+                  '&:hover': {
+                    borderColor: 'primary.light',
+                    bgcolor: 'grey.50',
+                  },
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 1.5,
                 }}
               >
-                <Typography
-                  variant="subtitle1"
-                  sx={{ mb: 1, fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
-                >
-                  <StoreIcon fontSize="small" color="primary" /> Pickup Address
-                </Typography>
-                <RadioGroup value={selectedPickupId || ''} onChange={handlePickupRadioChange}>
-                  {pickupAddresses.map((addr) => (
-                    <FormControlLabel
-                      key={addr.id}
-                      value={String(addr.id)}
-                      control={<Radio color="primary" />}
-                      label={addr.address}
-                    />
-                  ))}
-                </RadioGroup>
-                <Button
-                  onClick={handlePickupConfirm}
-                  variant="contained"
+                <Radio
+                  checked={String(selectedPickupId) === String(addr.id)}
+                  value={String(addr.id)}
                   color="primary"
-                  fullWidth
-                  startIcon={<LocalShippingIcon />}
-                  disabled={deliveryType !== 'pickup' || !selectedPickupId}
-                  sx={{ mt: 2, fontWeight: 600, py: 1.2, fontSize: '1rem' }}
-                >
-                  Confirm Pickup
-                </Button>
+                  size="small"
+                  sx={{ p: 0 }}
+                />
+                <Typography variant="body2">{addr.address}</Typography>
               </Paper>
-              <Divider>OR</Divider>
-            </>
-          )}
-
-          {/* Home Delivery Section */}
-          <Paper
-            elevation={deliveryType === 'delivery' ? 4 : 1}
-            sx={{
-              p: 2,
-              bgcolor: deliveryType === 'delivery' ? 'secondary.lighter' : 'grey.50',
-              opacity: deliveryType === 'pickup' && selectedPickupId ? 0.5 : 1,
-              border: deliveryType === 'delivery' ? '2px solid #9c27b0' : '1px solid #eee',
-              transition: 'all 0.2s',
-            }}
-          >
-            <Box
-              sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}
+            ))}
+            <Button
+              onClick={handlePickupConfirm}
+              variant="contained"
+              color="primary"
+              fullWidth
+              startIcon={<LocalShippingIcon />}
+              disabled={!selectedPickupId}
+              sx={{ mt: 1, fontWeight: 600, py: 1.2, fontSize: '0.95rem', borderRadius: 2 }}
             >
-              <Typography
-                variant="subtitle1"
-                sx={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
-              >
-                <HomeIcon fontSize="small" color="secondary" /> Delivery Address
-                {!userProfile && (
-                  <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                    (Temporary)
-                  </Typography>
-                )}
-              </Typography>
+              Confirm Pickup
+            </Button>
+          </Stack>
+        )}
 
-              <Box sx={{ display: 'flex', gap: 1 }}>
-                {/* Login Button for Non-logged Users - Only show if not logged in */}
-                {!userProfile && !isRefreshing && (
-                  <Tooltip title="Login to save addresses permanently">
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<LoginIcon />}
-                      onClick={handleLoginClick}
-                      sx={{ fontSize: '0.75rem', py: 0.5, px: 1 }}
-                    >
-                      Login
-                    </Button>
-                  </Tooltip>
-                )}
+        {/* Delivery Tab Content */}
+        {(!hasPickupAddresses || activeTab === 1) && (
+          <Stack spacing={2}>
+            {/* Address Input */}
+            <Typography variant="body2" color="text.secondary" sx={{ mb: -1 }}>
+              Enter your delivery address to check availability
+            </Typography>
+            <AddressAutocomplete
+              value={newAddress}
+              onChange={(val) => {
+                setNewAddress(val);
+                // Clear previous validation when typing
+                if (confirmedDeliveryAddress) {
+                  setDeliveryStatus(null);
+                  setDeliveryMessage('');
+                  setConfirmedDeliveryAddress('');
+                }
+              }}
+              onValidAddress={setIsValidAddress}
+            />
+            <Button
+              variant="contained"
+              size="small"
+              onClick={handleUseNewAddress}
+              disabled={!newAddress.trim() || !isValidAddress || isAddingAddress}
+              startIcon={isAddingAddress ? <LoadingSpinner size={18} /> : <LocationOn />}
+              sx={{ borderRadius: 1.5 }}
+            >
+              {isAddingAddress ? 'Validating...' : 'Validate & Use This Address'}
+            </Button>
 
-                {/* Refresh Button */}
-                <Tooltip title={userProfile ? 'Refresh addresses' : 'Check login status & refresh'}>
-                  <IconButton
-                    size="small"
-                    onClick={handleRefresh}
-                    disabled={isRefreshing}
-                    sx={{
-                      border: '1px solid',
-                      borderColor: 'divider',
-                      width: 32,
-                      height: 32,
-                    }}
-                  >
-                    {isRefreshing ? <LoadingSpinner size={16} /> : <RefreshIcon fontSize="small" />}
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            </Box>
-
-            <Box>
-              {/* Store Delivery Pincodes Dropdown for Viewing - MOVED TO TOP */}
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel shrink>Store Delivery Areas (View Only)</InputLabel>
-                <Select
-                  value=""
-                  label="Store Delivery Areas (View Only)"
-                  displayEmpty
-                  renderValue={() => `${storePincodes.length} delivery areas available`}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <InfoIcon color="text.secondary" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    '& .MuiSelect-select': {
-                      color: 'text.secondary',
-                      paddingTop: '14px', // Add padding to account for shrunken label
-                    },
-                  }}
-                  MenuProps={{
-                    PaperProps: {
-                      sx: {
-                        maxHeight: 200, // Limit height to enable scrolling
-                        '& .MuiMenu-list': {
-                          paddingTop: 0,
-                          paddingBottom: 0,
-                        },
-                      },
-                    },
-                  }}
-                >
-                  {storePincodes.length > 0 ? (
-                    storePincodes.map((pincode, index) => (
-                      <MenuItem
-                        key={index}
-                        disabled
-                        sx={{
-                          opacity: '0.9 !important',
-                          '&.Mui-disabled': {
-                            opacity: '0.9 !important',
-                          },
-                        }}
-                      >
-                        {pincode}
-                      </MenuItem>
-                    ))
-                  ) : (
-                    <MenuItem disabled>No delivery areas available</MenuItem>
-                  )}
-                </Select>
-              </FormControl>
-
-              {/* Select Address Dropdown - MOVED BELOW PINCODE DROPDOWN */}
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel>Select Address</InputLabel>
-                {(isLoadingAddresses && userProfile) || isRefreshing ? (
-                  <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
-                    <LoadingSpinner size={24} />
-                  </Box>
-                ) : (
-                  <Select
-                    value={currentSelectedAddressId || ''}
-                    onChange={handleAddressDropdownChange}
-                    label="Select Address"
-                    InputProps={{
-                      startAdornment: (
-                        <InputAdornment position="start">
-                          <FilterIcon />
-                        </InputAdornment>
-                      ),
-                    }}
-                  >
-                    {addresses && addresses.length > 0 ? (
-                      addresses.map((addr) => (
-                        <MenuItem key={addr.id} value={addr.id}>
-                          {addr.address} {addr.isPrimary ? '(Primary)' : ''}
-                        </MenuItem>
-                      ))
-                    ) : (
-                      <MenuItem disabled>
-                        {userProfile ? 'No addresses available' : 'Add an address to continue'}
-                      </MenuItem>
-                    )}
-                  </Select>
-                )}
-              </FormControl>
-
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={showAddressForm ? <ExpandLess /> : <ExpandMore />}
-                onClick={() => setShowAddressForm(!showAddressForm)}
-                sx={{ mb: 2 }}
-              >
-                {showAddressForm ? 'Cancel' : 'Add New Address'}
-              </Button>
-
-              <Collapse in={showAddressForm}>
-                <Box
-                  sx={{
-                    p: 2,
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                  }}
-                >
-                  <Stack spacing={2}>
-                    <AddressAutocomplete
-                      value={newAddress}
-                      onChange={setNewAddress}
-                      onValidAddress={setIsValidAddress}
-                    />
-                    {userProfile && (
-                      <FormControlLabel
-                        control={
-                          <Checkbox
-                            checked={isPrimary}
-                            onChange={(e) => setIsPrimary(e.target.checked)}
-                          />
-                        }
-                        label="Set as Primary Address"
-                      />
-                    )}
-                    <Button
-                      variant="contained"
-                      onClick={handleAddAddress}
-                      disabled={!newAddress.trim() || isAddingAddress || !isValidAddress}
-                      startIcon={isAddingAddress ? <LoadingSpinner size={20} /> : <LocationOn />}
-                    >
-                      {isAddingAddress
-                        ? 'Adding...'
-                        : userProfile
-                          ? 'Add Address'
-                          : 'Add Temporary Address'}
-                    </Button>
-                  </Stack>
-                </Box>
-              </Collapse>
-            </Box>
-
+            {/* Validation Result */}
             {deliveryStatus && (
-              <Alert severity={deliveryStatus} sx={{ mt: 2 }}>
+              <Alert
+                severity={deliveryStatus}
+                sx={{ borderRadius: 1.5 }}
+                icon={deliveryStatus === 'success' ? <CheckCircleOutline /> : undefined}
+              >
                 {deliveryMessage}
               </Alert>
             )}
 
+            {/* Saved Addresses Section */}
+            {userProfile ? (
+              <>
+                {addresses.length > 0 && (
+                  <>
+                    <Divider sx={{ my: 1 }}>
+                      <Chip label="Your Saved Addresses" size="small" variant="outlined" />
+                    </Divider>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <Tooltip title="Refresh addresses">
+                        <IconButton
+                          size="small"
+                          onClick={handleRefresh}
+                          disabled={isRefreshing}
+                          sx={{
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            width: 28,
+                            height: 28,
+                          }}
+                        >
+                          {isRefreshing ? <LoadingSpinner size={14} /> : <RefreshIcon sx={{ fontSize: 16 }} />}
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                    {(isLoadingAddresses || isRefreshing) ? (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', py: 2 }}>
+                        <LoadingSpinner size={24} />
+                      </Box>
+                    ) : (
+                      <Stack spacing={1.5}>
+                        {addresses.map((addr) => (
+                          <Paper
+                            key={addr.id}
+                            elevation={0}
+                            onClick={() => handleSavedAddressSelect(addr)}
+                            sx={{
+                              p: 1.5,
+                              cursor: 'pointer',
+                              border: '1.5px solid',
+                              borderColor: currentSelectedAddressId === addr.id ? 'secondary.main' : 'grey.200',
+                              borderRadius: 2,
+                              bgcolor: currentSelectedAddressId === addr.id ? 'secondary.50' : 'transparent',
+                              transition: 'all 0.15s ease',
+                              '&:hover': {
+                                borderColor: 'secondary.light',
+                                bgcolor: 'grey.50',
+                              },
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: 1.5,
+                            }}
+                          >
+                            <Radio
+                              checked={currentSelectedAddressId === addr.id}
+                              color="secondary"
+                              size="small"
+                              sx={{ p: 0 }}
+                            />
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography variant="body2" noWrap>
+                                {addr.address}
+                              </Typography>
+                              {addr.isPrimary && (
+                                <Chip label="Primary" size="small" color="secondary" variant="outlined" sx={{ mt: 0.5, height: 20, fontSize: '0.7rem' }} />
+                              )}
+                            </Box>
+                          </Paper>
+                        ))}
+                      </Stack>
+                    )}
+                  </>
+                )}
+              </>
+            ) : (
+              /* Non-logged user: login prompt */
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2.5,
+                  border: '1.5px dashed',
+                  borderColor: 'grey.300',
+                  borderRadius: 2,
+                  textAlign: 'center',
+                  bgcolor: 'grey.50',
+                }}
+              >
+                <LoginIcon sx={{ fontSize: 32, color: 'text.disabled', mb: 1 }} />
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
+                  Sign in to use your saved addresses
+                </Typography>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<LoginIcon />}
+                  onClick={handleLoginClick}
+                  sx={{ borderRadius: 1.5 }}
+                >
+                  Login
+                </Button>
+              </Paper>
+            )}
+
+            {/* Confirm Button */}
             <Button
               onClick={handleDeliveryConfirm}
               variant="contained"
               color="secondary"
               fullWidth
               startIcon={<HomeIcon />}
-              disabled={
-                deliveryType !== 'delivery' ||
-                !currentSelectedAddressId ||
-                deliveryStatus !== 'success'
-              }
-              sx={{ mt: 2, fontWeight: 600, py: 1.2, fontSize: '1rem' }}
+              disabled={deliveryStatus !== 'success' || !confirmedDeliveryAddress}
+              sx={{ fontWeight: 600, py: 1.2, fontSize: '0.95rem', borderRadius: 2 }}
             >
               Confirm Delivery
             </Button>
-          </Paper>
-
-          <Box sx={{ display: 'flex', justifyContent: 'flex-start', mt: 1 }}>
-            <Button
-              onClick={handleBack}
-              variant="outlined"
-              color="inherit"
-              size="small"
-              startIcon={<ArrowBackIcon />}
-              sx={{ fontWeight: 500, borderRadius: 2 }}
-            >
-              Back
-            </Button>
-          </Box>
-        </Stack>
+          </Stack>
+        )}
       </Dialog>
     );
   }

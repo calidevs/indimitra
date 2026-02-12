@@ -1,10 +1,11 @@
-import graphQLClient from './graphqlClient';
+import graphQLClient, { authenticatedRequest } from './graphqlClient';
 import { parseError } from '../errors/errorMessages';
 
-// Simple GraphQL service with error handling
+// Simple GraphQL service with error handling and automatic authentication
 const fetchGraphQL = async (query, variables = {}) => {
   try {
-    const response = await graphQLClient.request(query, variables);
+    // Use authenticated request to automatically include JWT token
+    const response = await authenticatedRequest(query, variables);
 
     // Check for GraphQL errors in the response
     if (response.errors) {

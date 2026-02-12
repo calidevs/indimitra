@@ -1,13 +1,14 @@
 // In js/src/pages/Dashbaord.jsx
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, LoadingSpinner, Container, Typography, Button } from '@components';
+import { Box, LoadingSpinner, Container, Typography, Button, StoreImageSlider } from '@components';
 import { Paper, FormControlLabel, Switch } from '@mui/material';
 import Products from '../Products';
 import ListInput from './ListInput';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_ALL_STORES } from '@/queries/operations';
 import useStore from '@/store/useStore';
+import useCartSync from '@/hooks/useCartSync';
 import StoreSelector from './StoreSelector';
 
 const Dashbaord = () => {
@@ -23,6 +24,8 @@ const Dashbaord = () => {
     listInputAnswers,
     setListInputAnswers,
   } = useStore();
+
+  useCartSync();
 
   // Fetch all stores
   const {
@@ -150,6 +153,10 @@ const Dashbaord = () => {
             forceStep="pickup"
             initialStore={selectedStore}
           />
+          <Container>
+            {/* Store Images Slider */}
+            <StoreImageSlider images={selectedStore?.images} />
+          </Container>
           <Container>
             {hasSectionHeaders && (
               <Paper

@@ -55,9 +55,12 @@ const LoginForm = ({ onSuccess, onError }) => {
       const newAbility = defineUserAbility(userRole);
       setAbility(newAbility);
 
-      if (onSuccess) onSuccess();
       setModalOpen(false);
-      navigate(`/${userRole}`);
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        navigate(`/${userRole}`);
+      }
     } catch (err) {
       console.error('❌ Login error:', err);
 

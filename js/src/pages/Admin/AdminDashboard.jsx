@@ -19,7 +19,6 @@ import {
   People as PeopleIcon,
   Store as StoreIcon,
   LocalShipping as ShippingIcon,
-  Settings as SettingsIcon,
   Logout as LogoutIcon,
   ChevronLeft as ChevronLeftIcon,
   ShoppingCart as OrdersIcon,
@@ -41,7 +40,7 @@ import UserManagement from './UserManagement';
 import StoreManagement from './StoreManagement';
 import ProductManagement from './ProductManagement';
 import Orders from './Orders';
-import PaymentOnboarding from './PaymentOnboarding';
+import PaymentSettings from './PaymentSettings';
 import InventoryManagement from './InventoryManagement';
 import CategoryManagement from './CategoryManagement';
 import FeesManagement from './FeesManagement';
@@ -58,8 +57,7 @@ const menuItems = [
   { text: 'Inventory Management', icon: <CategoryIcon />, path: '/admin/inventory' },
   { text: 'Orders', icon: <OrdersIcon />, path: '/admin/orders' },
   { text: 'Users', icon: <PeopleIcon />, path: '/admin/users' },
-  { text: 'Payment Onboarding', icon: <PaymentIcon />, path: '/admin/payment-onboarding' },
-  { text: 'Settings', icon: <SettingsIcon />, path: '/admin/settings' },
+  { text: 'Payment Settings', icon: <PaymentIcon />, path: '/admin/payment-settings' },
   { text: 'Categories', icon: <CategoryIcon />, path: '/admin/categories' },
   { text: 'Fees Management', icon: <PaymentIcon />, path: '/admin/fees' },
   { text: 'Location Codes', icon: <LocationIcon />, path: '/admin/location-codes' },
@@ -244,7 +242,7 @@ const AdminDashboard = () => {
           <Route path="products" element={<ProductManagement />} />
           <Route path="inventory" element={<InventoryManagement />} />
           <Route path="orders" element={<Orders />} />
-          <Route path="payment-onboarding" element={<PaymentOnboarding />} />
+          <Route path="payment-settings" element={<PaymentSettings />} />
           <Route path="categories" element={<CategoryManagement />} />
           <Route path="fees" element={<FeesManagement />} />
           <Route path="location-codes" element={<StoreLocationCodeManagement />} />

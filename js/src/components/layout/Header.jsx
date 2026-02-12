@@ -95,12 +95,14 @@ const Header = () => {
         const role = attributes['custom:role']?.toLowerCase();
         setUserRole(role);
       } catch (error) {
-        console.error('Error fetching user info:', error);
+        // User not authenticated — clear local state
+        setCognitoId(null);
+        setUserRole(null);
       }
     };
 
     getUserInfo();
-  }, []);
+  }, [user]);
 
   const handleSignInClick = () => {
     setModalOpen(true);
@@ -182,12 +184,10 @@ const Header = () => {
             <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Sign In</Typography>} />
           </ListItem>
         )}
-        {(!cognitoId || (cognitoId && user?.role === 'user')) && (
-          <ListItem button onClick={() => setStoreModalOpen(true)} sx={{ py: 2 }}>
-            <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><Storefront /></ListItemIcon>
-            <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Change Store</Typography>} />
-          </ListItem>
-        )}
+        <ListItem button onClick={() => setStoreModalOpen(true)} sx={{ py: 2 }}>
+          <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><Storefront /></ListItemIcon>
+          <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Change Store</Typography>} />
+        </ListItem>
         <ListItem button onClick={() => navigate(ROUTES.CART)} sx={{ py: 2 }}>
           <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><ShoppingCart /></ListItemIcon>
           <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Cart</Typography>} />
@@ -303,27 +303,25 @@ const Header = () => {
                 Orders
               </Button>
             )}
-            {(!cognitoId || (cognitoId && user?.role === 'user')) && (
-              <Button
-                variant="outlined"
-                  startIcon={<Storefront sx={{ fontSize: { xs: 18, sm: 22 } }} />}
-                onClick={() => setStoreModalOpen(true)}
-                sx={{
-                  color: '#2A2F4F',
-                  borderColor: '#2A2F4F',
-                  textTransform: 'none',
-                    fontSize: { xs: '0.95rem', sm: '1rem' },
-                  fontWeight: 500,
-                    px: { xs: 1, sm: 2 },
-                    py: { xs: 0.5, sm: 1 },
-                    minWidth: { xs: 0, sm: 64 },
-                    mr: { xs: 0.5, sm: 1 },
-                  '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
-                }}
-              >
-                Change Store
-              </Button>
-            )}
+            <Button
+              variant="outlined"
+                startIcon={<Storefront sx={{ fontSize: { xs: 18, sm: 22 } }} />}
+              onClick={() => setStoreModalOpen(true)}
+              sx={{
+                color: '#2A2F4F',
+                borderColor: '#2A2F4F',
+                textTransform: 'none',
+                  fontSize: { xs: '0.95rem', sm: '1rem' },
+                fontWeight: 500,
+                  px: { xs: 1, sm: 2 },
+                  py: { xs: 0.5, sm: 1 },
+                  minWidth: { xs: 0, sm: 64 },
+                  mr: { xs: 0.5, sm: 1 },
+                '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
+              }}
+            >
+              Change Store
+            </Button>
             {user ? (
               userAbility?.can('view', 'cart') && (
                 <Tooltip title="Cart">

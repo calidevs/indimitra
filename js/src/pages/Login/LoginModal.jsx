@@ -112,7 +112,7 @@ const LoginModal = ({ open, onClose, initialForm = 'login' }) => {
         )}
 
         {currentForm === 'login' ? (
-          <LoginForm />
+          <LoginForm onSuccess={onClose} />
         ) : currentForm === 'signup' ? (
           <SignUpForm onSuccess={handleSignUpSuccess} />
         ) : currentForm === 'otp' ? (

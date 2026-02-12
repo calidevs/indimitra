@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Box,
   Typography,
@@ -27,7 +27,7 @@ import {
   Radio,
   InputAdornment,
 } from '@mui/material';
-import { ErrorHandler } from '@/components';
+import { ErrorHandler, PaymentModal, PaymentMethodSelector } from '@/components';
 import {
   Remove,
   Add,
@@ -45,7 +45,7 @@ import {
 import useStore, { useAuthStore, useAddressStore } from './../store/useStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import fetchGraphQL from '../config/graphql/graphqlService';
-import { CREATE_ORDER_MUTATION, GET_USER_PROFILE } from '../queries/operations';
+import { CREATE_ORDER_MUTATION, GET_USER_PROFILE, STORE_PAYMENT_CONFIG, CREATE_ORDER_WITH_COD_MUTATION, DELETE_SAVED_CART } from '../queries/operations';
 import { DELIVERY_FEE, TAX_RATE } from '../config/constants/constants';
 import { useNavigate, Link } from 'react-router-dom';
 import LoginModal from './Login/LoginModal';
@@ -236,21 +236,69 @@ const CartPage = () => {
     deliveryType,
     setDeliveryType,
     tipAmount,
+    setListInputAnswers,
   } = useStore();
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
   const [error, setError] = useState('');
-  const { userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm } =
+  const { user, userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm } =
     useAuthStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [tipPercentage, setTipPercentage] = useState(0);
   const [customTip, setCustomTip] = useState('');
-  const [selectedPickupId, setSelectedPickupId] = useState(null);
+  const [selectedPickupId, setSelectedPickupId] = useState(
+    pickupAddress ? String(pickupAddress.id) : null
+  );
   const [isDuplicateAddress, setIsDuplicateAddress] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState(null);
 
-  // Track if user has manually selected an address
-  const [userSelectedAddress, setUserSelectedAddress] = useState(false);
+  // Track if user has already made a selection (from modal or manually)
+  const [userSelectedAddress, setUserSelectedAddress] = useState(
+    !!(pickupAddress || (deliveryType === 'delivery'))
+  );
+
+  // Comprehensive cart clearing function that handles:
+  // 1. Zustand state (cart, customOrder, listInputAnswers) - Zustand persist will auto-save empty state
+  // 2. Per-store localStorage snapshot (for current store only)
+  // 3. Database cart (immediate deletion for logged-in users)
+  // Note: We DON'T remove 'indimitra-cart-storage' to preserve persistence across reloads/logout
+  const clearCartCompletely = useCallback(async () => {
+    // 1. Clear Zustand state
+    // Zustand persist will automatically save the empty state to localStorage
+    // This preserves persistence across page reloads and logout/login
+    clearCart();
+    setCustomOrder('');
+    setListInputAnswers({});
+
+    // 2. Clear per-store localStorage snapshot for current store
+    // This ensures the store-specific snapshot is cleared after order
+    if (selectedStore?.id) {
+      try {
+        localStorage.removeItem(`indimitra-cart-store-${selectedStore.id}`);
+      } catch (e) {
+        console.error('Failed to clear per-store localStorage:', e);
+      }
+    }
+
+    // 3. Delete database cart immediately (if user is logged in)
+    // Wait for this to complete to prevent race condition with useCartSync
+    if (userProfile?.id && selectedStore?.id) {
+      try {
+        await fetchGraphQL(DELETE_SAVED_CART, {
+          userId: userProfile.id,
+          storeId: selectedStore.id,
+        });
+        // Small delay to ensure database deletion propagates
+        // This prevents useCartSync from restoring stale data
+        await new Promise(resolve => setTimeout(resolve, 100));
+      } catch (err) {
+        // Log but don't fail - the useCartSync hook will eventually clean it up
+        console.error('Failed to delete database cart:', err);
+      }
+    }
+  }, [clearCart, setCustomOrder, setListInputAnswers, selectedStore, userProfile]);
 
   // Fetch user profile when component mounts
   useEffect(() => {
@@ -262,7 +310,7 @@ const CartPage = () => {
       }
     };
     fetchProfile();
-  }, [fetchUserProfile]);
+  }, [fetchUserProfile, user]);
 
   // Use the address store instead of local state
   const {
@@ -273,6 +321,14 @@ const CartPage = () => {
     isLoading: isLoadingAddresses,
     createAddress: createAddressMutation,
   } = useAddressStore();
+
+  // Fetch store payment config
+  const { data: paymentConfigData, isLoading: paymentConfigLoading } = useQuery({
+    queryKey: ['storePaymentConfig', selectedStore?.id],
+    queryFn: async () => fetchGraphQL(STORE_PAYMENT_CONFIG, { storeId: selectedStore.id }),
+    enabled: !!selectedStore?.id,
+  });
+  const paymentConfig = paymentConfigData?.storePaymentConfig || null;
 
   // New state for inline address form
   const [showAddressForm, setShowAddressForm] = useState(false);
@@ -299,14 +355,15 @@ const CartPage = () => {
     }
   }, [userProfile?.id, fetchAddresses]);
 
-  // Set initial pickup address if available in store
+  // Sync pickup address from Zustand when it changes (e.g., from StoreSelector modal)
   useEffect(() => {
     if (pickupAddress) {
       setSelectedPickupId(String(pickupAddress.id));
       setDeliveryType('pickup');
       setSelectedAddressId(null);
+      setUserSelectedAddress(true);
     }
-  }, [pickupAddress, setDeliveryType]);
+  }, [pickupAddress, setDeliveryType, setSelectedAddressId]);
 
   // Recalculate totals when delivery type, cart, or tip amount changes
   useEffect(() => {
@@ -383,18 +440,53 @@ const CartPage = () => {
         storeId: selectedStore.id, // Add the store ID
       });
     },
-    onSuccess: (response) => {
-      clearCart();
-      setCustomOrder(''); // Clear the custom order
-      setIsOrderPlaced(true);
-      setTimeout(() => {
-        setIsOrderPlaced(false);
-        navigate('/');
-      }, 2000);
-      queryClient.invalidateQueries(['userAddresses', userProfile.id]);
+    onSuccess: async (response) => {
+      // Only clear cart if order was successfully created
+      // graphql-request returns data directly: { createOrder: { id, ... } }
+      const order = response?.createOrder;
+      if (order && order.id) {
+        // Clear cart from Zustand, localStorage, and database
+        await clearCartCompletely();
+        setIsOrderPlaced(true);
+        setTimeout(() => {
+          setIsOrderPlaced(false);
+          navigate('/');
+        }, 2000);
+        queryClient.invalidateQueries(['userAddresses', userProfile.id]);
+      } else {
+        // If order creation failed, don't clear cart
+        setError('Order creation failed. Your cart has been preserved. Please try again.');
+      }
     },
     onError: (error) => {
+      // Don't clear cart on error - preserve items for retry
       setError(error.message || 'Failed to place order. Please try again.');
+    },
+  });
+
+  // COD order mutation
+  const { mutate: createCodOrder, isPending: isCodPending } = useMutation({
+    mutationFn: async (variables) => fetchGraphQL(CREATE_ORDER_WITH_COD_MUTATION, variables),
+    onSuccess: async (data) => {
+      // Only clear cart if order was successfully created
+      // graphql-request returns data directly: { createOrderWithCod: { id, ... } }
+      const order = data?.createOrderWithCod;
+      if (order && order.id) {
+        // Clear cart from Zustand, localStorage, and database
+        await clearCartCompletely();
+        setIsOrderPlaced(true);
+        setTimeout(() => {
+          setIsOrderPlaced(false);
+          navigate('/');
+        }, 2000);
+      } else {
+        // If order creation failed, don't clear cart
+        setError('Order creation failed. Your cart has been preserved. Please try again.');
+      }
+    },
+    onError: (err) => {
+      // Don't clear cart on error - preserve items for retry
+      setError(err.message || 'Failed to place order. Please try again.');
     },
   });
 
@@ -454,6 +546,29 @@ const CartPage = () => {
     };
 
     mutate(variables);
+  };
+
+  const handleCodOrder = () => {
+    setError('');
+    if (!selectedPickupId && !selectedAddressId) {
+      setError('Please select either a pickup location or delivery address');
+      return;
+    }
+    const orderItems = Object.values(cart).map(item => ({
+      productId: item.id,
+      quantity: item.quantity,
+    }));
+    createCodOrder({
+      userId: userProfile.id,
+      storeId: selectedStore.id,
+      productItems: orderItems,
+      pickupOrDelivery: deliveryType,
+      addressId: selectedAddressId,
+      pickupId: selectedPickupId ? parseInt(selectedPickupId, 10) : null,
+      tipAmount: tipAmount || 0,
+      deliveryInstructions: deliveryType === 'pickup' ? null : deliveryInstructions,
+      customOrder: customOrder || null,
+    });
   };
 
   const handleAddAddress = async () => {
@@ -519,6 +634,38 @@ const CartPage = () => {
     const calculatedTipAmount = parseFloat(value) || 0;
     setTipAmount(calculatedTipAmount);
   };
+
+  // Payment modal handlers
+  const openPaymentModal = () => {
+    setPaymentModalOpen(true);
+  };
+
+  const closePaymentModal = useCallback(() => {
+    setPaymentModalOpen(false);
+  }, []);
+
+  const handlePaymentSuccess = useCallback(async (orderResult) => {
+    // Only clear cart if order was successfully created
+    if (orderResult && orderResult.id) {
+      // Clear cart from Zustand, localStorage, and database
+      await clearCartCompletely();
+      // Show success message and navigate
+      setIsOrderPlaced(true);
+      setTimeout(() => {
+        setIsOrderPlaced(false);
+        navigate('/');
+      }, 2000);
+    } else {
+      // If order creation failed, don't clear cart
+      setError('Order creation failed. Your cart has been preserved. Please try again.');
+    }
+  }, [clearCartCompletely, navigate]);
+
+  // Prepare order items array for mutation
+  const orderItems = Object.values(cart).map((item) => ({
+    productId: item.id,
+    quantity: item.quantity,
+  }));
 
   return (
     <Box sx={{ padding: 3 }}>
@@ -948,6 +1095,7 @@ const CartPage = () => {
                               setSelectedPickupId(pickupId);
                               setDeliveryType('pickup');
                               setSelectedAddressId(null);
+                              setUserSelectedAddress(true);
 
                               // Find and set the selected pickup address in the store
                               const addresses = selectedStore.pickupAddresses.edges.map(
@@ -1124,27 +1272,46 @@ const CartPage = () => {
                 </Box>
               )}
 
+              {/* Payment Method Selection */}
+              {userProfile && (
+                <>
+                  {paymentConfigLoading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mb: 3 }}>
+                      <CircularProgress size={24} />
+                    </Box>
+                  ) : (
+                    <PaymentMethodSelector
+                      paymentConfig={paymentConfig}
+                      selectedMethod={paymentMethod}
+                      onMethodChange={setPaymentMethod}
+                    />
+                  )}
+                </>
+              )}
+
               {/* Place Order Button */}
               {userProfile ? (
                 <Button
                   fullWidth
                   variant="contained"
                   size="large"
-                  onClick={handleOrderPlacement}
+                  onClick={paymentMethod === 'cod' ? handleCodOrder : openPaymentModal}
                   disabled={
-                    isPending ||
                     isProfileLoading ||
+                    paymentConfigLoading ||
+                    !paymentMethod ||
                     (!selectedAddressId && !selectedPickupId) ||
-                    (Object.values(cart).length === 0 && !customOrder?.trim())
+                    (Object.values(cart).length === 0 && !customOrder?.trim()) ||
+                    isCodPending
                   }
-                  startIcon={isPending ? <LoadingSpinner size={20} /> : <Payment />}
+                  startIcon={paymentMethod === 'cod' ? <LocalShipping /> : <Payment />}
                   sx={{
                     py: 1.5,
                     fontSize: '1.1rem',
                     fontWeight: 600,
                   }}
                 >
-                  {isPending ? 'Processing...' : 'Place Order'}
+                  {paymentMethod === 'cod' ? 'Place Order' : 'Pay Now'}
                 </Button>
               ) : (
                 <Button
@@ -1169,6 +1336,24 @@ const CartPage = () => {
           </Grid>
         </Grid>
       )}
+
+      {/* Payment Modal */}
+      <PaymentModal
+        open={paymentModalOpen}
+        onClose={closePaymentModal}
+        cartTotal={total}
+        orderItems={orderItems}
+        deliveryType={deliveryType}
+        selectedAddressId={selectedAddressId}
+        selectedPickupId={selectedPickupId ? parseInt(selectedPickupId, 10) : null}
+        userProfile={userProfile}
+        selectedStore={selectedStore}
+        tipAmount={tipAmount}
+        deliveryInstructions={deliveryInstructions}
+        customOrder={customOrder}
+        onSuccess={handlePaymentSuccess}
+        paymentConfig={paymentConfig}
+      />
     </Box>
   );
 };

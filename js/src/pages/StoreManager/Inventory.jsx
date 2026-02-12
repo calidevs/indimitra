@@ -36,10 +36,11 @@ import {
   Chip,
   Pagination,
   Stack,
+  FormControlLabel,
+  Switch,
 } from '@mui/material';
 import {
   Edit,
-
   KeyboardArrowDown,
   KeyboardArrowUp,
   Add,
@@ -112,11 +113,25 @@ const GET_STORE_WITH_INVENTORY = `
 `;
 
 const UPDATE_INVENTORY_ITEM = `
-  mutation UpdateInventoryItem($inventoryId: Int!, $price: Float!, $quantity: Int!) {
-    updateInventoryItem(inventoryId: $inventoryId, price: $price, quantity: $quantity) {
+  mutation UpdateInventoryItem(
+    $inventoryId: Int!
+    $price: Float!
+    $quantity: Int!
+    $isAvailable: Boolean
+    $isListed: Boolean
+  ) {
+    updateInventoryItem(
+      inventoryId: $inventoryId
+      price: $price
+      quantity: $quantity
+      isAvailable: $isAvailable
+      isListed: $isListed
+    ) {
       id
       price
       quantity
+      isAvailable
+      isListed
       updatedAt
     }
   }
@@ -163,15 +178,20 @@ const ADD_PRODUCT_TO_INVENTORY = `
   }
 `;
 
+
 const EditDialog = React.memo(({ open, onClose, selectedItem, onUpdate, isLoading }) => {
   const [price, setPrice] = React.useState('');
   const [quantity, setQuantity] = React.useState('');
+  const [isAvailable, setIsAvailable] = React.useState(true);
+  const [isListed, setIsListed] = React.useState(true);
   const [error, setError] = React.useState('');
 
   React.useEffect(() => {
     if (selectedItem) {
       setPrice(selectedItem.price ? selectedItem.price.toString() : '');
       setQuantity(selectedItem.quantity ? selectedItem.quantity.toString() : '');
+      setIsAvailable(selectedItem.isAvailable !== undefined ? selectedItem.isAvailable : true);
+      setIsListed(selectedItem.isListed !== undefined ? selectedItem.isListed : true);
     }
   }, [selectedItem]);
 
@@ -192,6 +212,8 @@ const EditDialog = React.memo(({ open, onClose, selectedItem, onUpdate, isLoadin
       inventoryId: selectedItem.id,
       price,
       quantity,
+      isAvailable,
+      isListed,
     });
   };
 
@@ -273,6 +295,28 @@ const EditDialog = React.memo(({ open, onClose, selectedItem, onUpdate, isLoadin
                 min="0"
                 style={inputStyles}
               />
+              <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={isAvailable}
+                      onChange={(e) => setIsAvailable(e.target.checked)}
+                      color="primary"
+                    />
+                  }
+                  label="Available (In Stock)"
+                />
+                <FormControlLabel
+                  control={
+                    <Switch
+                      checked={isListed}
+                      onChange={(e) => setIsListed(e.target.checked)}
+                      color="primary"
+                    />
+                  }
+                  label="Listed (Visible to Customers)"
+                />
+              </Box>
             </Box>
           </>
         )}
@@ -698,11 +742,13 @@ const Inventory = () => {
 
   // Mutation for updating inventory
   const updateMutation = useMutation({
-    mutationFn: ({ inventoryId, price, quantity }) => {
+    mutationFn: ({ inventoryId, price, quantity, isAvailable, isListed }) => {
       return fetchGraphQL(UPDATE_INVENTORY_ITEM, {
         inventoryId,
         price: parseFloat(price),
         quantity: parseInt(quantity, 10),
+        isAvailable: isAvailable !== undefined ? isAvailable : null,
+        isListed: isListed !== undefined ? isListed : null,
       });
     },
     onSuccess: () => {
@@ -1029,28 +1075,11 @@ const Inventory = () => {
                                 disabled={
                                   updateMutation.isPending ||
                                   updateMutation.isLoading ||
-                                  deleteMutation.isPending ||
-                                  deleteMutation.isLoading ||
                                   addMutation.isPending ||
                                   addMutation.isLoading
                                 }
                               >
                                 <Edit />
-                              </IconButton>
-                              <IconButton
-                                onClick={() => handleDeleteClick(item)}
-                                size="small"
-                                color="error"
-                                disabled={
-                                  updateMutation.isPending ||
-                                  updateMutation.isLoading ||
-                                  deleteMutation.isPending ||
-                                  deleteMutation.isLoading ||
-                                  addMutation.isPending ||
-                                  addMutation.isLoading
-                                }
-                              >
-                                <Delete />
                               </IconButton>
                             </TableCell>
                           </TableRow>

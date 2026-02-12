@@ -39,3 +39,5 @@ export { default as Tooltip } from './Tooltip/Tooltip';
 export { default as Badge } from './Badge/Badge';
 export { default as Menu } from './Menu/Menu';
 export { default as ErrorHandler } from './ErrorHandler/ErrorHandler';
+export { default as StoreImageSlider } from './StoreImageSlider/StoreImageSlider';
+export { PaymentModal, PaymentMethodSelector } from './Payment';

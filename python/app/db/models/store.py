@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, Boolean, ARRAY
 from sqlalchemy.orm import relationship
 from app.db.base import Base
+from app.db.custom_types.encrypted import EncryptedType
+from app.config import PAYMENT_ENCRYPTION_SECRET_NAME
 
 class StoreModel(Base):
     __tablename__ = 'store'
@@ -21,7 +23,21 @@ class StoreModel(Base):
     taxPercentage = Column(Float, nullable=True)  # Store's default tax percentage
     section_headers = Column(ARRAY(String), nullable=True)  # Array of section header strings
     display_field = Column(String, unique=True, nullable=False)  # Unique display field, required
-    
+    images = Column(ARRAY(String), nullable=True)  # Array of store image URLs
+    subdomain = Column(String, unique=True, nullable=True, index=True)  # Unique subdomain for multi-tenancy (e.g., 'store1' for store1.indimitra.com)
+
+    # Square payment integration - encrypted credentials
+    square_access_token = Column(EncryptedType(PAYMENT_ENCRYPTION_SECRET_NAME), nullable=True)  # Store's Square API access token
+    square_refresh_token = Column(EncryptedType(PAYMENT_ENCRYPTION_SECRET_NAME), nullable=True)  # Store's Square OAuth refresh token
+    square_merchant_id = Column(EncryptedType(PAYMENT_ENCRYPTION_SECRET_NAME), nullable=True)  # Store's Square merchant identifier
+    square_location_id = Column(EncryptedType(PAYMENT_ENCRYPTION_SECRET_NAME), nullable=True)  # Store's Square location ID
+    square_application_id = Column(String, nullable=True)  # Store's Square application ID (public identifier)
+    is_square_connected = Column(Boolean, default=False, nullable=False)  # Whether store has active Square connection
+
+    # Store configuration flags
+    cod_enabled = Column(Boolean, default=False, nullable=False)  # Whether store accepts Cash on Delivery
+    whatsapp_number = Column(String, nullable=True)  # WhatsApp support number with country code
+
     # Relationships
     manager = relationship("UserModel", back_populates="stores")
     inventory = relationship("InventoryModel", back_populates="store")

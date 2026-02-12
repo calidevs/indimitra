@@ -36,6 +36,10 @@ import {
   Add as AddIcon,
   Payment as PaymentIcon,
   Search as SearchIcon,
+  CheckCircle as CheckCircleIcon,
+  Error as ErrorIcon,
+  Pending as PendingIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 
 import fetchGraphQL from '../../config/graphql/graphqlService';
@@ -608,7 +612,6 @@ const PaymentOnboarding = () => {
           startIcon={<AddIcon />}
           onClick={() => handleOpenDialog()}
           sx={{ mb: 3 }}
-          disabled={true}
         >
           Add Payment Onboarding
         </Button>

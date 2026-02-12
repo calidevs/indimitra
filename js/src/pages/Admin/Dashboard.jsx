@@ -15,10 +15,22 @@ import {
   Store as StoreIcon,
   LocalShipping as ShippingIcon,
   ShoppingCart as OrdersIcon,
+  Payment as PaymentIcon,
 } from '@mui/icons-material';
 import { useQuery } from '@tanstack/react-query';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_DASHBOARD_STATS, GET_ORDER_STATS, GET_ALL_STORES } from '@/queries/operations';
+
+// GraphQL query for Square connection status
+const ALL_STORES_SQUARE_STATUS = `
+  query AllStoresSquareStatus {
+    allStoresSquareStatus {
+      storeId
+      storeName
+      isConnected
+    }
+  }
+`;
 
 const StatCard = ({ title, value, icon, color }) => {
   const theme = useTheme();
@@ -93,19 +105,35 @@ const Dashboard = () => {
     },
   });
 
+  // Fetch Square connection status
+  const {
+    data: squareStatusData,
+    isLoading: squareStatusLoading,
+    error: squareStatusError,
+  } = useQuery({
+    queryKey: ['allStoresSquareStatus'],
+    queryFn: async () => {
+      return await fetchGraphQL(ALL_STORES_SQUARE_STATUS);
+    },
+  });
+
   // Extract data
   const stats = dashboardStats?.getDashboardStats || {};
   const orders = orderStats?.getOrderStats || {};
   const stores = storesData?.stores || [];
+  const squareStatuses = squareStatusData?.allStoresSquareStatus || [];
 
   // Calculate totals
   const totalUsers = stats.totalUsers || 0;
   const totalStores = stores.length || 0;
   const activeDrivers = stats.deliveryAgents || 0;
   const totalOrders = orders.totalOrders || 0;
+  const connectedStores = squareStatuses.filter(s => s.isConnected).length;
+  const totalStoresForSquare = squareStatuses.length || totalStores;
+  const codEnabledCount = stores.filter(s => s.codEnabled).length;
 
   // Loading state
-  if (dashboardLoading || orderLoading || storesLoading) {
+  if (dashboardLoading || orderLoading || storesLoading || squareStatusLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
         <CircularProgress />
@@ -114,11 +142,12 @@ const Dashboard = () => {
   }
 
   // Error state
-  if (dashboardError || orderError || storesError) {
+  if (dashboardError || orderError || storesError || squareStatusError) {
     const errorMessage =
       dashboardError?.message ||
       orderError?.message ||
       storesError?.message ||
+      squareStatusError?.message ||
       'Error loading dashboard data. Please try again later.';
 
     return (
@@ -153,21 +182,42 @@ const Dashboard = () => {
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Active Drivers"
-            value={activeDrivers.toLocaleString()}
-            icon={<ShippingIcon />}
-            color={theme.palette.info.main}
+            title="Square Connected"
+            value={`${connectedStores} / ${totalStoresForSquare}`}
+            icon={<PaymentIcon />}
+            color={theme.palette.success.main}
           />
         </Grid>
         <Grid item xs={12} sm={6} md={3}>
           <StatCard
-            title="Total Orders"
-            value={totalOrders.toLocaleString()}
-            icon={<OrdersIcon />}
-            color={theme.palette.warning.main}
+            title="Cash on Delivery"
+            value={`${codEnabledCount} / ${totalStores}`}
+            icon={<PaymentIcon />}
+            color={theme.palette.info.main}
           />
         </Grid>
       </Grid>
+
+      <Box sx={{ mt: 4 }}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Active Drivers"
+              value={activeDrivers.toLocaleString()}
+              icon={<ShippingIcon />}
+              color={theme.palette.info.main}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={3}>
+            <StatCard
+              title="Total Orders"
+              value={totalOrders.toLocaleString()}
+              icon={<OrdersIcon />}
+              color={theme.palette.warning.main}
+            />
+          </Grid>
+        </Grid>
+      </Box>
 
       {/* Additional Statistics */}
       <Box sx={{ mt: 4 }}>
