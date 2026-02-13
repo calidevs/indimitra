@@ -214,5 +214,22 @@ variable "AWS_SECRET_ACCESS_KEY" {
 
 variable "S3_BUCKET_NAME" {
   description = "S3 bucket name"
-  type        = string 
+  type        = string
+}
+
+variable "SQUARE_APPLICATION_ID" {
+  description = "Square Application ID"
+  type        = string
+}
+
+variable "SQUARE_APPLICATION_SECRET" {
+  description = "Square Application Secret"
+  type        = string
+  sensitive   = true
+}
+
+variable "SQUARE_ENVIRONMENT" {
+  description = "Square environment (sandbox or production)"
+  type        = string
+  default     = "sandbox"
 }
