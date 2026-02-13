@@ -292,9 +292,19 @@ locals {
       {
         name = "S3_BUCKET_NAME"
         value = "${var.S3_BUCKET_NAME}"
+      },
+      {
+        name  = "SQUARE_APPLICATION_ID"
+        value = "${var.SQUARE_APPLICATION_ID}"
+      },
+      {
+        name  = "SQUARE_APPLICATION_SECRET"
+        value = "${var.SQUARE_APPLICATION_SECRET}"
+      },
+      {
+        name  = "SQUARE_ENVIRONMENT"
+        value = "${var.SQUARE_ENVIRONMENT}"
       }
-
-      
     ]
     command = [
       "sh",
