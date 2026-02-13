@@ -8,6 +8,7 @@ from app.services.category_service import (
     update_category,
     delete_category
 )
+from app.graphql.resolvers.base_resolver import BaseProtectedResolver, public
 
 @strawberry.type
 class CategoryError:
@@ -27,19 +28,21 @@ class DeleteCategoryResponse:
     error: Optional[CategoryError] = None
 
 @strawberry.type
-class CategoryQuery:
+class CategoryQuery(BaseProtectedResolver):
     @strawberry.field
+    @public
     def categories(self) -> List[Category]:
         """Get all categories"""
         return get_all_categories()
     
     @strawberry.field
+    @public
     def category(self, categoryId: int) -> Optional[Category]:
         """Get a category by ID"""
         return get_category_by_id(category_id=categoryId)
 
 @strawberry.type
-class CategoryMutation:
+class CategoryMutation(BaseProtectedResolver):
     @strawberry.mutation
     def createCategory(self, name: str) -> CategoryResponse:
         """

@@ -17,15 +17,15 @@ from app.services.order_service import (
     get_orders_by_store,
     update_order_bill_url,
     update_order_items,
-    get_order_stats
-)
+    get_order_stats)
+from app.graphql.resolvers.base_resolver import BaseProtectedResolver
 from app.services.delivery_service import assign_delivery
 from app.services.email_service import EmailService
 
 
 # ✅ Order Queries
 @strawberry.type
-class OrderQuery:
+class OrderQuery(BaseProtectedResolver):
     @strawberry.field
     def getAllOrders(self) -> List[Order]:
         """Fetch all orders"""
@@ -87,7 +87,7 @@ class UpdateOrderStatusInput:
 
 # ✅ Order Mutations
 @strawberry.type
-class OrderMutation:
+class OrderMutation(BaseProtectedResolver):
     @strawberry.mutation
     def createOrder(
         self,

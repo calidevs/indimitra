@@ -8,6 +8,7 @@ from app.services.pickup_address_service import (
     delete_pickup_address,
     get_pickup_addresses_by_store
 )
+from app.graphql.resolvers.base_resolver import BaseProtectedResolver
 
 # Error and Response types
 @strawberry.type
@@ -34,7 +35,7 @@ class UpdatePickupAddressInput:
 
 # Queries
 @strawberry.type
-class PickupAddressQuery:
+class PickupAddressQuery(BaseProtectedResolver):
     @strawberry.field
     def getPickupAddressesByStore(self, storeId: int) -> List[PickupAddress]:
         """Get all pickup addresses for a specific store"""
@@ -42,7 +43,7 @@ class PickupAddressQuery:
 
 # Mutations
 @strawberry.type
-class PickupAddressMutation:
+class PickupAddressMutation(BaseProtectedResolver):
     @strawberry.mutation
     def createPickupAddress(self, input: PickupAddressInput) -> PickupAddressResponse:
         """

@@ -9,10 +9,11 @@ from app.services.delivery_service import (
     update_delivery_status
 )
 from app.graphql.types import Delivery
+from app.graphql.resolvers.base_resolver import BaseProtectedResolver
 
 # ✅ Define a Query Resolver
 @strawberry.type
-class DeliveryQuery:
+class DeliveryQuery(BaseProtectedResolver):
     @strawberry.field
     def getDeliveriesByDriver(self, driverId: int) -> List[Delivery]:
         """
@@ -37,7 +38,7 @@ class AssignDeliveryInput:
 
 # ✅ Define the Mutation Resolver
 @strawberry.type
-class DeliveryMutation:
+class DeliveryMutation(BaseProtectedResolver):
     @strawberry.mutation
     def assignDelivery(orderId: int, driverId: int, scheduleTime: datetime) -> Delivery:
         """

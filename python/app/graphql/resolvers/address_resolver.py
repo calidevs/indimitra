@@ -7,17 +7,18 @@ from app.services.address_service import (
     update_address,
     delete_address
 )
+from app.graphql.resolvers.base_resolver import BaseProtectedResolver
 
 
 @strawberry.type
-class AddressQuery:
+class AddressQuery(BaseProtectedResolver):
     @strawberry.field
     def get_addresses_by_user(self, user_id: int) -> List[Address]:
         return get_addresses_by_user(user_id)
 
 
 @strawberry.type
-class AddressMutation:
+class AddressMutation(BaseProtectedResolver):
     @strawberry.mutation
     def create_address(
         self,

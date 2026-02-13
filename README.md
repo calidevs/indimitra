@@ -184,12 +184,14 @@ install packages
 For Windows
 
 ```
+Ensure you are using Python 3.11 locally to install pip requirements.
+
 remove psycopg2-binary from requirements.txt
 
 run - pip install psycopg2-binary==2.9.9
 
 then run - pip install -r requirements.txt
-```
+   ```
 
 For mac below should work
 ```

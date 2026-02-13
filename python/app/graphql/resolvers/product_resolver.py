@@ -2,18 +2,21 @@ import strawberry
 from typing import List, Optional
 from app.graphql.types import Product
 from app.services.product_service import get_all_products, create_product, delete_product, update_product
+from app.graphql.resolvers.base_resolver import BaseProtectedResolver, public
 
 @strawberry.type
-class ProductQuery:
+class ProductQuery(BaseProtectedResolver):
     @strawberry.field
-    def products(self) -> List[Product]:
+    @public
+    def products(self, info) -> List[Product]:
         return get_all_products()
 
 @strawberry.type
-class ProductMutation:
+class ProductMutation(BaseProtectedResolver):
     @strawberry.mutation
     def create_product(
         self,
+        info,
         name: str,
         description: str,
         categoryId: int,

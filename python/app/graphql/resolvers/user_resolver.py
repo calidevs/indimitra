@@ -2,6 +2,7 @@ import strawberry
 from typing import List, Optional, Union
 from app.graphql.types import User, DashboardStats
 from app.services.user_service import get_all_users, create_user, get_user_profile, update_user_type, update_user_mobile, update_secondary_phone, get_dashboard_stats
+from app.graphql.resolvers.base_resolver import BaseProtectedResolver, public
 
 @strawberry.type
 class UserError:
@@ -21,13 +22,14 @@ class UpdateMobileResponse:
     error: Optional[UserError] = None
 
 @strawberry.type
-class UserQuery:
+class UserQuery(BaseProtectedResolver):
     @strawberry.field
     def getAllUsers(self) -> List[User]:
         """Returns a list of all users"""
         return get_all_users()
     
     @strawberry.field
+    @public
     def getUserProfile(self, userId: str) -> Optional[User]:
         """Fetch a single user's profile without exposing referredBy"""
         user_data = get_user_profile(userId) # Create a User instance from sanitized data
@@ -47,7 +49,7 @@ class UserQuery:
 
 
 @strawberry.type
-class UserMutation:
+class UserMutation(BaseProtectedResolver):
     @strawberry.mutation
     def createUser(
         self,

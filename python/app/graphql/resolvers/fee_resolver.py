@@ -8,6 +8,7 @@ from app.services.fees_service import (
     delete_fee,
     get_fees_by_store
 )
+from app.graphql.resolvers.base_resolver import BaseProtectedResolver
 
 # Error and Response types
 @strawberry.type
@@ -40,7 +41,7 @@ class UpdateFeeInput:
 
 # Queries
 @strawberry.type
-class FeeQuery:
+class FeeQuery(BaseProtectedResolver):
     @strawberry.field
     def getFeesByStore(self, storeId: int) -> List[Fee]:
         """Get all fees for a specific store"""
@@ -48,7 +49,7 @@ class FeeQuery:
 
 # Mutations
 @strawberry.type
-class FeeMutation:
+class FeeMutation(BaseProtectedResolver):
     @strawberry.mutation
     def createFee(self, input: CreateFeeInput) -> FeeResponse:
         """

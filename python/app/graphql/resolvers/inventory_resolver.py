@@ -10,21 +10,24 @@ from app.services.inventory_service import (
     remove_from_inventory,
     update_inventory_item
 )
+from app.graphql.resolvers.base_resolver import BaseProtectedResolver, public
 
 @strawberry.type
-class InventoryQuery:
+class InventoryQuery(BaseProtectedResolver):
     @strawberry.field
+    @public
     def get_inventory_by_store(self, store_id: int, is_listed: Optional[bool] = None) -> List[Inventory]:
         """Get inventory items for a specific store with optional is_listed filter"""
         return get_inventory_by_store(store_id, is_listed)
     
     @strawberry.field
+    @public
     def get_inventory_item(self, store_id: int, product_id: int) -> Optional[Inventory]:
         """Get inventory details for a specific product in a specific store"""
         return get_inventory_item(store_id, product_id)
 
 @strawberry.type
-class InventoryMutation:
+class InventoryMutation(BaseProtectedResolver):
     @strawberry.mutation
     def add_product_to_inventory(
         self,

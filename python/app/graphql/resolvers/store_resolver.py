@@ -14,15 +14,18 @@ from app.services.store_service import (
     update_store_delivery_fee,
     update_store_tax_percentage
 )
+from app.graphql.resolvers.base_resolver import BaseProtectedResolver, public
 
 @strawberry.type
-class StoreQuery:
+class StoreQuery(BaseProtectedResolver):
     @strawberry.field
+    @public
     def stores(self, is_active: Optional[bool] = None, disabled: Optional[bool] = None) -> List[Store]:
         """Get all stores with optional filters"""
         return get_all_stores(is_active, disabled)
     
     @strawberry.field
+    @public
     def store(self, store_id: int) -> Optional[Store]:
         """Get a store by ID"""
         return get_store_by_id(store_id)
@@ -38,7 +41,7 @@ class StoreQuery:
         return get_store_count()
 
 @strawberry.type
-class StoreMutation:
+class StoreMutation(BaseProtectedResolver):
     @strawberry.mutation
     def create_store(
         self,
