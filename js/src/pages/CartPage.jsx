@@ -447,12 +447,12 @@ const CartPage = () => {
       if (order && order.id) {
         // Clear cart from Zustand, localStorage, and database
         await clearCartCompletely();
-        setIsOrderPlaced(true);
-        setTimeout(() => {
-          setIsOrderPlaced(false);
-          navigate('/');
-        }, 2000);
-        queryClient.invalidateQueries(['userAddresses', userProfile.id]);
+      setIsOrderPlaced(true);
+      setTimeout(() => {
+        setIsOrderPlaced(false);
+        navigate('/');
+      }, 2000);
+      queryClient.invalidateQueries(['userAddresses', userProfile.id]);
       } else {
         // If order creation failed, don't clear cart
         setError('Order creation failed. Your cart has been preserved. Please try again.');
@@ -474,11 +474,11 @@ const CartPage = () => {
       if (order && order.id) {
         // Clear cart from Zustand, localStorage, and database
         await clearCartCompletely();
-        setIsOrderPlaced(true);
-        setTimeout(() => {
-          setIsOrderPlaced(false);
-          navigate('/');
-        }, 2000);
+      setIsOrderPlaced(true);
+      setTimeout(() => {
+        setIsOrderPlaced(false);
+        navigate('/');
+      }, 2000);
       } else {
         // If order creation failed, don't clear cart
         setError('Order creation failed. Your cart has been preserved. Please try again.');
@@ -649,12 +649,12 @@ const CartPage = () => {
     if (orderResult && orderResult.id) {
       // Clear cart from Zustand, localStorage, and database
       await clearCartCompletely();
-      // Show success message and navigate
-      setIsOrderPlaced(true);
-      setTimeout(() => {
-        setIsOrderPlaced(false);
-        navigate('/');
-      }, 2000);
+    // Show success message and navigate
+    setIsOrderPlaced(true);
+    setTimeout(() => {
+      setIsOrderPlaced(false);
+      navigate('/');
+    }, 2000);
     } else {
       // If order creation failed, don't clear cart
       setError('Order creation failed. Your cart has been preserved. Please try again.');

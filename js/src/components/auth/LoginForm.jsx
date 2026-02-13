@@ -58,9 +58,9 @@ const LoginForm = ({ onSuccess, onError }) => {
       setModalOpen(false);
       if (onSuccess) {
         onSuccess();
-      } else {
-        navigate(`/${userRole}`);
       }
+      // Always navigate to role-specific dashboard after login
+      navigate(`/${userRole}`);
     } catch (err) {
       console.error('❌ Login error:', err);
 
