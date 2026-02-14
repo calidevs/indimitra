@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Modal, Box, Paper, Typography, useTheme, Button, Alert } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LoginForm from '../../components/auth/LoginForm';
@@ -11,6 +11,15 @@ const LoginModal = ({ open, onClose, initialForm = 'login' }) => {
   const [email, setEmail] = useState('');
   const [verificationSuccess, setVerificationSuccess] = useState(false);
   const theme = useTheme();
+
+  // Reset to initialForm when modal opens
+  useEffect(() => {
+    if (open) {
+      setCurrentForm(initialForm);
+      setVerificationSuccess(false);
+      setEmail('');
+    }
+  }, [open, initialForm]);
 
   const switchForm = (formType) => {
     setCurrentForm(formType);
