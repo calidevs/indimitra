@@ -86,6 +86,11 @@ resource "aws_iam_role_policy_attachment" "ecsTaskExecutionPolicy_cognito" {
   policy_arn = data.aws_iam_policy.cognito_power_user.arn
 }
 
+resource "aws_iam_role_policy_attachment" "ecsTaskExecutionPolicy_cognito" {
+  role       = aws_iam_role.ecsTaskExecutionRole.name
+  policy_arn = data.aws_iam_policy.cognito_power_user.arn
+}
+
 # ###############################
 # # ECS Cluster
 # ###############################
