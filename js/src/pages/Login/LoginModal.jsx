@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Modal, Box, Paper, Typography, useTheme, Button, Alert } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import LoginForm from '../../components/auth/LoginForm';
@@ -10,16 +10,18 @@ const LoginModal = ({ open, onClose, initialForm = 'login' }) => {
   const [currentForm, setCurrentForm] = useState(initialForm);
   const [email, setEmail] = useState('');
   const [verificationSuccess, setVerificationSuccess] = useState(false);
+  const formKeyRef = useRef(0);
   const theme = useTheme();
 
-  // Reset to initialForm when modal opens
+  // Reset to login form when modal opens
   useEffect(() => {
     if (open) {
-      setCurrentForm(initialForm);
+      setCurrentForm('login');
       setVerificationSuccess(false);
       setEmail('');
+      formKeyRef.current += 1; // Increment key to force form remount
     }
-  }, [open, initialForm]);
+  }, [open]);
 
   const switchForm = (formType) => {
     setCurrentForm(formType);
@@ -121,7 +123,7 @@ const LoginModal = ({ open, onClose, initialForm = 'login' }) => {
         )}
 
         {currentForm === 'login' ? (
-          <LoginForm onSuccess={onClose} />
+          <LoginForm key={`login-form-${formKeyRef.current}`} onSuccess={onClose} />
         ) : currentForm === 'signup' ? (
           <SignUpForm onSuccess={handleSignUpSuccess} />
         ) : currentForm === 'otp' ? (
