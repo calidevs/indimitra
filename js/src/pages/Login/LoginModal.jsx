@@ -129,7 +129,7 @@ const LoginModal = ({ open, onClose, initialForm = 'login' }) => {
         ) : currentForm === 'otp' ? (
           <OtpVerificationForm email={email} onSuccess={handleOtpSuccess} />
         ) : (
-          <ForgotPassword />
+          <ForgotPassword onSuccess={() => switchForm('login')} />
         )}
 
         <Box
