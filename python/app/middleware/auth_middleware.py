@@ -116,28 +116,35 @@ class CognitoAuthMiddleware(BaseHTTPMiddleware):
                 token_claims=verified_claims
             )
 
-            # Attach authenticated user to request state
+            # Attach authenticated user to request state (always set if validation succeeds)
             request.state.user = cognito_user
+            logger.info(f"Successfully authenticated user: {cognito_user.cognito_id} for {request.url.path}")
 
         except jwt.ExpiredSignatureError:
+            logger.warning(f"Token expired for request to {request.url.path}")
             # For optional auth paths, allow request but don't set user
             if is_optional_auth:
+                logger.warning("Allowing request to optional auth path without user (token expired)")
                 return await call_next(request)
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content={"detail": "Token has expired"}
             )
         except jwt.InvalidTokenError as e:
+            logger.warning(f"Invalid token for request to {request.url.path}: {str(e)}")
             # For optional auth paths, allow request but don't set user
             if is_optional_auth:
+                logger.warning(f"Allowing request to optional auth path without user (invalid token: {str(e)})")
                 return await call_next(request)
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 content={"detail": f"Invalid token: {str(e)}"}
             )
         except Exception as e:
+            logger.error(f"Authentication failed for request to {request.url.path}: {str(e)}", exc_info=True)
             # For optional auth paths, allow request but don't set user
             if is_optional_auth:
+                logger.warning(f"Allowing request to optional auth path without user (auth failed: {str(e)})")
                 return await call_next(request)
             return JSONResponse(
                 status_code=status.HTTP_401_UNAUTHORIZED,

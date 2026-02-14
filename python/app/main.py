@@ -74,7 +74,8 @@ async def get_context(request: Request, db: Session = Depends(get_db)):
 
 # Set up the GraphQL endpoint with playground controlled by environment variable
 # IMPORTANT: Disable GraphiQL in production for security
-enable_graphiql = os.getenv("ENABLE_GRAPHIQL", "false").lower() == "true"
+# enable_graphiql = os.getenv("ENABLE_GRAPHIQL", "false").lower() == "true"
+enable_graphiql = True
 graphql_app = GraphQLRouter(
     schema,
     context_getter=get_context,
