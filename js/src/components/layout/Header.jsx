@@ -24,6 +24,7 @@ import { fetchAuthSession, fetchUserAttributes } from 'aws-amplify/auth';
 import { defineUserAbility } from '@/ability/defineAbility';
 import StoreSelector from '@/pages/Customer/StoreSelector';
 import MenuIcon from '@mui/icons-material/Menu';
+import { ROLES } from '@/config/constants/roles';
 
 const Logo = ({ navigate, userRole }) => {
   const { setUser } = useAuthStore();
@@ -184,10 +185,13 @@ const Header = () => {
             <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Sign In</Typography>} />
           </ListItem>
         )}
-        <ListItem button onClick={() => setStoreModalOpen(true)} sx={{ py: 2 }}>
-          <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><Storefront /></ListItemIcon>
-          <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Change Store</Typography>} />
-        </ListItem>
+        {/* Only show Change Store for regular users or guests, not for admin/store_manager/delivery_agent */}
+        {userRole !== ROLES.ADMIN && userRole !== ROLES.STORE_MANAGER && userRole !== ROLES.DELIVERY_AGENT && (
+          <ListItem button onClick={() => setStoreModalOpen(true)} sx={{ py: 2 }}>
+            <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><Storefront /></ListItemIcon>
+            <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Change Store</Typography>} />
+          </ListItem>
+        )}
         <ListItem button onClick={() => navigate(ROUTES.CART)} sx={{ py: 2 }}>
           <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><ShoppingCart /></ListItemIcon>
           <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Cart</Typography>} />
@@ -303,25 +307,28 @@ const Header = () => {
                 Orders
               </Button>
             )}
-            <Button
-              variant="outlined"
-                startIcon={<Storefront sx={{ fontSize: { xs: 18, sm: 22 } }} />}
-              onClick={() => setStoreModalOpen(true)}
-              sx={{
-                color: '#2A2F4F',
-                borderColor: '#2A2F4F',
-                textTransform: 'none',
-                  fontSize: { xs: '0.95rem', sm: '1rem' },
-                fontWeight: 500,
-                  px: { xs: 1, sm: 2 },
-                  py: { xs: 0.5, sm: 1 },
-                  minWidth: { xs: 0, sm: 64 },
-                  mr: { xs: 0.5, sm: 1 },
-                '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
-              }}
-            >
-              Change Store
-            </Button>
+            {/* Only show Change Store for regular users or guests, not for admin/store_manager/delivery_agent */}
+            {userRole !== ROLES.ADMIN && userRole !== ROLES.STORE_MANAGER && userRole !== ROLES.DELIVERY_AGENT && (
+              <Button
+                variant="outlined"
+                  startIcon={<Storefront sx={{ fontSize: { xs: 18, sm: 22 } }} />}
+                onClick={() => setStoreModalOpen(true)}
+                sx={{
+                  color: '#2A2F4F',
+                  borderColor: '#2A2F4F',
+                  textTransform: 'none',
+                    fontSize: { xs: '0.95rem', sm: '1rem' },
+                  fontWeight: 500,
+                    px: { xs: 1, sm: 2 },
+                    py: { xs: 0.5, sm: 1 },
+                    minWidth: { xs: 0, sm: 64 },
+                    mr: { xs: 0.5, sm: 1 },
+                  '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
+                }}
+              >
+                Change Store
+              </Button>
+            )}
             {user ? (
               userAbility?.can('view', 'cart') && (
                 <Tooltip title="Cart">
