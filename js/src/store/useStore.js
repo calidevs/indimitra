@@ -33,6 +33,7 @@ const useStore = create(
         deliveryType: state.deliveryType,
         tipAmount: state.tipAmount || 0,
         pickupAddress: state.pickupAddress,
+        deliveryAddressString: state.deliveryAddressString,
       };
       try {
         localStorage.setItem(
@@ -60,6 +61,7 @@ const useStore = create(
       deliveryType: restored?.deliveryType || 'pickup',
       tipAmount: restored?.tipAmount || 0,
       pickupAddress: restored?.pickupAddress || null,
+      deliveryAddressString: restored?.deliveryAddressString || null,
     });
   },
 
@@ -68,6 +70,10 @@ const useStore = create(
   // New: Pickup address state
   pickupAddress: null,
   setPickupAddress: (address) => set({ pickupAddress: address }),
+
+  // New: Delivery address string (for Dashboard display only)
+  deliveryAddressString: null,
+  setDeliveryAddressString: (address) => set({ deliveryAddressString: address }),
 
   // New: Delivery type state (pickup or delivery)
   deliveryType: 'pickup', // 'pickup' or 'delivery'
@@ -238,6 +244,7 @@ const useStore = create(
       deliveryType: state.deliveryType,
       tipAmount: state.tipAmount || 0,
       pickupAddress: state.pickupAddress,
+      deliveryAddressString: state.deliveryAddressString,
     };
   },
     }),
@@ -251,6 +258,7 @@ const useStore = create(
         deliveryType: state.deliveryType,
         tipAmount: state.tipAmount,
         pickupAddress: state.pickupAddress,
+        deliveryAddressString: state.deliveryAddressString,
       }),
     }
   )

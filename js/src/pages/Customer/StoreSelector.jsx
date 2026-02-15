@@ -46,6 +46,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     setPickupAddress,
     deliveryType,
     setDeliveryType,
+    setDeliveryAddressString,
   } = useStore();
 
   const { user, userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm } =
@@ -332,6 +333,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     setSelectedStore(tempStore);
     setPickupAddress(selectedAddress);
     setDeliveryType('pickup');
+    setDeliveryAddressString(null); // Clear delivery address when switching to pickup
     setStep('store');
     setTempStore(null);
     setSelectedPickupId(null);
@@ -341,9 +343,33 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
 
   const handleDeliveryConfirm = () => {
     if (deliveryStatus === 'success' && confirmedDeliveryAddress) {
+      // Get the address string to store for Dashboard display
+      let addressStringToStore = confirmedDeliveryAddress;
+      
+      // If user is logged in and selected a saved address, get it from addresses array
+      if (userProfile && selectedAddressId && dbAddresses && dbAddresses.length > 0) {
+        const selectedAddress = dbAddresses.find((addr) => addr.id === selectedAddressId);
+        if (selectedAddress && selectedAddress.address) {
+          addressStringToStore = selectedAddress.address;
+        }
+      }
+      
+      // Ensure we have a valid address string
+      if (!addressStringToStore || !addressStringToStore.trim()) {
+        console.error('No valid address string to store for delivery');
+        return;
+      }
+      
+      // Set the store first (this may restore old state from localStorage)
       setSelectedStore(tempStore);
-      setPickupAddress(null);
-      setDeliveryType('delivery');
+      
+      // Then override with delivery-specific values after store restoration
+      // Use a small delay to ensure setSelectedStore's state update completes
+      setTimeout(() => {
+        setPickupAddress(null);
+        setDeliveryType('delivery');
+        setDeliveryAddressString(addressStringToStore.trim());
+      }, 10);
 
       setTimeout(() => {
         setStep('store');
@@ -363,6 +389,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   const handlePickupRadioChange = (e) => {
     setSelectedPickupId(e.target.value);
     setDeliveryType('pickup');
+    setDeliveryAddressString(null); // Clear delivery address when switching to pickup
     if (userProfile) {
       setSelectedAddressId(null);
     } else {

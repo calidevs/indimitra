@@ -20,6 +20,8 @@ const Dashbaord = () => {
     setAvailableStores,
     setSelectedStore,
     pickupAddress,
+    deliveryType,
+    deliveryAddressString,
     setCustomOrder,
     listInputAnswers,
     setListInputAnswers,
@@ -109,7 +111,7 @@ const Dashbaord = () => {
                     {selectedStore.address}
                   </Typography>
                 </Box>
-                {pickupAddress && (
+                {(pickupAddress || deliveryAddressString) && (
                   <Button
                     variant="outlined"
                     color="primary"
@@ -129,10 +131,13 @@ const Dashbaord = () => {
                     onClick={() => setStoreSelectorStep2Open(true)}
                   >
                     <Typography variant="subtitle2" color="primary" sx={{ fontSize: { xs: '0.95rem', sm: '1rem' } }}>
-                      Change Pickup Location
+                      {deliveryType === 'delivery' ? 'Change Delivery Address' : 'Change Pickup Location'}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.85rem', sm: '0.95rem' } }}>
-                      {pickupAddress.address}
+                      {deliveryType === 'delivery' 
+                        ? (deliveryAddressString || 'No address selected')
+                        : (pickupAddress?.address || 'No pickup location selected')
+                      }
                     </Typography>
                   </Button>
                 )}
