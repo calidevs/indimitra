@@ -46,6 +46,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     setPickupAddress,
     deliveryType,
     setDeliveryType,
+    setDeliveryAddressString,
   } = useStore();
 
   const { user, userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm } =
@@ -332,6 +333,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     setSelectedStore(tempStore);
     setPickupAddress(selectedAddress);
     setDeliveryType('pickup');
+    setDeliveryAddressString(null); // Clear delivery address when switching to pickup
     setStep('store');
     setTempStore(null);
     setSelectedPickupId(null);
@@ -341,9 +343,32 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
 
   const handleDeliveryConfirm = () => {
     if (deliveryStatus === 'success' && confirmedDeliveryAddress) {
+      // Get the address string to store for Dashboard display
+      let addressStringToStore = confirmedDeliveryAddress;
+      
+      // If user is logged in and selected a saved address, get it from addresses array
+      if (userProfile && selectedAddressId && dbAddresses && dbAddresses.length > 0) {
+        const selectedAddress = dbAddresses.find((addr) => addr.id === selectedAddressId);
+        if (selectedAddress && selectedAddress.address) {
+          addressStringToStore = selectedAddress.address;
+        }
+      }
+      
+      // Ensure we have a valid address string
+      if (!addressStringToStore || !addressStringToStore.trim()) {
+        return;
+      }
+      
+      // Set the store first (this may restore old state from localStorage)
       setSelectedStore(tempStore);
-      setPickupAddress(null);
-      setDeliveryType('delivery');
+      
+      // Then override with delivery-specific values after store restoration
+      // Use a small delay to ensure setSelectedStore's state update completes
+      setTimeout(() => {
+        setPickupAddress(null);
+        setDeliveryType('delivery');
+        setDeliveryAddressString(addressStringToStore.trim());
+      }, 10);
 
       setTimeout(() => {
         setStep('store');
@@ -363,6 +388,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   const handlePickupRadioChange = (e) => {
     setSelectedPickupId(e.target.value);
     setDeliveryType('pickup');
+    setDeliveryAddressString(null); // Clear delivery address when switching to pickup
     if (userProfile) {
       setSelectedAddressId(null);
     } else {
@@ -431,105 +457,94 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
 
         {/* Tabs */}
         <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-          {hasPickupAddresses ? (
-            <Tabs
-              value={activeTab}
-              onChange={(_, newValue) => setActiveTab(newValue)}
-              variant="fullWidth"
-              sx={{
-                minHeight: 42,
-                '& .MuiTabs-indicator': {
-                  height: 3,
-                  borderRadius: '3px 3px 0 0',
-                },
-              }}
-            >
-              <Tab
-                icon={<StoreIcon sx={{ fontSize: 18 }} />}
-                iconPosition="start"
-                label="Pickup"
-                sx={{ fontWeight: 600, textTransform: 'none', fontSize: '0.9rem', minHeight: 42, py: 0 }}
-              />
-              <Tab
-                icon={<HomeIcon sx={{ fontSize: 18 }} />}
-                iconPosition="start"
-                label="Delivery"
-                sx={{ fontWeight: 600, textTransform: 'none', fontSize: '0.9rem', minHeight: 42, py: 0 }}
-              />
-            </Tabs>
-          ) : (
-            <Tabs
-              value={0}
-              variant="fullWidth"
-              sx={{
-                minHeight: 42,
-                '& .MuiTabs-indicator': {
-                  height: 3,
-                  borderRadius: '3px 3px 0 0',
-                },
-              }}
-            >
-              <Tab
-                icon={<HomeIcon sx={{ fontSize: 18 }} />}
-                iconPosition="start"
-                label="Delivery"
-                sx={{ fontWeight: 600, textTransform: 'none', fontSize: '0.9rem', minHeight: 42, py: 0 }}
-              />
-            </Tabs>
-          )}
+          <Tabs
+            value={activeTab}
+            onChange={(_, newValue) => setActiveTab(newValue)}
+            variant="fullWidth"
+            sx={{
+              minHeight: 42,
+              '& .MuiTabs-indicator': {
+                height: 3,
+                borderRadius: '3px 3px 0 0',
+              },
+            }}
+          >
+            <Tab
+              icon={<StoreIcon sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label="Pickup"
+              sx={{ fontWeight: 600, textTransform: 'none', fontSize: '0.9rem', minHeight: 42, py: 0 }}
+            />
+            <Tab
+              icon={<HomeIcon sx={{ fontSize: 18 }} />}
+              iconPosition="start"
+              label="Delivery"
+              sx={{ fontWeight: 600, textTransform: 'none', fontSize: '0.9rem', minHeight: 42, py: 0 }}
+            />
+          </Tabs>
         </Box>
 
         {/* Pickup Tab Content */}
-        {hasPickupAddresses && activeTab === 0 && (
+        {activeTab === 0 && (
           <Stack spacing={2}>
-            {pickupAddresses.map((addr) => (
-              <Paper
-                key={addr.id}
-                elevation={0}
-                onClick={() => handlePickupRadioChange({ target: { value: String(addr.id) } })}
-                sx={{
-                  p: 2,
-                  cursor: 'pointer',
-                  border: '1.5px solid',
-                  borderColor: String(selectedPickupId) === String(addr.id) ? 'primary.main' : 'grey.200',
-                  borderRadius: 2,
-                  bgcolor: String(selectedPickupId) === String(addr.id) ? 'primary.50' : 'transparent',
-                  transition: 'all 0.15s ease',
-                  '&:hover': {
-                    borderColor: 'primary.light',
-                    bgcolor: 'grey.50',
-                  },
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1.5,
-                }}
-              >
-                <Radio
-                  checked={String(selectedPickupId) === String(addr.id)}
-                  value={String(addr.id)}
+            {hasPickupAddresses ? (
+              <>
+                {pickupAddresses.map((addr) => (
+                  <Paper
+                    key={addr.id}
+                    elevation={0}
+                    onClick={() => handlePickupRadioChange({ target: { value: String(addr.id) } })}
+                    sx={{
+                      p: 2,
+                      cursor: 'pointer',
+                      border: '1.5px solid',
+                      borderColor: String(selectedPickupId) === String(addr.id) ? 'primary.main' : 'grey.200',
+                      borderRadius: 2,
+                      bgcolor: String(selectedPickupId) === String(addr.id) ? 'primary.50' : 'transparent',
+                      transition: 'all 0.15s ease',
+                      '&:hover': {
+                        borderColor: 'primary.light',
+                        bgcolor: 'grey.50',
+                      },
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 1.5,
+                    }}
+                  >
+                    <Radio
+                      checked={String(selectedPickupId) === String(addr.id)}
+                      value={String(addr.id)}
+                      color="primary"
+                      size="small"
+                      sx={{ p: 0 }}
+                    />
+                    <Typography variant="body2">{addr.address}</Typography>
+                  </Paper>
+                ))}
+                <Button
+                  onClick={handlePickupConfirm}
+                  variant="contained"
                   color="primary"
-                  size="small"
-                  sx={{ p: 0 }}
-                />
-                <Typography variant="body2">{addr.address}</Typography>
-              </Paper>
-            ))}
-            <Button
-              onClick={handlePickupConfirm}
-              variant="contained"
-              color="primary"
-              fullWidth
-              startIcon={<LocalShippingIcon />}
-              disabled={!selectedPickupId}
-              sx={{ mt: 1, fontWeight: 600, py: 1.2, fontSize: '0.95rem', borderRadius: 2 }}
-            >
-              Confirm Pickup
-            </Button>
+                  fullWidth
+                  startIcon={<LocalShippingIcon />}
+                  disabled={!selectedPickupId}
+                  sx={{ mt: 1, fontWeight: 600, py: 1.2, fontSize: '0.95rem', borderRadius: 2 }}
+                >
+                  Confirm Pickup
+                </Button>
+              </>
+            ) : (
+              <Alert severity="info" sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  No pickup points available for this store.
+                </Typography>
+              </Alert>
+            )}
           </Stack>
         )}
 
         {/* Delivery Tab Content */}
-        {(!hasPickupAddresses || activeTab === 1) && (
+        {activeTab === 1 && (
           <Stack spacing={2}>
             {/* Address Input */}
             <Typography variant="body2" color="text.secondary" sx={{ mb: -1 }}>

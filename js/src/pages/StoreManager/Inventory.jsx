@@ -662,12 +662,9 @@ const Inventory = () => {
   const { data: profileData, isLoading: profileLoading } = useQuery({
     queryKey: ['getUserProfile', cognitoId],
     queryFn: async () => {
-      console.log('Fetching user profile with cognitoId:', cognitoId);
       const response = await fetchGraphQL(GET_USER_PROFILE, { userId: cognitoId });
-      console.log('User profile response:', response);
 
       if (response?.getUserProfile) {
-        console.log('Setting user profile:', response.getUserProfile);
         setUserProfile(response.getUserProfile);
       }
 
@@ -685,7 +682,6 @@ const Inventory = () => {
   } = useQuery({
     queryKey: ['storeWithInventory', userProfile?.id],
     queryFn: () => {
-      console.log('Fetching store data with managerId:', userProfile?.id);
       return fetchGraphQL(GET_STORE_WITH_INVENTORY, { managerId: userProfile?.id });
     },
     enabled: !!userProfile?.id,

@@ -3,7 +3,7 @@ import { resetPassword, confirmResetPassword } from 'aws-amplify/auth';
 import { Box, Paper, Typography, InputForm } from '../components';
 import { useNavigate } from 'react-router-dom';
 
-const ForgotPassword = () => {
+const ForgotPassword = ({ onSuccess }) => {
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -43,7 +43,15 @@ const ForgotPassword = () => {
         newPassword,
       });
       setSuccess('Password reset successfully! Redirecting to login...');
-      setTimeout(() => navigate('/'), 2000);
+      setTimeout(() => {
+        if (onSuccess) {
+          // If used in modal, switch to login form
+          onSuccess();
+        } else {
+          // If used as standalone page, navigate to home
+          navigate('/');
+        }
+      }, 2000);
     } catch (err) {
       setError(err.message || 'Failed to reset password. Try again.');
     } finally {

@@ -28,6 +28,7 @@ import {
   InputAdornment,
 } from '@mui/material';
 import { ErrorHandler, PaymentModal, PaymentMethodSelector } from '@/components';
+import OrderSuccessModal from '@/components/OrderSuccessModal/OrderSuccessModal';
 import {
   Remove,
   Add,
@@ -40,7 +41,6 @@ import {
   Payment,
   Store,
   Home,
-  CheckCircle,
 } from '@mui/icons-material';
 import useStore, { useAuthStore, useAddressStore } from './../store/useStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -239,7 +239,8 @@ const CartPage = () => {
     setListInputAnswers,
   } = useStore();
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
-  const [isOrderPlaced, setIsOrderPlaced] = useState(false);
+  const [orderSuccessModalOpen, setOrderSuccessModalOpen] = useState(false);
+  const [orderCode, setOrderCode] = useState(null);
   const [error, setError] = useState('');
   const { user, userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm } =
     useAuthStore();
@@ -445,14 +446,19 @@ const CartPage = () => {
       // graphql-request returns data directly: { createOrder: { id, ... } }
       const order = response?.createOrder;
       if (order && order.id) {
-        // Clear cart from Zustand, localStorage, and database
-        await clearCartCompletely();
-      setIsOrderPlaced(true);
-      setTimeout(() => {
-        setIsOrderPlaced(false);
-        navigate('/');
-      }, 2000);
-      queryClient.invalidateQueries(['userAddresses', userProfile.id]);
+        try {
+          // Clear cart from Zustand, localStorage, and database
+          await clearCartCompletely();
+          setOrderCode(order.displayCode || `#${order.id}`);
+          setOrderSuccessModalOpen(true);
+          setError(''); // Clear any previous errors
+          queryClient.invalidateQueries(['userAddresses', userProfile.id]);
+        } catch (clearError) {
+          // If cart clearing fails, still show success but log error
+          console.error('Failed to clear cart after order success:', clearError);
+          setOrderCode(order.displayCode || `#${order.id}`);
+          setOrderSuccessModalOpen(true);
+        }
       } else {
         // If order creation failed, don't clear cart
         setError('Order creation failed. Your cart has been preserved. Please try again.');
@@ -460,7 +466,12 @@ const CartPage = () => {
     },
     onError: (error) => {
       // Don't clear cart on error - preserve items for retry
-      setError(error.message || 'Failed to place order. Please try again.');
+      // Extract error message from GraphQL error response
+      const errorMessage = error?.message || 
+                          error?.response?.errors?.[0]?.message ||
+                          error?.graphQLErrors?.[0]?.message ||
+                          'Failed to place order. Please try again.';
+      setError(errorMessage);
     },
   });
 
@@ -472,13 +483,18 @@ const CartPage = () => {
       // graphql-request returns data directly: { createOrderWithCod: { id, ... } }
       const order = data?.createOrderWithCod;
       if (order && order.id) {
-        // Clear cart from Zustand, localStorage, and database
-        await clearCartCompletely();
-      setIsOrderPlaced(true);
-      setTimeout(() => {
-        setIsOrderPlaced(false);
-        navigate('/');
-      }, 2000);
+        try {
+          // Clear cart from Zustand, localStorage, and database
+          await clearCartCompletely();
+          setOrderCode(order.displayCode || `#${order.id}`);
+          setOrderSuccessModalOpen(true);
+          setError(''); // Clear any previous errors
+        } catch (clearError) {
+          // If cart clearing fails, still show success but log error
+          console.error('Failed to clear cart after order success:', clearError);
+          setOrderCode(order.displayCode || `#${order.id}`);
+          setOrderSuccessModalOpen(true);
+        }
       } else {
         // If order creation failed, don't clear cart
         setError('Order creation failed. Your cart has been preserved. Please try again.');
@@ -486,7 +502,12 @@ const CartPage = () => {
     },
     onError: (err) => {
       // Don't clear cart on error - preserve items for retry
-      setError(err.message || 'Failed to place order. Please try again.');
+      // Extract error message from GraphQL error response
+      const errorMessage = err?.message || 
+                          err?.response?.errors?.[0]?.message ||
+                          err?.graphQLErrors?.[0]?.message ||
+                          'Failed to place order. Please try again.';
+      setError(errorMessage);
     },
   });
 
@@ -504,6 +525,26 @@ const CartPage = () => {
 
   const handleOrderPlacement = async () => {
     setError(''); // Clear any previous errors
+
+    // Validate user is logged in
+    if (!userProfile || !userProfile.id) {
+      setError('Please log in to place an order');
+      setModalOpen(true);
+      setCurrentForm('login');
+      return;
+    }
+
+    // Validate store is selected
+    if (!selectedStore || !selectedStore.id) {
+      setError('Please select a store');
+      return;
+    }
+
+    // Validate cart is not empty
+    if (Object.values(cart).length === 0 && !customOrder) {
+      setError('Your cart is empty. Please add items before placing an order');
+      return;
+    }
 
     // Validate that either pickup or delivery is selected
     if (!selectedPickupId && !selectedAddressId) {
@@ -550,6 +591,28 @@ const CartPage = () => {
 
   const handleCodOrder = () => {
     setError('');
+
+    // Validate user is logged in
+    if (!userProfile || !userProfile.id) {
+      setError('Please log in to place an order');
+      setModalOpen(true);
+      setCurrentForm('login');
+      return;
+    }
+
+    // Validate store is selected
+    if (!selectedStore || !selectedStore.id) {
+      setError('Please select a store');
+      return;
+    }
+
+    // Validate cart is not empty
+    if (Object.values(cart).length === 0 && !customOrder) {
+      setError('Your cart is empty. Please add items before placing an order');
+      return;
+    }
+
+    // Validate that either pickup or delivery is selected
     if (!selectedPickupId && !selectedAddressId) {
       setError('Please select either a pickup location or delivery address');
       return;
@@ -645,21 +708,36 @@ const CartPage = () => {
   }, []);
 
   const handlePaymentSuccess = useCallback(async (orderResult) => {
-    // Only clear cart if order was successfully created
-    if (orderResult && orderResult.id) {
-      // Clear cart from Zustand, localStorage, and database
-      await clearCartCompletely();
-    // Show success message and navigate
-    setIsOrderPlaced(true);
-    setTimeout(() => {
-      setIsOrderPlaced(false);
-      navigate('/');
-    }, 2000);
+    // Validate order result
+    if (!orderResult) {
+      setError('Order creation failed. Your cart has been preserved. Please try again.');
+      return;
+    }
+
+    // Only clear cart if order was successfully created with valid ID
+    if (orderResult.id) {
+      try {
+        // Clear cart from Zustand, localStorage, and database
+        await clearCartCompletely();
+        // Show success modal
+        setOrderCode(orderResult.displayCode || `#${orderResult.id}`);
+        setOrderSuccessModalOpen(true);
+        // Clear any previous errors
+        setError('');
+      } catch (clearError) {
+        // If cart clearing fails, still show success but log error
+        console.error('Failed to clear cart after order success:', clearError);
+        setOrderCode(orderResult.displayCode || `#${orderResult.id}`);
+        setOrderSuccessModalOpen(true);
+      }
     } else {
       // If order creation failed, don't clear cart
-      setError('Order creation failed. Your cart has been preserved. Please try again.');
+      // Check if it's an orphaned payment scenario
+      const errorMsg = orderResult.error || 
+        'Order creation failed. Your cart has been preserved. Please try again.';
+      setError(errorMsg);
     }
-  }, [clearCartCompletely, navigate]);
+  }, [clearCartCompletely]);
 
   // Prepare order items array for mutation
   const orderItems = Object.values(cart).map((item) => ({
@@ -685,32 +763,7 @@ const CartPage = () => {
         <ShoppingBag /> Your Shopping Cart
       </Typography>
 
-      {isOrderPlaced ? (
-        <Paper
-          elevation={4}
-          sx={{
-            mb: 3,
-            p: 4,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            borderRadius: 3,
-            background: 'linear-gradient(135deg, #e0ffe8 0%, #f8fff8 100%)',
-            boxShadow: 6,
-            border: '2px solid #4caf50',
-          }}
-        >
-          <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
-          <Typography variant="h4" sx={{ fontWeight: 700, color: 'success.main', mb: 1 }}>
-            Order placed successfully!
-          </Typography>
-          <Typography variant="h6" sx={{ color: 'text.secondary', mb: 2, textAlign: 'center' }}>
-            Thank you for your purchase. Your order is being processed and you'll receive an update
-            soon!
-          </Typography>
-        </Paper>
-      ) : (
-        <Grid container spacing={3}>
+      <Grid container spacing={3}>
           {/* Cart Items Section */}
           <Grid item xs={12} md={8}>
             <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
@@ -1335,7 +1388,6 @@ const CartPage = () => {
             </Paper>
           </Grid>
         </Grid>
-      )}
 
       {/* Payment Modal */}
       <PaymentModal
@@ -1353,6 +1405,15 @@ const CartPage = () => {
         customOrder={customOrder}
         onSuccess={handlePaymentSuccess}
         paymentConfig={paymentConfig}
+      />
+
+      {/* Order Success Modal */}
+      <OrderSuccessModal
+        open={orderSuccessModalOpen}
+        onClose={() => setOrderSuccessModalOpen(false)}
+        orderCode={orderCode}
+        onNavigate={() => navigate('/')}
+        onViewOrder={() => navigate('/orders')}
       />
     </Box>
   );

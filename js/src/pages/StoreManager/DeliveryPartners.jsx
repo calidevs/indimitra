@@ -205,16 +205,6 @@ const DeliveryPartners = () => {
   const isLoading = driversLoading || ordersLoading || profileLoading;
   const hasError = driversError || ordersError || error;
 
-  // Debug information
-  console.log('Current state:', {
-    cognitoId,
-    userProfile: userProfile?.id,
-    storeId,
-    profileLoading,
-    error,
-    shouldFetch
-  });
-
   return (
     <Layout>
       <Box sx={{ p: 3 }}>

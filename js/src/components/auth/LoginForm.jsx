@@ -37,8 +37,6 @@ const LoginForm = ({ onSuccess, onError }) => {
     try {
       const user = await signIn({ username: email, password });
 
-      console.log('✅ Login successful:', user);
-
       // Check if user needs to confirm signup
       if (user.nextStep?.signInStep === 'CONFIRM_SIGN_UP') {
         console.warn('⚠️ User needs to confirm sign-up. Redirecting to OTP...');

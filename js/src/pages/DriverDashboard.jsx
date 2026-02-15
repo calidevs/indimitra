@@ -72,7 +72,6 @@ const DriverDashboard = () => {
         const session = await fetchAuthSession();
         if (session?.tokens?.idToken) {
           const id = session.tokens.idToken.payload.sub;
-          console.log('Fetched Cognito ID:', id);
           setCognitoId(id);
         } else {
           console.warn('No valid session tokens found.');
@@ -93,18 +92,14 @@ const DriverDashboard = () => {
   } = useQuery({
     queryKey: ['getUserProfile', cognitoId],
     queryFn: async () => {
-      console.log('Fetching user profile with cognitoId:', cognitoId);
       const response = await fetchGraphQL(GET_USER_PROFILE, { userId: cognitoId });
-      console.log('User profile API response:', response);
 
       // Set profile data immediately when we get it
       if (response?.getUserProfile) {
-        console.log('Setting profile in store:', response.getUserProfile);
         setUserProfile(response.getUserProfile);
 
         // Force refresh after a small delay
         setTimeout(() => {
-          console.log('Current profile in store:', getLatestProfile());
           forceUpdate();
         }, 200);
       }
@@ -120,13 +115,6 @@ const DriverDashboard = () => {
   // Get the effective profile from any available source
   const directStoreProfile = getLatestProfile();
   const effectiveProfile = directStoreProfile || userProfile || profileData?.getUserProfile;
-
-  console.log('Delivery Partner Dashboard State:', {
-    directStoreProfile,
-    zustandHookProfile: userProfile,
-    apiProfile: profileData?.getUserProfile,
-    using: effectiveProfile,
-  });
 
   // Fetch deliveries assigned to this driver
   const { data, isLoading, error, refetch } = useQuery({

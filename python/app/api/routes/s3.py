@@ -196,7 +196,6 @@ def generate_upload_url(
                 "Bucket": BUCKET_NAME,
                 "Key": key,
                 "ContentType": content_type,
-                "ContentDisposition": f'inline; filename="{new_filename}"'
             },
             ExpiresIn=300,
         )
@@ -346,7 +345,6 @@ def generate_product_upload_url(product_name: str, category_name: str, file_name
                 "Bucket": BUCKET_NAME,
                 "Key": key,
                 "ContentType": content_type,
-                "ContentDisposition": f'inline; filename="{os.path.basename(key)}"'
             },
             ExpiresIn=300,
         )
@@ -402,7 +400,6 @@ def generate_store_upload_url(
                 "Bucket": BUCKET_NAME,
                 "Key": key,
                 "ContentType": content_type,
-                "ContentDisposition": f'inline; filename="{os.path.basename(key)}"'
             },
             ExpiresIn=300,
         )

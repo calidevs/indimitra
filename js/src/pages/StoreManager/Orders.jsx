@@ -79,25 +79,12 @@ import { ORDER_STATUSES } from '@/config/constants/constants';
 const client = generateClient();
 
 const calculateOrderTotal = (order) => {
-  console.log('Calculating total for order:', order);
-
   if (!order) {
-    console.log('No order data provided');
     return 0;
   }
 
-  // Log all the relevant amounts
-  console.log('Order amounts:', {
-    orderTotalAmount: order.orderTotalAmount,
-    totalAmount: order.totalAmount,
-    deliveryFee: order.deliveryFee,
-    tipAmount: order.tipAmount,
-    taxAmount: order.taxAmount,
-  });
-
   // First try to use totalAmount if it exists
   if (order.totalAmount) {
-    console.log('Using totalAmount:', order.totalAmount);
     return order.totalAmount;
   }
 
@@ -105,15 +92,12 @@ const calculateOrderTotal = (order) => {
   if (order.orderItems?.edges?.length > 0) {
     const itemsTotal = order.orderItems.edges.reduce((sum, { node }) => {
       const amount = node.orderAmount || 0;
-      console.log('Adding item amount:', amount);
       return sum + amount;
     }, 0);
 
-    console.log('Calculated total from items:', itemsTotal);
     return itemsTotal;
   }
 
-  console.log('No valid total found, returning 0');
   return 0;
 };
 
@@ -456,9 +440,6 @@ const StoreOrders = () => {
           ? 'http://127.0.0.1:8000'
           : 'https://indimitra.com';
 
-        // Log the original filename for debugging
-        console.log('Original filename:', file.name);
-
         const res = await fetch(
           `${baseUrl}/s3/generate-upload-url?file_name=${encodeURIComponent(file.name)}&order_id=${order.id}`
         );
@@ -466,9 +447,6 @@ const StoreOrders = () => {
           throw new Error('Failed to get upload URL');
         }
         const { upload_url, content_type, file_name, key } = await res.json();
-
-        // Log the generated filename for debugging
-        console.log('Generated filename:', file_name);
 
         // Upload file to S3 using PUT with exact same Content-Type
         const uploadRes = await fetch(upload_url, {
@@ -539,7 +517,6 @@ const StoreOrders = () => {
 
       // If order has a bill_url, use it directly
       if (order.bill_url) {
-        console.log('Using stored bill URL:', order.bill_url);
         const res = await fetch(
           `${baseUrl}/s3/generate-view-url?bill_key=${encodeURIComponent(order.bill_url)}`
         );
@@ -552,7 +529,6 @@ const StoreOrders = () => {
 
       // If no bill_url or file not found, try the old method
       if (!viewUrl) {
-        console.log('No stored bill URL found, trying common extensions');
         const commonExtensions = ['.pdf', '.jpg', '.jpeg', '.png', '.docx'];
         for (const ext of commonExtensions) {
           const res = await fetch(
@@ -655,10 +631,7 @@ const StoreOrders = () => {
 
   // Update the getLatestOrderItem function to handle the current data structure
   const getLatestOrderItem = (orderItems) => {
-    console.log('getLatestOrderItem input:', orderItems);
-
     if (!orderItems?.edges?.length) {
-      console.log('No order items found');
       return null;
     }
 
@@ -673,17 +646,12 @@ const StoreOrders = () => {
     });
 
     const latestItems = Array.from(productMap.values());
-    console.log('Latest items found:', latestItems);
     return latestItems;
   };
 
   // Update the buildItemHistory function to show quantity changes
   const buildItemHistory = (currentItem, allItems) => {
-    console.log('Building history for item:', currentItem);
-    console.log('All available items:', allItems);
-
     if (!currentItem || !allItems) {
-      console.log('Missing required data for history building');
       return [currentItem];
     }
 
@@ -693,7 +661,6 @@ const StoreOrders = () => {
       .filter((item) => item.productId === currentItem.productId)
       .sort((a, b) => a.id - b.id);
 
-    console.log('Product history:', productHistory);
     return productHistory;
   };
 
@@ -1434,7 +1401,6 @@ const StoreOrders = () => {
                                   <TableBody>
                                     {order.orderItems?.edges?.length > 0 ? (
                                       getLatestOrderItem(order.orderItems)?.map((node) => {
-                                        console.log('Processing order item:', node);
                                         const itemHistory = buildItemHistory(
                                           node,
                                           order.orderItems.edges

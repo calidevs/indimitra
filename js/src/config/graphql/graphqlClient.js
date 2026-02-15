@@ -31,7 +31,6 @@ export const getAuthHeaders = async () => {
     }
     return {};
   } catch (error) {
-    console.log('No active session, proceeding without auth');
     return {};
   }
 };

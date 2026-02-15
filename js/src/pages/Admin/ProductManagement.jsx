@@ -108,7 +108,6 @@ const ProductManagement = () => {
   // Create product mutation
   const createProductMutation = useMutation({
     mutationFn: (data) => {
-      console.log('Executing mutation with data:', data); // Add logging
       return fetchGraphQL(CREATE_PRODUCT, {
         name: data.name,
         description: data.description,
@@ -260,7 +259,6 @@ const ProductManagement = () => {
         categoryId: parseInt(formData.categoryId, 10),
         image: formData.image || null, // Ensure image is passed even if null
       };
-      console.log('Submitting product with data:', mutationData); // Add logging
       createProductMutation.mutate(mutationData);
     }
   };
