@@ -38,8 +38,19 @@ const PaymentModal = ({
   // Generate idempotency key once on mount
   const [idempotencyKey] = useState(() => crypto.randomUUID());
   const [error, setError] = useState(null);
-  const [countdown, setCountdown] = useState(3);
   const [orderResult, setOrderResult] = useState(null);
+
+  // Reset error and state when modal opens or closes
+  useEffect(() => {
+    if (open) {
+      setError(null);
+      setOrderResult(null);
+    } else {
+      // Reset state when modal closes to prevent stale data
+      setError(null);
+      setOrderResult(null);
+    }
+  }, [open]);
 
   // Determine if Square is configured from paymentConfig
   const squareConfigured = paymentConfig?.isSquareConnected && paymentConfig?.squareApplicationId && paymentConfig?.squareLocationId;
@@ -50,39 +61,72 @@ const PaymentModal = ({
       return await fetchGraphQL(CREATE_ORDER_WITH_PAYMENT_MUTATION, variables);
     },
     onSuccess: (data) => {
-      setOrderResult(data.createOrderWithPayment);
-      setError(null);
+      const order = data?.createOrderWithPayment;
+      if (order && order.id) {
+        setOrderResult(order);
+        setError(null);
+      } else {
+        // Order creation failed even though payment might have succeeded
+        setError(
+          'Your payment was processed but we encountered an error creating your order. ' +
+          'Please contact support. Your cart has been preserved.'
+        );
+      }
     },
     onError: (err) => {
-      setError(err.message || 'Payment failed. Please try again.');
+      // Handle different error types
+      const errorMessage = err?.message || err?.response?.errors?.[0]?.message || 'Payment failed. Please try again.';
+      
+      // Set error message (handles both regular errors and orphaned payment scenarios)
+      setError(errorMessage);
     }
   });
 
-  // Countdown timer for success auto-dismiss
+  // Close modal immediately on success and trigger onSuccess callback
   useEffect(() => {
-    if (isSuccess && countdown > 0) {
-      const timer = setTimeout(() => {
-        setCountdown(countdown - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else if (isSuccess && countdown === 0) {
-      // Auto-dismiss after countdown
+    if (isSuccess && orderResult) {
+      // Close payment modal immediately
       onClose();
+      // Trigger success callback which will show OrderSuccessModal in CartPage
       if (onSuccess) {
         onSuccess(orderResult);
       }
     }
-  }, [isSuccess, countdown, onClose, onSuccess, orderResult]);
+  }, [isSuccess, orderResult, onClose, onSuccess]);
 
   // Handle tokenization from Square SDK
   const handleTokenReceived = async (token, buyer) => {
     setError(null);
+
+    // Check if tokenization failed (Square SDK may pass errors in token object)
+    if (!token) {
+      setError('Payment tokenization failed. Please try again.');
+      return;
+    }
+
+    // Check for errors in token response
+    if (token.errors && token.errors.length > 0) {
+      handleTokenizationError(token.errors);
+      return;
+    }
+
+    // Validate token
+    if (!token.token) {
+      setError('Payment tokenization failed. Please try again.');
+      return;
+    }
 
     // Prepare order items in GraphQL format
     const productItems = orderItems.map(item => ({
       productId: item.productId,
       quantity: item.quantity
     }));
+
+    // Validate required fields
+    if (!userProfile?.id || !selectedStore?.id) {
+      setError('Missing required information. Please refresh and try again.');
+      return;
+    }
 
     // Call mutation
     createOrder({
@@ -103,6 +147,25 @@ const PaymentModal = ({
     });
   };
 
+  // Handle tokenization errors from Square SDK
+  const handleTokenizationError = (errors) => {
+    if (errors && errors.length > 0) {
+      const error = errors[0];
+      // Map Square error codes to user-friendly messages
+      const errorMessages = {
+        'INVALID_CARD_DATA': 'Invalid card information. Please check your card details and try again.',
+        'CARD_DECLINED': 'Your card was declined. Please try a different payment method.',
+        'NETWORK_ERROR': 'Network error. Please check your connection and try again.',
+        'UNKNOWN_ERROR': 'An error occurred during payment processing. Please try again.'
+      };
+      
+      const errorCode = error.code || 'UNKNOWN_ERROR';
+      setError(errorMessages[errorCode] || error.message || 'Payment processing failed. Please try again.');
+    } else {
+      setError('Payment processing failed. Please try again.');
+    }
+  };
+
   // Create payment request for digital wallets
   const createPaymentRequest = () => ({
     countryCode: 'US',
@@ -119,8 +182,8 @@ const PaymentModal = ({
   return (
     <Dialog
       open={open}
-      onClose={isPending || isSuccess ? undefined : onClose}
-      disableEscapeKeyDown={isPending || isSuccess}
+      onClose={isPending ? undefined : onClose}
+      disableEscapeKeyDown={isPending}
       maxWidth="sm"
       fullWidth
       PaperProps={{
@@ -162,8 +225,8 @@ const PaymentModal = ({
       </DialogTitle>
 
       <DialogContent>
-        {isSuccess ? (
-          // Success state with countdown
+        {isPending ? (
+          // Loading state
           <Box
             sx={{
               display: 'flex',
@@ -173,17 +236,9 @@ const PaymentModal = ({
               gap: 2
             }}
           >
-            <CheckCircle sx={{ fontSize: 80, color: 'success.main' }} />
-            <Typography variant="h5" fontWeight="bold" color="success.main">
-              Payment Successful!
-            </Typography>
-            {orderResult && (
-              <Typography variant="body1" color="text.secondary">
-                Order #{orderResult.displayCode}
-              </Typography>
-            )}
-            <Typography variant="body2" color="text.secondary">
-              Redirecting in {countdown} seconds...
+            <CircularProgress size={60} />
+            <Typography variant="body1" color="text.secondary">
+              Processing payment...
             </Typography>
           </Box>
         ) : (
@@ -212,6 +267,7 @@ const PaymentModal = ({
                 locationId={paymentConfig?.squareLocationId}
                 cardTokenizeResponseReceived={handleTokenReceived}
                 createPaymentRequest={createPaymentRequest}
+                onError={handleTokenizationError}
               >
                 <Stack spacing={2}>
                   {/* Digital wallets */}
