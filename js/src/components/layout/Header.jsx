@@ -77,6 +77,7 @@ const Header = () => {
   const [userRole, setUserRole] = useState(null);
   const isMobile = useMediaQuery('(max-width: 600px)');
   const cartCount = useStore((state) => state.cartCount());
+  const selectedStore = useStore((state) => state.selectedStore);
   const { user, ability, logout } = useAuthStore();
   const [menuAnchor, setMenuAnchor] = React.useState(null);
   const { modalOpen, setModalOpen, currentForm, setCurrentForm } = useAuthStore();
@@ -189,7 +190,7 @@ const Header = () => {
         {userRole !== ROLES.ADMIN && userRole !== ROLES.STORE_MANAGER && userRole !== ROLES.DELIVERY_AGENT && (
           <ListItem button onClick={() => setStoreModalOpen(true)} sx={{ py: 2 }}>
             <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><Storefront /></ListItemIcon>
-            <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Change Store</Typography>} />
+            <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>{selectedStore ? 'Change Store' : 'Select Store'}</Typography>} />
           </ListItem>
         )}
         <ListItem button onClick={() => navigate(ROUTES.CART)} sx={{ py: 2 }}>
@@ -326,7 +327,7 @@ const Header = () => {
                   '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
                 }}
               >
-                Change Store
+                {selectedStore ? 'Change Store' : 'Select Store'}
               </Button>
             )}
             {user ? (

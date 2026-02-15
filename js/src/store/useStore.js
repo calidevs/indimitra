@@ -124,10 +124,7 @@ const useStore = create(
 
   // Calculate delivery fee based on fees array and delivery type
   calculateDeliveryFee: (subtotal, store, deliveryType) => {
-    console.log('Calculating delivery fee:', { subtotal, deliveryType, storeFees: store?.fees });
-
     if (!store || !store.fees || !store.fees.edges || store.fees.edges.length === 0) {
-      console.log('No fees configured, returning 0');
       return 0; // No fees configured, return 0
     }
 
@@ -136,16 +133,12 @@ const useStore = create(
       .map((edge) => edge.node)
       .filter((fee) => fee.type === deliveryType.toUpperCase());
 
-    console.log('Relevant fees for type', deliveryType, ':', relevantFees);
-
     if (relevantFees.length === 0) {
-      console.log('No fees for delivery type', deliveryType, 'returning 0');
       return 0; // No fees for this delivery type
     }
 
     // Sort fees by limit to find the appropriate fee tier
     const sortedFees = relevantFees.sort((a, b) => a.limit - b.limit);
-    console.log('Sorted fees by limit:', sortedFees);
 
     // Find the fee tier that applies to this subtotal
     let applicableFee = null;
@@ -163,16 +156,12 @@ const useStore = create(
       applicableFee = sortedFees[sortedFees.length - 1];
     }
 
-    console.log('Applicable fee for subtotal', subtotal, ':', applicableFee);
-
     if (!applicableFee) {
-      console.log('No applicable fee found, returning 0');
       return 0;
     }
 
     // feeRate is a fixed dollar amount, not a percentage
     const calculatedFee = applicableFee.feeRate;
-    console.log('Calculated fee:', calculatedFee, 'using fixed rate:', applicableFee.feeRate);
     return calculatedFee;
   },
 
@@ -317,7 +306,6 @@ export const useAuthStore = create((set, get) => ({
     set({ isProfileLoading: true });
     try {
       const response = await fetchGraphQL(GET_USER_PROFILE, { userId: cognitoId });
-      console.log('GraphQL Response:', response); // Debug log
 
       if (response.errors) {
         console.error('Error fetching user profile:', response.errors);
@@ -327,7 +315,6 @@ export const useAuthStore = create((set, get) => ({
 
       // Check if response is the data directly
       const userProfile = response.getUserProfile || response.data?.getUserProfile;
-      console.log('Extracted user profile:', userProfile); // Debug log
 
       if (!userProfile) {
         console.error('No user profile data in response. Full response:', response);
@@ -367,13 +354,10 @@ export const useAddressStore = create((set, get) => ({
 
     try {
       const numericUserId = typeof userId === 'string' ? parseInt(userId, 10) : userId;
-      console.log('Fetching addresses for user ID:', numericUserId);
 
       const response = await fetchGraphQL(GET_ADDRESSES_BY_USER, { userId: numericUserId });
-      console.log('Address data fetched:', response);
 
       const fetchedAddresses = response?.getAddressesByUser || [];
-      console.log('Fetched addresses:', fetchedAddresses);
 
       set({
         addresses: fetchedAddresses,

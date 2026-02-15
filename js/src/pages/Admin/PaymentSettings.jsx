@@ -108,11 +108,8 @@ const PaymentSettings = () => {
     mutationFn: (storeId) => fetchGraphQL(CONNECT_SQUARE, { storeId }),
     onSuccess: (data) => {
       const authUrl = data.connectSquare?.authorizationUrl;
-      console.log('DEBUG: Received authorization URL from backend:', authUrl);
-      console.log('DEBUG: Full response:', data);
       if (authUrl) {
         // Redirect to Square OAuth
-        console.log('DEBUG: About to redirect to:', authUrl);
         window.location.href = authUrl;
       } else {
         setAlertSeverity('error');

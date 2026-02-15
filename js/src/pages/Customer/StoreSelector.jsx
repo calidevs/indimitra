@@ -356,7 +356,6 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
       
       // Ensure we have a valid address string
       if (!addressStringToStore || !addressStringToStore.trim()) {
-        console.error('No valid address string to store for delivery');
         return;
       }
       
