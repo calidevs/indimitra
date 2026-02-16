@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, status, Request
 import boto3
+from botocore.client import Config
 import os
 from typing import Optional
 from datetime import datetime
@@ -59,7 +60,8 @@ s3 = boto3.client(
     "s3",
     region_name=AWS_REGION,
     aws_access_key_id=AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=AWS_SECRET_ACCESS_KEY
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
+    config=Config(signature_version="s3v4")
 )
 
 # File type validation
