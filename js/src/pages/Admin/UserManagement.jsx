@@ -262,7 +262,6 @@ const UserManagement = () => {
     };
 
     updateUserTypeMutation.mutate({
-      requesterId: adminCognitoId,
       targetUserId: selectedUser.cognitoId,
       newType: roleMapping[selectedRole] || selectedRole,
     });

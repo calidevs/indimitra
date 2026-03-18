@@ -446,8 +446,8 @@ export const DELETE_ADDRESS = `
 `;
 
 export const UPDATE_USER_TYPE = `
-  mutation UpdateUserType($requesterId: String!, $targetUserId: String!, $newType: String!) {
-    updateUserType(requesterId: $requesterId, targetUserId: $targetUserId, newType: $newType) {
+  mutation UpdateUserType($targetUserId: String!, $newType: String!) {
+    updateUserType(targetUserId: $targetUserId, newType: $newType) {
       user {
         id
         email
