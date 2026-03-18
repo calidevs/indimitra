@@ -1,15 +1,12 @@
 import { GraphQLClient } from 'graphql-request';
 import { fetchAuthSession } from 'aws-amplify/auth';
 
-// prod
-// const API_URL = 'https://indimitra.com/graphql';
-// dev
-let API_URL = `https://indimitra.com/graphql`;
-
-const url = window.location.href?.includes('http://localhost');
-if (url) {
-  API_URL = `http://127.0.0.1:8000/graphql`;
-}
+// Use current origin so GraphQL works on all domains (indimitra.com, famoushalalmeats.com, etc.)
+// Nginx proxies /graphql to the backend for each domain
+const isLocalhost = typeof window !== 'undefined' && window.location.href?.includes('http://localhost');
+const API_URL = isLocalhost
+  ? 'http://127.0.0.1:8000/graphql'
+  : `${window.location.origin}/graphql`;
 
 // Create GraphQL client with dynamic auth headers
 const graphQLClient = new GraphQLClient(API_URL, {
