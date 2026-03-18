@@ -190,6 +190,7 @@ export const GET_ALL_USERS = `query getAllUsers {
   getAllUsers {
     id
     email
+    mobile
     type
     cognitoId
   }
