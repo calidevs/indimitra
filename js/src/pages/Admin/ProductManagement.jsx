@@ -38,6 +38,7 @@ import {
 } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_PRODUCTS, CREATE_PRODUCT, UPDATE_PRODUCT, DELETE_PRODUCT } from '@/queries/operations';
+import { fetchAuthSession } from 'aws-amplify/auth';
 import graphqlService from '@/config/graphql/graphqlService';
 
 const GET_CATEGORIES = `
@@ -84,10 +85,10 @@ const ProductManagement = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info' });
   const [formError, setFormError] = useState('');
 
-  // Define baseUrl at component level
+  // Define baseUrl at component level (same-origin in prod; localhost for dev)
   const baseUrl = window.location.href?.includes('http://localhost')
     ? 'http://127.0.0.1:8000'
-    : 'https://indimitra.com';
+    : window.location.origin;
 
   // Fetch all products at once
   const { data: productsData, refetch } = useQuery({
@@ -357,13 +358,25 @@ const ProductManagement = () => {
       // Get the category name from CATEGORY_MAP
       const categoryName = CATEGORY_MAP[formData.categoryId] || 'uncategorized';
 
+      const session = await fetchAuthSession();
+      const token =
+        session?.tokens?.idToken?.toString?.() || session?.tokens?.accessToken?.toString?.();
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
       // Get upload URL from backend
       const res = await fetch(
         `${baseUrl}/s3/generate-product-upload-url?product_name=${encodeURIComponent(
           formData.name
         )}&category_name=${encodeURIComponent(categoryName)}&file_name=${encodeURIComponent(
           file.name
-        )}`
+        )}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       if (!res.ok) {
