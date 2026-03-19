@@ -399,7 +399,7 @@ const ProductManagement = () => {
       }
 
       // Construct public URL for the uploaded image
-      const publicUrl = `https://indimitra-dev-order-files.s3.amazonaws.com/${key}`;
+      const publicUrl = upload_url.split('?')[0];
 
       // Update form data with the public URL
       setFormData((prev) => ({
