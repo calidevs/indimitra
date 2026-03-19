@@ -399,7 +399,7 @@ const ProductManagement = () => {
       }
 
       // Construct public URL for the uploaded image
-      const publicUrl = upload_url.split('?')[0];
+      const publicUrl = upload_url.split('?')[0] + `?t=${Date.now()}`;
 
       // Update form data with the public URL
       setFormData((prev) => ({
