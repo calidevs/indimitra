@@ -50,7 +50,29 @@ if missing_envs:
 AWS_REGION = os.getenv("AWS_REGION")
 AWS_ACCESS_KEY_ID = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_ACCESS_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_SESSION_TOKEN = os.getenv("AWS_SESSION_TOKEN")
 BUCKET_NAME = os.getenv("S3_BUCKET_NAME", "indimitra-dev-order-files")
+
+# Log credential diagnostics safely (never log full secrets)
+def _mask_access_key(access_key: Optional[str]) -> str:
+    if not access_key:
+        return "<unset>"
+    # Show only key type prefix and last 4 chars
+    prefix = access_key[:4]
+    last4 = access_key[-4:] if len(access_key) >= 4 else access_key
+    return f"{prefix}...{last4} (len={len(access_key)})"
+
+def _presence(value: Optional[str]) -> str:
+    return "set" if value else "unset"
+
+logger.info(
+    "AWS credential env diagnostics: AWS_ACCESS_KEY_ID=%s, AWS_SECRET_ACCESS_KEY=%s, AWS_SESSION_TOKEN=%s, AWS_REGION=%s, S3_BUCKET_NAME=%s",
+    _mask_access_key(AWS_ACCESS_KEY_ID),
+    _presence(AWS_SECRET_ACCESS_KEY),
+    _presence(AWS_SESSION_TOKEN),
+    AWS_REGION or "<unset>",
+    BUCKET_NAME or "<unset>",
+)
 
 # Initialize FastAPI router
 router = APIRouter()
