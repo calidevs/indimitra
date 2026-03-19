@@ -353,6 +353,16 @@ def set_bill_url(
 @router.get("/s3/generate-product-upload-url")
 def generate_product_upload_url(product_name: str, category_name: str, file_name: str):
     try:
+        # Log credential diagnostics safely per invocation (never log full secrets)
+        logger.info(
+            "AWS credential env diagnostics (product upload): AWS_ACCESS_KEY_ID=%s, AWS_SECRET_ACCESS_KEY=%s, AWS_SESSION_TOKEN=%s, AWS_REGION=%s, S3_BUCKET_NAME=%s",
+            _mask_access_key(AWS_ACCESS_KEY_ID),
+            _presence(AWS_SECRET_ACCESS_KEY),
+            _presence(AWS_SESSION_TOKEN),
+            AWS_REGION or "<unset>",
+            BUCKET_NAME or "<unset>",
+        )
+
         file_name = urllib.parse.unquote(file_name)
         key = generate_product_key(product_name, category_name, file_name)
 
