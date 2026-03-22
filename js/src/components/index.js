@@ -22,6 +22,8 @@ export { default as Card } from './Card/Card';
 export { default as CardMedia } from './Card/CardMedia';
 export { default as Rating } from './Rating/Rating';
 export { default as ProductGrid } from './products/ProductGrid';
+export { default as CategoryFilterScroll } from './products/CategoryFilterScroll';
+export { default as ProductToolbar } from './products/ProductToolbar';
 export { default as InputAdornment } from './InputAdornment/InputAdornment';
 export { default as TableContainer } from './Table/TableContainer';
 export { default as Table } from './Table/Table';

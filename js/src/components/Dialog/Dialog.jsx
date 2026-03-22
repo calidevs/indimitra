@@ -8,13 +8,14 @@ import {
 import { useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
 
-const Dialog = ({ open, onClose, children, title, footer, ...props }) => {
+const Dialog = ({ open, onClose, children, title, footer, hideClose = false, ...props }) => {
   const theme = useTheme();
   return (
     <MuiDialog
       open={open}
       maxWidth="sm"
       fullWidth
+      onClose={hideClose ? undefined : onClose}
       PaperProps={{
         sx: {
           borderRadius: 3,
@@ -39,21 +40,23 @@ const Dialog = ({ open, onClose, children, title, footer, ...props }) => {
           }}
         >
           {title}
-          <IconButton
-            aria-label="close"
-            onClick={onClose}
-            sx={{
-              position: 'absolute',
-              right: 8,
-              top: 8,
-              color: 'white',
-              '&:hover': {
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              },
-            }}
-          >
-            <CloseIcon />
-          </IconButton>
+          {!hideClose && (
+            <IconButton
+              aria-label="close"
+              onClick={onClose}
+              sx={{
+                position: 'absolute',
+                right: 8,
+                top: 8,
+                color: 'white',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                },
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+          )}
         </DialogTitle>
       )}
 

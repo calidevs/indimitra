@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Typography,
   Radio,
@@ -13,6 +13,9 @@ import {
   Tab,
   Divider,
   Chip,
+  Collapse,
+  TextField,
+  InputAdornment,
 } from '@mui/material';
 import StoreIcon from '@mui/icons-material/Store';
 import HomeIcon from '@mui/icons-material/Home';
@@ -22,6 +25,8 @@ import LocationOn from '@mui/icons-material/LocationOn';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import LoginIcon from '@mui/icons-material/Login';
 import CheckCircleOutline from '@mui/icons-material/CheckCircleOutline';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import SearchIcon from '@mui/icons-material/Search';
 import { CircularProgress } from '@mui/material';
 
 import Dialog from '@/components/Dialog/Dialog';
@@ -37,6 +42,145 @@ import { fetchAuthSession } from '@aws-amplify/auth';
 const LoadingSpinner = ({ size = 24, sx }) => (
   <CircularProgress size={size} sx={{ color: 'inherit', ...sx }} />
 );
+
+const PINCODE_DISPLAY_LIMIT = 30;
+
+const ServiceablePincodes = ({ pincodes = [] }) => {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+
+  const sorted = useMemo(
+    () => [...pincodes].map((p) => String(p).trim()).filter(Boolean).sort((a, b) => a.localeCompare(b)),
+    [pincodes],
+  );
+
+  const filtered = useMemo(() => {
+    if (!search.trim()) return sorted;
+    const q = search.trim();
+    return sorted.filter((p) => p.includes(q));
+  }, [sorted, search]);
+
+  const showSearch = sorted.length > PINCODE_DISPLAY_LIMIT;
+
+  if (sorted.length === 0) return null;
+
+  return (
+    <Paper
+      elevation={0}
+      sx={{
+        border: '1px solid',
+        borderColor: 'divider',
+        borderRadius: 2,
+        overflow: 'hidden',
+      }}
+    >
+      {/* Toggle header */}
+      <Box
+        onClick={() => setOpen((o) => !o)}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 1,
+          px: 2,
+          py: 1.25,
+          cursor: 'pointer',
+          userSelect: 'none',
+          '&:hover': { bgcolor: 'grey.50' },
+          transition: 'background-color 0.15s',
+        }}
+      >
+        <LocalShippingIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+        <Typography variant="body2" sx={{ flex: 1, fontWeight: 600, fontSize: '0.85rem' }}>
+          Serviceable pincodes
+        </Typography>
+        <Chip
+          label={sorted.length}
+          size="small"
+          sx={{
+            height: 22,
+            fontSize: '0.72rem',
+            fontWeight: 700,
+            bgcolor: 'rgba(0,0,0,0.06)',
+          }}
+        />
+        <ExpandMoreIcon
+          sx={{
+            fontSize: 20,
+            color: 'text.secondary',
+            transition: 'transform 0.25s',
+            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+          }}
+        />
+      </Box>
+
+      <Collapse in={open} timeout={250}>
+        <Divider />
+        <Box sx={{ px: 2, py: 1.5 }}>
+          {/* Search (only when list is large) */}
+          {showSearch && (
+            <TextField
+              size="small"
+              placeholder="Search pincode…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              fullWidth
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{
+                mb: 1.5,
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '10px',
+                  fontSize: '0.85rem',
+                  height: 36,
+                },
+              }}
+            />
+          )}
+
+          {filtered.length === 0 ? (
+            <Typography variant="body2" color="text.disabled" sx={{ textAlign: 'center', py: 1, fontSize: '0.82rem' }}>
+              No pincodes match "{search}"
+            </Typography>
+          ) : (
+            <Box
+              sx={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 0.75,
+                maxHeight: 160,
+                overflowY: 'auto',
+                scrollbarWidth: 'thin',
+                '&::-webkit-scrollbar': { width: 4 },
+                '&::-webkit-scrollbar-thumb': { backgroundColor: 'rgba(0,0,0,0.12)', borderRadius: 2 },
+              }}
+            >
+              {filtered.map((pin) => (
+                <Chip
+                  key={pin}
+                  label={pin}
+                  size="small"
+                  variant="outlined"
+                  sx={{
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    height: 26,
+                    borderRadius: '8px',
+                    borderColor: 'grey.300',
+                  }}
+                />
+              ))}
+            </Box>
+          )}
+        </Box>
+      </Collapse>
+    </Paper>
+  );
+};
 
 const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
   const {
@@ -398,10 +542,12 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     setDeliveryMessage('');
   };
 
+  const requiresSelection = !selectedStore;
+
   // Step 1: Store selection
   if (step === 'store') {
     return (
-      <Dialog open={open} onClose={onClose} title={<StoreSelectorTitle />}>
+      <Dialog open={open} onClose={onClose} title={<StoreSelectorTitle />} hideClose={requiresSelection}>
         {availableStores.length === 0 ? (
           <NoStoresMessage />
         ) : (
@@ -447,7 +593,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     );
 
     return (
-      <Dialog open={open} onClose={onClose} title={<StoreSelectorTitle />} footer={backButton}>
+      <Dialog open={open} onClose={onClose} title={<StoreSelectorTitle />} footer={backButton} hideClose={requiresSelection}>
         <Typography
           variant="body2"
           sx={{ textAlign: 'center', color: 'text.secondary', mb: 2 }}
@@ -546,6 +692,9 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
         {/* Delivery Tab Content */}
         {activeTab === 1 && (
           <Stack spacing={2}>
+            {/* Serviceable pincodes */}
+            <ServiceablePincodes pincodes={tempStore?.pincodes} />
+
             {/* Address Input */}
             <Typography variant="body2" color="text.secondary" sx={{ mb: -1 }}>
               Enter your delivery address to check availability
