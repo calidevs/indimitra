@@ -49,6 +49,7 @@ import {
   LocalShipping as LocalShippingIcon,
   AttachMoney as AttachMoneyIcon,
   Percent as PercentIcon,
+  Collections as CollectionsIcon,
 } from '@mui/icons-material';
 import fetchGraphQL from '@/config/graphql/graphqlService';
 import { GET_STORES } from '@/queries/operations';
@@ -539,8 +540,7 @@ const StoreManagement = () => {
         throw new Error('Failed to upload image');
       }
 
-      // Construct public URL for the uploaded image
-      const publicUrl = `https://indimitra-dev-order-files.s3.amazonaws.com/${key}`;
+      const publicUrl = upload_url.split('?')[0];
 
       if (isEdit) {
         setEditStoreImages((prev) => [...prev, publicUrl]);
@@ -1820,6 +1820,57 @@ const StoreManagement = () => {
                               )}
                             </Box>
                           </Grid>
+
+                          {/* Store Images */}
+                          {store.images && store.images.length > 0 && (
+                            <Grid item xs={12}>
+                              <Divider sx={{ mb: 2 }} />
+                              <Typography
+                                variant="subtitle2"
+                                sx={{
+                                  mb: 1.5,
+                                  fontWeight: 600,
+                                  color: 'primary.main',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  '&::before': {
+                                    content: '""',
+                                    display: 'inline-block',
+                                    width: 4,
+                                    height: 16,
+                                    backgroundColor: 'primary.main',
+                                    marginRight: 1,
+                                    borderRadius: 1,
+                                  },
+                                }}
+                              >
+                                <CollectionsIcon sx={{ fontSize: '1rem', mr: 0.5 }} />
+                                Store Images ({store.images.length})
+                              </Typography>
+                              <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: 1, scrollbarWidth: 'thin' }}>
+                                {store.images.map((url, idx) => (
+                                  <Box
+                                    key={idx}
+                                    sx={{
+                                      flex: '0 0 auto',
+                                      width: 120,
+                                      height: 80,
+                                      borderRadius: 2,
+                                      overflow: 'hidden',
+                                      border: '1px solid',
+                                      borderColor: 'divider',
+                                    }}
+                                  >
+                                    <img
+                                      src={url}
+                                      alt={`Store image ${idx + 1}`}
+                                      style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                                    />
+                                  </Box>
+                                ))}
+                              </Box>
+                            </Grid>
+                          )}
                         </Grid>
                       </Box>
                     </Paper>

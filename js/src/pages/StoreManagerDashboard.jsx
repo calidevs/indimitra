@@ -361,7 +361,7 @@ const StoreManagerDashboard = () => {
         throw new Error('Failed to upload image');
       }
 
-      const publicUrl = `https://indimitra-dev-order-files.s3.amazonaws.com/${key}`;
+      const publicUrl = upload_url.split('?')[0];
       setEditStoreImages((prev) => [...prev, publicUrl]);
 
       setSnackbar({
