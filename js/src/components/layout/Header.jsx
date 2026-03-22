@@ -26,19 +26,17 @@ import StoreSelector from '@/pages/Customer/StoreSelector';
 import MenuIcon from '@mui/icons-material/Menu';
 import { ROLES } from '@/config/constants/roles';
 
-const Logo = ({ navigate, userRole }) => {
+const Logo = ({ navigate, userRole, storeName }) => {
   const { setUser } = useAuthStore();
 
   const handleLogoClick = async () => {
     let roleToUse = userRole;
 
-    // If role is undefined, fetch it from the session
     if (!roleToUse) {
       try {
         const session = await fetchAuthSession();
         if (session?.tokens?.idToken) {
           roleToUse = session.tokens.idToken.payload['custom:role']?.toLowerCase();
-          // Store the role in the auth store
           setUser({ role: roleToUse });
         }
       } catch (error) {
@@ -46,7 +44,6 @@ const Logo = ({ navigate, userRole }) => {
       }
     }
 
-    // Navigate based on the role
     if (roleToUse) {
       navigate(`/${roleToUse}`);
     } else {
@@ -54,20 +51,26 @@ const Logo = ({ navigate, userRole }) => {
     }
   };
 
+  if (!storeName) return null;
+
   return (
     <Typography
       onClick={handleLogoClick}
       sx={{
         cursor: 'pointer',
         fontWeight: 800,
-        fontSize: { xs: '1.5rem', sm: '1.75rem' },
+        fontSize: { xs: '1.2rem', sm: '1.5rem', md: '1.75rem' },
         background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
         WebkitBackgroundClip: 'text',
         WebkitTextFillColor: 'transparent',
         letterSpacing: '0.5px',
+        maxWidth: { xs: 180, sm: 280, md: 'none' },
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
       }}
     >
-      Indimitra
+      {storeName}
     </Typography>
   );
 };
@@ -243,8 +246,8 @@ const Header = () => {
             px: { xs: 1, sm: 2, md: 4 },
           }}
         >
-          {/* Logo */}
-          <Logo navigate={navigate} userRole={user?.role} />
+          {/* Logo / Store name */}
+          <Logo navigate={navigate} userRole={user?.role} storeName={selectedStore?.name} />
 
           {/* Spacer */}
           <Box sx={{ flexGrow: 1 }} />

@@ -1,7 +1,7 @@
 // In js/src/pages/Dashbaord.jsx
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Box, LoadingSpinner, Container, Typography, Button, StoreImageSlider } from '@components';
+import { Box, LoadingSpinner, Container, Typography, StoreImageSlider } from '@components';
 import { Paper, FormControlLabel, Switch } from '@mui/material';
 import Products from '../Products';
 import ListInput from './ListInput';
@@ -84,74 +84,6 @@ const Dashbaord = () => {
       <StoreSelector open={storeModalOpen} onClose={() => setStoreModalOpen(false)} />
       {selectedStore && (
         <>
-          <Container>
-            <Box
-              sx={{
-                alignItems: 'center',
-                mb: { xs: 2, sm: 3 },
-                mt: { xs: 1, sm: 2 },
-                p: { xs: 1, sm: 2 },
-                backgroundColor: 'rgba(0, 0, 0, 0.03)',
-                borderRadius: 2,
-              }}
-            >
-              <Box
-                sx={{
-                  display: 'flex',
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  justifyContent: 'space-between',
-                  alignItems: { xs: 'flex-start', sm: 'center' },
-                  width: '100%',
-                  gap: { xs: 1.5, sm: 0 },
-                }}
-              >
-                <Box sx={{ mb: { xs: 1, sm: 0 } }}>
-                  <Typography variant="h6" sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}>{selectedStore.name}</Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.95rem', sm: '1rem' } }}>
-                    {selectedStore.address}
-                  </Typography>
-                </Box>
-                {(pickupAddress || deliveryAddressString) && (
-                  <Button
-                    variant="outlined"
-                    color="primary"
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: { xs: 'flex-start', sm: 'flex-end' },
-                      minWidth: { xs: 0, sm: 180 },
-                      borderRadius: 2,
-                      fontWeight: 600,
-                      textTransform: 'none',
-                      fontSize: { xs: '0.95rem', sm: '1rem' },
-                      mt: { xs: 1, sm: 0 },
-                      px: { xs: 1.5, sm: 2 },
-                      py: { xs: 0.5, sm: 1 },
-                    }}
-                    onClick={() => setStoreSelectorStep2Open(true)}
-                  >
-                    <Typography variant="subtitle2" color="primary" sx={{ fontSize: { xs: '0.95rem', sm: '1rem' } }}>
-                      {deliveryType === 'delivery' ? 'Change Delivery Address' : 'Change Pickup Location'}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.85rem', sm: '0.95rem' } }}>
-                      {deliveryType === 'delivery' 
-                        ? (deliveryAddressString || 'No address selected')
-                        : (pickupAddress?.address || 'No pickup location selected')
-                      }
-                    </Typography>
-                  </Button>
-                )}
-              </Box>
-              <Box sx={{ mt: 1, display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, justifyContent: 'space-between', gap: { xs: 0.5, sm: 2 } }}>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.95rem', sm: '1rem' } }}>
-                  {selectedStore.description}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: '0.95rem', sm: '1rem' } }}>
-                  {selectedStore.tnc}
-                </Typography>
-              </Box>
-            </Box>
-          </Container>
           <StoreSelector
             open={storeSelectorStep2Open}
             onClose={() => setStoreSelectorStep2Open(false)}
@@ -159,8 +91,30 @@ const Dashbaord = () => {
             initialStore={selectedStore}
           />
           <Container>
-            {/* Store Images Slider */}
-            <StoreImageSlider images={selectedStore?.images} />
+            <Box sx={{ mt: { xs: 1, sm: 2 } }}>
+              <StoreImageSlider
+                images={selectedStore?.images}
+                storeAddress={selectedStore.address}
+                storeDescription={selectedStore.description}
+                deliveryLabel={
+                  (pickupAddress || deliveryAddressString)
+                    ? (deliveryType === 'delivery' ? 'Change Delivery Address' : 'Change Pickup Location')
+                    : undefined
+                }
+                deliverySubtext={
+                  (pickupAddress || deliveryAddressString)
+                    ? (deliveryType === 'delivery'
+                        ? (deliveryAddressString || 'No address selected')
+                        : (pickupAddress?.address || 'No pickup location selected'))
+                    : undefined
+                }
+                onChangeAddress={
+                  (pickupAddress || deliveryAddressString)
+                    ? () => setStoreSelectorStep2Open(true)
+                    : undefined
+                }
+              />
+            </Box>
           </Container>
           <Container>
             {hasSectionHeaders && (
