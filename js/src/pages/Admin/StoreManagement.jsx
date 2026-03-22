@@ -332,6 +332,9 @@ const StoreManagement = () => {
         displayField: data.displayField || null,
         sectionHeaders: data.sectionHeaders || null,
         pincodes: data.pincodes || null,
+        images: data.images || [],
+        codEnabled: data.codEnabled ?? false,
+        whatsappNumber: data.whatsappNumber || null,
       });
     },
     onSuccess: () => {
