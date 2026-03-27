@@ -242,7 +242,7 @@ const CartPage = () => {
   const [orderSuccessModalOpen, setOrderSuccessModalOpen] = useState(false);
   const [orderCode, setOrderCode] = useState(null);
   const [error, setError] = useState('');
-  const { user, userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm } =
+  const { user, userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm, setSkipNavigateOnLogin } =
     useAuthStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -529,6 +529,7 @@ const CartPage = () => {
     // Validate user is logged in
     if (!userProfile || !userProfile.id) {
       setError('Please log in to place an order');
+      setSkipNavigateOnLogin(true);
       setModalOpen(true);
       setCurrentForm('login');
       return;
@@ -595,6 +596,7 @@ const CartPage = () => {
     // Validate user is logged in
     if (!userProfile || !userProfile.id) {
       setError('Please log in to place an order');
+      setSkipNavigateOnLogin(true);
       setModalOpen(true);
       setCurrentForm('login');
       return;
@@ -1372,6 +1374,7 @@ const CartPage = () => {
                   variant="contained"
                   size="large"
                   onClick={() => {
+                    setSkipNavigateOnLogin(true);
                     setModalOpen(true);
                     setCurrentForm('login');
                   }}

@@ -185,37 +185,81 @@ const Header = () => {
       <List sx={{ flex: 1, py: 1 }}>
         {!cognitoId && (
           <ListItem button onClick={handleSignInClick} sx={{ py: 2 }}>
-            <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><Person /></ListItemIcon>
-            <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Sign In</Typography>} />
+            <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}>
+              <Person />
+            </ListItemIcon>
+            <ListItemText
+              primary={
+                <Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Sign In</Typography>
+              }
+            />
           </ListItem>
         )}
         {/* Only show Change Store for regular users or guests, not for admin/store_manager/delivery_agent */}
-        {userRole !== ROLES.ADMIN && userRole !== ROLES.STORE_MANAGER && userRole !== ROLES.DELIVERY_AGENT && (
-          <ListItem button onClick={() => setStoreModalOpen(true)} sx={{ py: 2 }}>
-            <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><Storefront /></ListItemIcon>
-            <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>{selectedStore ? 'Change Store' : 'Select Store'}</Typography>} />
-          </ListItem>
-        )}
+        {userRole !== ROLES.ADMIN &&
+          userRole !== ROLES.STORE_MANAGER &&
+          userRole !== ROLES.DELIVERY_AGENT && (
+            <ListItem button onClick={() => setStoreModalOpen(true)} sx={{ py: 2 }}>
+              <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}>
+                <Storefront />
+              </ListItemIcon>
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>
+                    {selectedStore ? 'Change Store' : 'Select Store'}
+                  </Typography>
+                }
+              />
+            </ListItem>
+          )}
         <ListItem button onClick={() => navigate(ROUTES.CART)} sx={{ py: 2 }}>
-          <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><ShoppingCart /></ListItemIcon>
-          <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Cart</Typography>} />
+          <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}>
+            <ShoppingCart />
+          </ListItemIcon>
+          <ListItemText
+            primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Cart</Typography>}
+          />
         </ListItem>
         {cognitoId && userAbility?.can('view', 'orders') && (
           <ListItem button onClick={() => navigate(ROUTES.ORDERS)} sx={{ py: 2 }}>
-            <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><ShoppingBag /></ListItemIcon>
-            <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Orders</Typography>} />
+            <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}>
+              <ShoppingBag />
+            </ListItemIcon>
+            <ListItemText
+              primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Orders</Typography>}
+            />
           </ListItem>
         )}
         {cognitoId && (
           <>
             <Divider sx={{ my: 1.5 }} />
-            <ListItem button onClick={() => { navigate(ROUTES.PROFILE); }} sx={{ py: 2 }}>
-              <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}><Person /></ListItemIcon>
-              <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Profile</Typography>} />
+            <ListItem
+              button
+              onClick={() => {
+                navigate(ROUTES.PROFILE);
+              }}
+              sx={{ py: 2 }}
+            >
+              <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}>
+                <Person />
+              </ListItemIcon>
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Profile</Typography>
+                }
+              />
             </ListItem>
             <ListItem button onClick={handleLogout} sx={{ py: 2 }}>
-              <ListItemIcon sx={{ color: 'error.main', minWidth: 40 }}><Person /></ListItemIcon>
-              <ListItemText primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem', color: 'error.main' }}>Logout</Typography>} />
+              <ListItemIcon sx={{ color: 'error.main', minWidth: 40 }}>
+                <Person />
+              </ListItemIcon>
+              <ListItemText
+                primary={
+                  <Typography sx={{ fontWeight: 600, fontSize: '1.1rem', color: 'error.main' }}>
+                    Logout
+                  </Typography>
+                }
+              />
             </ListItem>
           </>
         )}
@@ -274,74 +318,108 @@ const Header = () => {
                 position: 'relative',
               }}
             >
-            {!cognitoId && (
-              <Button
-                onClick={handleSignInClick}
-                sx={{
-                  color: '#2A2F4F',
-                  textTransform: 'none',
+              {!cognitoId && (
+                <Button
+                  onClick={handleSignInClick}
+                  sx={{
+                    color: '#2A2F4F',
+                    textTransform: 'none',
                     fontSize: { xs: '0.95rem', sm: '1rem' },
-                  fontWeight: 500,
+                    fontWeight: 500,
                     px: { xs: 1, sm: 2 },
                     py: { xs: 0.5, sm: 1 },
                     minWidth: { xs: 0, sm: 64 },
-                  '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
-                }}
-              >
-                Sign In
-              </Button>
-            )}
-            {/* Orders (Desktop) */}
-            {!isMobile && cognitoId && userAbility && userAbility.can('view', 'orders') && (
-              <Button
-                onClick={() => navigate(ROUTES.ORDERS)}
-                sx={{
-                  color: '#2A2F4F',
-                  textTransform: 'none',
+                    '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
+                  }}
+                >
+                  Sign In
+                </Button>
+              )}
+              {/* Orders (Desktop) */}
+              {!isMobile && cognitoId && userAbility && userAbility.can('view', 'orders') && (
+                <Button
+                  onClick={() => navigate(ROUTES.ORDERS)}
+                  sx={{
+                    color: '#2A2F4F',
+                    textTransform: 'none',
                     fontSize: { xs: '0.95rem', sm: '1rem' },
-                  fontWeight: 500,
+                    fontWeight: 500,
                     px: { xs: 1, sm: 2 },
                     py: { xs: 0.5, sm: 1 },
                     minWidth: { xs: 0, sm: 64 },
-                  '&:hover': {
-                    backgroundColor: 'rgba(42, 47, 79, 0.08)',
-                  },
-                }}
-              >
-                Orders
-              </Button>
-            )}
-            {/* Only show Change Store for regular users or guests, not for admin/store_manager/delivery_agent */}
-            {userRole !== ROLES.ADMIN && userRole !== ROLES.STORE_MANAGER && userRole !== ROLES.DELIVERY_AGENT && (
-              <Button
-                variant="outlined"
-                  startIcon={<Storefront sx={{ fontSize: { xs: 18, sm: 22 } }} />}
-                onClick={() => setStoreModalOpen(true)}
-                sx={{
-                  color: '#2A2F4F',
-                  borderColor: '#2A2F4F',
-                  textTransform: 'none',
-                    fontSize: { xs: '0.95rem', sm: '1rem' },
-                  fontWeight: 500,
-                    px: { xs: 1, sm: 2 },
-                    py: { xs: 0.5, sm: 1 },
-                    minWidth: { xs: 0, sm: 64 },
-                    mr: { xs: 0.5, sm: 1 },
-                  '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
-                }}
-              >
-                {selectedStore ? 'Change Store' : 'Select Store'}
-              </Button>
-            )}
-            {user ? (
-              userAbility?.can('view', 'cart') && (
+                    '&:hover': {
+                      backgroundColor: 'rgba(42, 47, 79, 0.08)',
+                    },
+                  }}
+                >
+                  Orders
+                </Button>
+              )}
+              {/* Only show Change Store for regular users or guests, not for admin/store_manager/delivery_agent */}
+              {userRole !== ROLES.ADMIN &&
+                userRole !== ROLES.STORE_MANAGER &&
+                userRole !== ROLES.DELIVERY_AGENT && (
+                  <Button
+                    variant="outlined"
+                    startIcon={<Storefront sx={{ fontSize: { xs: 18, sm: 22 } }} />}
+                    onClick={() => setStoreModalOpen(true)}
+                    sx={{
+                      color: '#2A2F4F',
+                      borderColor: '#2A2F4F',
+                      textTransform: 'none',
+                      fontSize: { xs: '0.95rem', sm: '1rem' },
+                      fontWeight: 500,
+                      px: { xs: 1, sm: 2 },
+                      py: { xs: 0.5, sm: 1 },
+                      minWidth: { xs: 0, sm: 64 },
+                      mr: { xs: 0.5, sm: 1 },
+                      '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
+                    }}
+                  >
+                    {selectedStore ? 'Change Store' : 'Select Store'}
+                  </Button>
+                )}
+              {user ? (
+                userAbility?.can('view', 'cart') && (
+                  <Tooltip title="Cart">
+                    <IconButton
+                      onClick={() => navigate(ROUTES.CART)}
+                      sx={{
+                        background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+                        color: 'white',
+                        p: { xs: 0.75, sm: 1 },
+                        '&:hover': {
+                          background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
+                        },
+                      }}
+                    >
+                      <Badge
+                        badgeContent={cartCount}
+                        color="error"
+                        sx={{
+                          '& .MuiBadge-badge': {
+                            backgroundColor: '#FF6B6B',
+                            color: 'white',
+                            fontWeight: 'bold',
+                            fontSize: { xs: '0.7rem', sm: '0.8rem' },
+                            minWidth: { xs: 18, sm: 20 },
+                            height: { xs: 18, sm: 20 },
+                          },
+                        }}
+                      >
+                        <ShoppingCart sx={{ fontSize: { xs: 20, sm: 24 } }} />
+                      </Badge>
+                    </IconButton>
+                  </Tooltip>
+                )
+              ) : (
                 <Tooltip title="Cart">
                   <IconButton
                     onClick={() => navigate(ROUTES.CART)}
                     sx={{
                       background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
                       color: 'white',
-                        p: { xs: 0.75, sm: 1 },
+                      p: { xs: 0.75, sm: 1 },
                       '&:hover': {
                         background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
                       },
@@ -355,68 +433,36 @@ const Header = () => {
                           backgroundColor: '#FF6B6B',
                           color: 'white',
                           fontWeight: 'bold',
-                            fontSize: { xs: '0.7rem', sm: '0.8rem' },
-                            minWidth: { xs: 18, sm: 20 },
-                            height: { xs: 18, sm: 20 },
-                        },
-                      }}
-                    >
-                        <ShoppingCart sx={{ fontSize: { xs: 20, sm: 24 } }} />
-                    </Badge>
-                  </IconButton>
-                </Tooltip>
-              )
-            ) : (
-              <Tooltip title="Cart">
-                <IconButton
-                  onClick={() => navigate(ROUTES.CART)}
-                  sx={{
-                    background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
-                    color: 'white',
-                      p: { xs: 0.75, sm: 1 },
-                    '&:hover': {
-                      background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
-                    },
-                  }}
-                >
-                  <Badge
-                    badgeContent={cartCount}
-                    color="error"
-                    sx={{
-                      '& .MuiBadge-badge': {
-                        backgroundColor: '#FF6B6B',
-                        color: 'white',
-                        fontWeight: 'bold',
                           fontSize: { xs: '0.7rem', sm: '0.8rem' },
                           minWidth: { xs: 18, sm: 20 },
                           height: { xs: 18, sm: 20 },
+                        },
+                      }}
+                    >
+                      <ShoppingCart sx={{ fontSize: { xs: 20, sm: 24 } }} />
+                    </Badge>
+                  </IconButton>
+                </Tooltip>
+              )}
+              {cognitoId && (
+                <Tooltip title="Profile">
+                  <IconButton
+                    onClick={handleMenuOpen}
+                    sx={{
+                      background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+                      color: 'white',
+                      p: { xs: 0.75, sm: 1 },
+                      ml: { xs: 0.5, sm: 1 },
+                      '&:hover': {
+                        background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
                       },
                     }}
                   >
-                      <ShoppingCart sx={{ fontSize: { xs: 20, sm: 24 } }} />
-                  </Badge>
-                </IconButton>
-              </Tooltip>
-            )}
-            {cognitoId && (
-              <Tooltip title="Profile">
-                <IconButton
-                  onClick={handleMenuOpen}
-                  sx={{
-                    background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
-                    color: 'white',
-                      p: { xs: 0.75, sm: 1 },
-                      ml: { xs: 0.5, sm: 1 },
-                    '&:hover': {
-                      background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
-                    },
-                  }}
-                >
                     <Person sx={{ fontSize: { xs: 20, sm: 24 } }} />
-                </IconButton>
-              </Tooltip>
-            )}
-          </Box>
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
           )}
         </Toolbar>
       </Box>

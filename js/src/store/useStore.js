@@ -14,234 +14,249 @@ import {
 const useStore = create(
   persist(
     (set, get) => ({
-  cart: {},
-  selectedStore: null,
-  availableStores: [],
+      cart: {},
+      selectedStore: null,
+      availableStores: [],
 
-  setAvailableStores: (stores) => set({ availableStores: stores }),
+      setAvailableStores: (stores) => set({ availableStores: stores }),
 
-  setSelectedStore: (store) => {
-    const state = get();
-    const oldStoreId = state.selectedStore?.id;
+      setSelectedStore: (store) => {
+        const state = get();
+        const oldStoreId = state.selectedStore?.id;
+        const newStoreId = store?.id;
 
-    // Save current cart for the old store before switching
-    if (oldStoreId) {
-      const cartSnapshot = {
-        cart: state.cart,
-        customOrder: state.customOrder,
-        listInputAnswers: state.listInputAnswers,
-        deliveryType: state.deliveryType,
-        tipAmount: state.tipAmount || 0,
-        pickupAddress: state.pickupAddress,
-        deliveryAddressString: state.deliveryAddressString,
-      };
-      try {
-        localStorage.setItem(
-          `indimitra-cart-store-${oldStoreId}`,
-          JSON.stringify(cartSnapshot)
-        );
-      } catch (e) { /* localStorage full, ignore */ }
-    }
+        // Same store re-selection (e.g. rehydration after refresh) — update
+        // the store object (it may carry fresh data from the API) but keep
+        // the current cart that Zustand persist already restored.
+        if (oldStoreId && newStoreId && String(oldStoreId) === String(newStoreId)) {
+          set({ selectedStore: store });
+          return;
+        }
 
-    // Load saved cart for the new store (or empty)
-    const newStoreId = store?.id;
-    let restored = null;
-    if (newStoreId) {
-      try {
-        const raw = localStorage.getItem(`indimitra-cart-store-${newStoreId}`);
-        if (raw) restored = JSON.parse(raw);
-      } catch (e) { /* corrupted, ignore */ }
-    }
+        // Save current cart for the old store before switching
+        if (oldStoreId) {
+          const cartSnapshot = {
+            cart: state.cart,
+            customOrder: state.customOrder,
+            listInputAnswers: state.listInputAnswers,
+            deliveryType: state.deliveryType,
+            tipAmount: state.tipAmount || 0,
+            pickupAddress: state.pickupAddress,
+            deliveryAddressString: state.deliveryAddressString,
+          };
+          try {
+            localStorage.setItem(
+              `indimitra-cart-store-${oldStoreId}`,
+              JSON.stringify(cartSnapshot)
+            );
+          } catch (e) {
+            /* localStorage full, ignore */
+          }
+        }
 
-    set({
-      selectedStore: store,
-      cart: restored?.cart || {},
-      customOrder: restored?.customOrder || '',
-      listInputAnswers: restored?.listInputAnswers || {},
-      deliveryType: restored?.deliveryType || 'pickup',
-      tipAmount: restored?.tipAmount || 0,
-      pickupAddress: restored?.pickupAddress || null,
-      deliveryAddressString: restored?.deliveryAddressString || null,
-    });
-  },
+        // Load saved cart for the new store (or empty)
+        let restored = null;
+        if (newStoreId) {
+          try {
+            const raw = localStorage.getItem(`indimitra-cart-store-${newStoreId}`);
+            if (raw) restored = JSON.parse(raw);
+          } catch (e) {
+            /* corrupted, ignore */
+          }
+        }
 
-  getSelectedStore: () => get().selectedStore,
-
-  // New: Pickup address state
-  pickupAddress: null,
-  setPickupAddress: (address) => set({ pickupAddress: address }),
-
-  // New: Delivery address string (for Dashboard display only)
-  deliveryAddressString: null,
-  setDeliveryAddressString: (address) => set({ deliveryAddressString: address }),
-
-  // New: Delivery type state (pickup or delivery)
-  deliveryType: 'pickup', // 'pickup' or 'delivery'
-  setDeliveryType: (type) => set({ deliveryType: type }),
-
-  addToCart: (product) =>
-    set((state) => ({
-      cart: {
-        ...state.cart,
-        [product.id]: {
-          ...(state.cart[product.id] || product),
-          quantity: (state.cart[product.id]?.quantity || 0) + 1,
-        },
+        set({
+          selectedStore: store,
+          cart: restored?.cart || {},
+          customOrder: restored?.customOrder || '',
+          listInputAnswers: restored?.listInputAnswers || {},
+          deliveryType: restored?.deliveryType || 'pickup',
+          tipAmount: restored?.tipAmount || 0,
+          pickupAddress: restored?.pickupAddress || null,
+          deliveryAddressString: restored?.deliveryAddressString || null,
+        });
       },
-    })),
 
-  removeFromCart: (productId) =>
-    set((state) => {
-      if (!state.cart[productId]) return state;
+      getSelectedStore: () => get().selectedStore,
 
-      const updatedCart = { ...state.cart };
-      if (updatedCart[productId].quantity > 1) {
-        updatedCart[productId].quantity -= 1;
-      } else {
-        delete updatedCart[productId];
-      }
-      return { cart: updatedCart };
-    }),
+      // New: Pickup address state
+      pickupAddress: null,
+      setPickupAddress: (address) => set({ pickupAddress: address }),
 
-  cartCount: () => {
-    const state = get();
-    const regularItemsCount = Object.values(state.cart).reduce(
-      (acc, item) => acc + (item.quantity || 0),
-      0
-    );
-    // If there's a custom order, add 1 to the count
-    const customOrderCount = state.customOrder ? 1 : 0;
-    return regularItemsCount + customOrderCount;
-  },
+      // New: Delivery address string (for Dashboard display only)
+      deliveryAddressString: null,
+      setDeliveryAddressString: (address) => set({ deliveryAddressString: address }),
 
-  cartTotal: () =>
-    Object.values(get().cart).reduce(
-      (acc, item) => acc + (item?.price || 0) * (item?.quantity || 0),
-      0
-    ),
+      // New: Delivery type state (pickup or delivery)
+      deliveryType: 'pickup', // 'pickup' or 'delivery'
+      setDeliveryType: (type) => set({ deliveryType: type }),
 
-  clearCart: () => set({ cart: {} }),
+      addToCart: (product) =>
+        set((state) => ({
+          cart: {
+            ...state.cart,
+            [product.id]: {
+              ...(state.cart[product.id] || product),
+              quantity: (state.cart[product.id]?.quantity || 0) + 1,
+            },
+          },
+        })),
 
-  // Calculate delivery fee based on fees array and delivery type
-  calculateDeliveryFee: (subtotal, store, deliveryType) => {
-    if (!store || !store.fees || !store.fees.edges || store.fees.edges.length === 0) {
-      return 0; // No fees configured, return 0
-    }
+      removeFromCart: (productId) =>
+        set((state) => {
+          if (!state.cart[productId]) return state;
 
-    // Filter fees by type (DELIVERY or PICKUP)
-    const relevantFees = store.fees.edges
-      .map((edge) => edge.node)
-      .filter((fee) => fee.type === deliveryType.toUpperCase());
+          const updatedCart = { ...state.cart };
+          if (updatedCart[productId].quantity > 1) {
+            updatedCart[productId].quantity -= 1;
+          } else {
+            delete updatedCart[productId];
+          }
+          return { cart: updatedCart };
+        }),
 
-    if (relevantFees.length === 0) {
-      return 0; // No fees for this delivery type
-    }
+      cartCount: () => {
+        const state = get();
+        const regularItemsCount = Object.values(state.cart).reduce(
+          (acc, item) => acc + (item.quantity || 0),
+          0
+        );
+        // If there's a custom order, add 1 to the count
+        const customOrderCount = state.customOrder ? 1 : 0;
+        return regularItemsCount + customOrderCount;
+      },
 
-    // Sort fees by limit to find the appropriate fee tier
-    const sortedFees = relevantFees.sort((a, b) => a.limit - b.limit);
+      cartTotal: () =>
+        Object.values(get().cart).reduce(
+          (acc, item) => acc + (item?.price || 0) * (item?.quantity || 0),
+          0
+        ),
 
-    // Find the fee tier that applies to this subtotal
-    let applicableFee = null;
+      clearCart: () => set({ cart: {} }),
 
-    // Find the first fee where subtotal is less than or equal to the limit
-    for (const fee of sortedFees) {
-      if (subtotal <= fee.limit) {
-        applicableFee = fee;
-        break;
-      }
-    }
+      // Calculate delivery fee based on fees array and delivery type
+      calculateDeliveryFee: (subtotal, store, deliveryType) => {
+        if (!store || !store.fees || !store.fees.edges || store.fees.edges.length === 0) {
+          return 0; // No fees configured, return 0
+        }
 
-    // If no fee found, use the highest limit fee (last in sorted array)
-    if (!applicableFee && sortedFees.length > 0) {
-      applicableFee = sortedFees[sortedFees.length - 1];
-    }
+        // Filter fees by type (DELIVERY or PICKUP)
+        const relevantFees = store.fees.edges
+          .map((edge) => edge.node)
+          .filter((fee) => fee.type === deliveryType.toUpperCase());
 
-    if (!applicableFee) {
-      return 0;
-    }
+        if (relevantFees.length === 0) {
+          return 0; // No fees for this delivery type
+        }
 
-    // feeRate is a fixed dollar amount, not a percentage
-    const calculatedFee = applicableFee.feeRate;
-    return calculatedFee;
-  },
+        // Sort fees by limit to find the appropriate fee tier
+        const sortedFees = relevantFees.sort((a, b) => a.limit - b.limit);
 
-  // Calculate cart totals using store's fee structure and tax
-  getCartTotals: () => {
-    const state = get();
-    const cart = state.cart;
-    const store = state.selectedStore;
-    const deliveryType = state.deliveryType;
+        // Find the fee tier that applies to this subtotal
+        let applicableFee = null;
 
-    // Calculate subtotal
-    const subtotal = Object.values(cart).reduce(
-      (acc, item) => acc + (item.price * item.quantity || 0),
-      0
-    );
+        // Find the first fee where subtotal is less than or equal to the limit
+        for (const fee of sortedFees) {
+          if (subtotal <= fee.limit) {
+            applicableFee = fee;
+            break;
+          }
+        }
 
-    // Calculate delivery fee based on new fee structure
-    const deliveryFee = get().calculateDeliveryFee(subtotal, store, deliveryType);
+        // If no fee found, use the highest limit fee (last in sorted array)
+        if (!applicableFee && sortedFees.length > 0) {
+          applicableFee = sortedFees[sortedFees.length - 1];
+        }
 
-    // Calculate tax using store's tax percentage or default to 0
-    const taxPercentage = store?.taxPercentage || 0;
-    const taxAmount = (subtotal * taxPercentage) / 100;
+        if (!applicableFee) {
+          return 0;
+        }
 
-    // Get tip amount (default to 0)
-    const tipAmount = state.tipAmount || 0;
+        // feeRate is a fixed dollar amount, not a percentage
+        const calculatedFee = applicableFee.feeRate;
+        return calculatedFee;
+      },
 
-    // Calculate total including tip
-    const total = subtotal + deliveryFee + taxAmount + tipAmount;
+      // Calculate cart totals using store's fee structure and tax
+      getCartTotals: () => {
+        const state = get();
+        const cart = state.cart;
+        const store = state.selectedStore;
+        const deliveryType = state.deliveryType;
 
-    return {
-      subtotal,
-      deliveryFee,
-      taxAmount,
-      taxPercentage,
-      tipAmount,
-      total,
-    };
-  },
+        // Calculate subtotal
+        const subtotal = Object.values(cart).reduce(
+          (acc, item) => acc + (item.price * item.quantity || 0),
+          0
+        );
 
-  // Add tip amount to the store
-  setTipAmount: (amount) => set({ tipAmount: amount }),
+        // Calculate delivery fee based on new fee structure
+        const deliveryFee = get().calculateDeliveryFee(subtotal, store, deliveryType);
 
-  customOrder: '',
-  setCustomOrder: (order) => set({ customOrder: order }),
+        // Calculate tax using store's tax percentage or default to 0
+        const taxPercentage = store?.taxPercentage || 0;
+        const taxAmount = (subtotal * taxPercentage) / 100;
 
-  listInputAnswers: {},
-  setListInputAnswers: (answers) => set({ listInputAnswers: answers }),
+        // Get tip amount (default to 0)
+        const tipAmount = state.tipAmount || 0;
 
-  // Restore cart state from server data
-  restoreCart: (cartState) => {
-    if (!cartState) return;
-    set({
-      ...(cartState.cart !== undefined && { cart: cartState.cart }),
-      ...(cartState.customOrder !== undefined && { customOrder: cartState.customOrder }),
-      ...(cartState.listInputAnswers !== undefined && { listInputAnswers: cartState.listInputAnswers }),
-      ...(cartState.deliveryType !== undefined && { deliveryType: cartState.deliveryType }),
-      ...(cartState.tipAmount !== undefined && { tipAmount: cartState.tipAmount }),
-      ...(cartState.pickupAddress !== undefined && { pickupAddress: cartState.pickupAddress }),
-    });
-  },
+        // Calculate total including tip
+        const total = subtotal + deliveryFee + taxAmount + tipAmount;
 
-  // Get serializable cart state for saving to server
-  getCartState: () => {
-    const state = get();
-    return {
-      cart: state.cart,
-      customOrder: state.customOrder,
-      listInputAnswers: state.listInputAnswers,
-      deliveryType: state.deliveryType,
-      tipAmount: state.tipAmount || 0,
-      pickupAddress: state.pickupAddress,
-      deliveryAddressString: state.deliveryAddressString,
-    };
-  },
+        return {
+          subtotal,
+          deliveryFee,
+          taxAmount,
+          taxPercentage,
+          tipAmount,
+          total,
+        };
+      },
+
+      // Add tip amount to the store
+      setTipAmount: (amount) => set({ tipAmount: amount }),
+
+      customOrder: '',
+      setCustomOrder: (order) => set({ customOrder: order }),
+
+      listInputAnswers: {},
+      setListInputAnswers: (answers) => set({ listInputAnswers: answers }),
+
+      // Restore cart state from server data
+      restoreCart: (cartState) => {
+        if (!cartState) return;
+        set({
+          ...(cartState.cart !== undefined && { cart: cartState.cart }),
+          ...(cartState.customOrder !== undefined && { customOrder: cartState.customOrder }),
+          ...(cartState.listInputAnswers !== undefined && {
+            listInputAnswers: cartState.listInputAnswers,
+          }),
+          ...(cartState.deliveryType !== undefined && { deliveryType: cartState.deliveryType }),
+          ...(cartState.tipAmount !== undefined && { tipAmount: cartState.tipAmount }),
+          ...(cartState.pickupAddress !== undefined && { pickupAddress: cartState.pickupAddress }),
+        });
+      },
+
+      // Get serializable cart state for saving to server
+      getCartState: () => {
+        const state = get();
+        return {
+          cart: state.cart,
+          customOrder: state.customOrder,
+          listInputAnswers: state.listInputAnswers,
+          deliveryType: state.deliveryType,
+          tipAmount: state.tipAmount || 0,
+          pickupAddress: state.pickupAddress,
+          deliveryAddressString: state.deliveryAddressString,
+        };
+      },
     }),
     {
       name: 'indimitra-cart-storage',
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         cart: state.cart,
+        selectedStore: state.selectedStore,
         customOrder: state.customOrder,
         listInputAnswers: state.listInputAnswers,
         deliveryType: state.deliveryType,
@@ -261,6 +276,7 @@ export const useAuthStore = create((set, get) => ({
   profileError: null,
   modalOpen: false,
   currentForm: 'login',
+  skipNavigateOnLogin: false,
 
   setAbility: (ability) => {
     set({ ability });
@@ -285,7 +301,15 @@ export const useAuthStore = create((set, get) => ({
   },
 
   setModalOpen: (open) => {
-    set({ modalOpen: open });
+    if (!open) {
+      set({ modalOpen: false, skipNavigateOnLogin: false });
+    } else {
+      set({ modalOpen: true });
+    }
+  },
+
+  setSkipNavigateOnLogin: (skip) => {
+    set({ skipNavigateOnLogin: skip });
   },
 
   getUserProfile: () => get().userProfile,
