@@ -2,8 +2,11 @@ import { Box, Container } from '@components';
 import Header from './Header';
 import WhatsAppButton from '../common/WhatsAppButton';
 import FloatingCartButton from '../common/FloatingCartButton';
+import useCartSync from '@/hooks/useCartSync';
 
 const Layout = ({ children }) => {
+  useCartSync();
+
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <Header />

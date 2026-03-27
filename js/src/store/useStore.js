@@ -23,6 +23,15 @@ const useStore = create(
       setSelectedStore: (store) => {
         const state = get();
         const oldStoreId = state.selectedStore?.id;
+        const newStoreId = store?.id;
+
+        // Same store re-selection (e.g. rehydration after refresh) — update
+        // the store object (it may carry fresh data from the API) but keep
+        // the current cart that Zustand persist already restored.
+        if (oldStoreId && newStoreId && String(oldStoreId) === String(newStoreId)) {
+          set({ selectedStore: store });
+          return;
+        }
 
         // Save current cart for the old store before switching
         if (oldStoreId) {
@@ -46,7 +55,6 @@ const useStore = create(
         }
 
         // Load saved cart for the new store (or empty)
-        const newStoreId = store?.id;
         let restored = null;
         if (newStoreId) {
           try {
@@ -248,6 +256,7 @@ const useStore = create(
       storage: createJSONStorage(() => localStorage),
       partialize: (state) => ({
         cart: state.cart,
+        selectedStore: state.selectedStore,
         customOrder: state.customOrder,
         listInputAnswers: state.listInputAnswers,
         deliveryType: state.deliveryType,
