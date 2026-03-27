@@ -21,7 +21,7 @@ import { defineUserAbility } from '../../ability/defineAbility';
 
 const LoginForm = ({ onSuccess, onError }) => {
   const navigate = useNavigate();
-  const { setUser, setAbility, setModalOpen } = useAuthStore();
+  const { setUser, setAbility, setModalOpen, skipNavigateOnLogin } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -53,12 +53,14 @@ const LoginForm = ({ onSuccess, onError }) => {
       const newAbility = defineUserAbility(userRole);
       setAbility(newAbility);
 
+      const shouldSkipNav = skipNavigateOnLogin;
       setModalOpen(false);
       if (onSuccess) {
         onSuccess();
       }
-      // Always navigate to role-specific dashboard after login
-      navigate(`/${userRole}`);
+      if (!shouldSkipNav) {
+        navigate(`/${userRole}`);
+      }
     } catch (err) {
       console.error('❌ Login error:', err);
 

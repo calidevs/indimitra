@@ -193,7 +193,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     setDeliveryAddressString,
   } = useStore();
 
-  const { user, userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm } =
+  const { user, userProfile, fetchUserProfile, isProfileLoading, setModalOpen, setCurrentForm, setSkipNavigateOnLogin } =
     useAuthStore();
   const queryClient = useQueryClient();
 
@@ -366,6 +366,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
 
   // Handle login button click
   const handleLoginClick = () => {
+    setSkipNavigateOnLogin(true);
     setModalOpen(true);
     setCurrentForm('login');
   };
@@ -387,10 +388,10 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
 
   // Handle validating and using a new address from the input
   const handleUseNewAddress = async () => {
-    if (!newAddress.trim() || !isValidAddress) return;
+    if (!newAddress.trim() || !isValidAddress) return false;
 
     // Validate first
-    validateDeliveryAddress(newAddress);
+    const isServiceable = validateDeliveryAddress(newAddress);
     setConfirmedDeliveryAddress(newAddress);
     setDeliveryType('delivery');
     setSelectedPickupId(null);
@@ -438,6 +439,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
         setSelectedTempAddressId(newTempAddress.id);
       }
     }
+    return isServiceable;
   };
 
   // Validate delivery address function
@@ -445,7 +447,7 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     if (!address || !tempStore) {
       setDeliveryStatus(null);
       setDeliveryMessage('');
-      return;
+      return false;
     }
 
     const matches = address.match(/\b(\d{5})(?:-\d{4})?\b/g);
@@ -456,9 +458,29 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
     if (pincodeStr && pincodes.includes(pincodeStr)) {
       setDeliveryStatus('success');
       setDeliveryMessage('Store delivers here');
+      return true;
     } else {
       setDeliveryStatus('error');
       setDeliveryMessage('Store does not deliver here.');
+      return false;
+    }
+  };
+
+  const handleDeliveryPrimaryAction = async () => {
+    if (deliveryStatus === 'success' && confirmedDeliveryAddress) {
+      handleDeliveryConfirm();
+      return;
+    }
+
+    if (!newAddress.trim() || !isValidAddress) {
+      setDeliveryStatus('error');
+      setDeliveryMessage('Please enter a valid address to continue.');
+      return;
+    }
+
+    const isServiceable = await handleUseNewAddress();
+    if (isServiceable) {
+      handleDeliveryConfirm();
     }
   };
 
@@ -712,17 +734,6 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
               }}
               onValidAddress={setIsValidAddress}
             />
-            <Button
-              variant="contained"
-              size="small"
-              onClick={handleUseNewAddress}
-              disabled={!newAddress.trim() || !isValidAddress || isAddingAddress}
-              startIcon={isAddingAddress ? <LoadingSpinner size={18} /> : <LocationOn />}
-              sx={{ borderRadius: 1.5 }}
-            >
-              {isAddingAddress ? 'Validating...' : 'Validate & Use This Address'}
-            </Button>
-
             {/* Validation Result */}
             {deliveryStatus && (
               <Alert
@@ -809,45 +820,41 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
                 )}
               </>
             ) : (
-              /* Non-logged user: login prompt */
-              <Paper
-                elevation={0}
-                sx={{
-                  p: 2.5,
-                  border: '1.5px dashed',
-                  borderColor: 'grey.300',
-                  borderRadius: 2,
-                  textAlign: 'center',
-                  bgcolor: 'grey.50',
-                }}
+              /* Non-logged user: compact login prompt */
+              <Alert
+                severity="info"
+                icon={<LoginIcon fontSize="small" />}
+                action={(
+                  <Button
+                    color="inherit"
+                    size="small"
+                    onClick={handleLoginClick}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Login
+                  </Button>
+                )}
+                sx={{ borderRadius: 1.5 }}
               >
-                <LoginIcon sx={{ fontSize: 32, color: 'text.disabled', mb: 1 }} />
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-                  Sign in to use your saved addresses
-                </Typography>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<LoginIcon />}
-                  onClick={handleLoginClick}
-                  sx={{ borderRadius: 1.5 }}
-                >
-                  Login
-                </Button>
-              </Paper>
+                Sign in to use your saved addresses
+              </Alert>
             )}
 
-            {/* Confirm Button */}
+            {/* Single final action: validate (if needed) + confirm */}
             <Button
-              onClick={handleDeliveryConfirm}
+              onClick={handleDeliveryPrimaryAction}
               variant="contained"
               color="secondary"
               fullWidth
-              startIcon={<HomeIcon />}
-              disabled={deliveryStatus !== 'success' || !confirmedDeliveryAddress}
+              startIcon={isAddingAddress ? <LoadingSpinner size={18} /> : <HomeIcon />}
+              disabled={isAddingAddress || (!confirmedDeliveryAddress && (!newAddress.trim() || !isValidAddress))}
               sx={{ fontWeight: 600, py: 1.2, fontSize: '0.95rem', borderRadius: 2 }}
             >
-              Confirm Delivery
+              {isAddingAddress
+                ? 'Validating Address...'
+                : (deliveryStatus === 'success' && confirmedDeliveryAddress
+                  ? 'Confirm Delivery'
+                  : 'Validate & Confirm Delivery')}
             </Button>
           </Stack>
         )}

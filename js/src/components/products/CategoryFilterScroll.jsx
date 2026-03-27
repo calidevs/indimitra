@@ -167,9 +167,10 @@ const CategoryFilterScroll = ({
                   boxShadow: selected
                     ? '0 4px 16px rgba(255,107,107,0.3)'
                     : '0 2px 8px rgba(0,0,0,0.08)',
+                  transform: 'scale(1)',
                   transition: 'all 0.25s ease',
                   '&:hover': {
-                    transform: 'translateY(-4px)',
+                    transform: 'scale(1.05)',
                     boxShadow: selected
                       ? '0 8px 24px rgba(255,107,107,0.35)'
                       : '0 6px 20px rgba(0,0,0,0.12)',
