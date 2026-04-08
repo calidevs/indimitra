@@ -1063,126 +1063,172 @@ const CartPage = () => {
 
           {/* Order Summary Section */}
           <Grid item xs={12} md={4}>
-            <Paper elevation={2} sx={{ p: 3, position: 'sticky', top: 24 }}>
-              <Typography variant="h6" sx={{ mb: 3, fontWeight: 500 }}>
-                Order Summary
-              </Typography>
+            <Paper
+              variant="outlined"
+              sx={{
+                position: 'sticky',
+                top: 24,
+                borderRadius: 2,
+                borderColor: 'divider',
+                overflow: 'hidden',
+              }}
+            >
+              {/* Header */}
+              <Box
+                sx={{
+                  px: 3,
+                  py: 2,
+                  borderBottom: '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                <Typography sx={{ fontWeight: 600, fontSize: '1.05rem' }}>
+                  Order Summary
+                </Typography>
+              </Box>
 
-              {/* Secondary Phone Section */}
-              {userProfile && (
-                <Box sx={{ mb: 3 }}>
-                  <SecondaryPhoneInput
-                    userProfile={userProfile}
-                    onPhoneUpdate={handlePhoneUpdate}
+              <Box sx={{ p: 3 }}>
+                {/* Secondary Phone Section */}
+                {userProfile && (
+                  <Box sx={{ mb: 3 }}>
+                    <SecondaryPhoneInput
+                      userProfile={userProfile}
+                      onPhoneUpdate={handlePhoneUpdate}
+                    />
+                  </Box>
+                )}
+
+                {/* Line items */}
+                <Stack spacing={1.25}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography sx={{ color: 'text.secondary', fontSize: '0.92rem' }}>
+                      Subtotal
+                    </Typography>
+                    <Typography sx={{ fontWeight: 500, fontSize: '0.92rem' }}>
+                      ${subtotal.toFixed(2)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography sx={{ color: 'text.secondary', fontSize: '0.92rem' }}>
+                      Delivery Fee
+                    </Typography>
+                    <Typography sx={{ fontWeight: 500, fontSize: '0.92rem' }}>
+                      ${deliveryFee.toFixed(2)}
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <Typography sx={{ color: 'text.secondary', fontSize: '0.92rem' }}>
+                      Tax{taxPercentage > 0 ? ` (${taxPercentage.toFixed(1)}%)` : ''}
+                    </Typography>
+                    <Typography sx={{ fontWeight: 500, fontSize: '0.92rem' }}>
+                      ${taxAmount.toFixed(2)}
+                    </Typography>
+                  </Box>
+                  {localTipAmount > 0 && (
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <Typography sx={{ color: 'text.secondary', fontSize: '0.92rem' }}>
+                        Tip
+                      </Typography>
+                      <Typography sx={{ fontWeight: 500, fontSize: '0.92rem' }}>
+                        ${localTipAmount.toFixed(2)}
+                      </Typography>
+                    </Box>
+                  )}
+                </Stack>
+
+                {/* Tip picker */}
+                <Box
+                  sx={{
+                    mt: 2.5,
+                    pt: 2.5,
+                    borderTop: '1px dashed',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Typography
+                    sx={{
+                      fontWeight: 600,
+                      fontSize: '0.82rem',
+                      color: 'text.secondary',
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.6,
+                      mb: 1.25,
+                    }}
+                  >
+                    Add a tip
+                  </Typography>
+                  <ToggleButtonGroup
+                    value={tipPercentage}
+                    exclusive
+                    onChange={handleTipChange}
+                    aria-label="tip percentage"
+                    size="small"
+                    fullWidth
+                    sx={{
+                      mb: 1.25,
+                      '& .MuiToggleButton-root': {
+                        borderColor: 'divider',
+                        color: 'text.secondary',
+                        fontWeight: 500,
+                        fontSize: '0.82rem',
+                        textTransform: 'none',
+                        py: 0.75,
+                        '&.Mui-selected': {
+                          backgroundColor: 'primary.main',
+                          color: 'common.white',
+                          borderColor: 'primary.main',
+                          '&:hover': { backgroundColor: 'primary.dark' },
+                        },
+                      },
+                    }}
+                  >
+                    <ToggleButton value={0} aria-label="no tip">
+                      No Tip
+                    </ToggleButton>
+                    <ToggleButton value={10} aria-label="10%">
+                      10%
+                    </ToggleButton>
+                    <ToggleButton value={15} aria-label="15%">
+                      15%
+                    </ToggleButton>
+                    <ToggleButton value={20} aria-label="20%">
+                      20%
+                    </ToggleButton>
+                  </ToggleButtonGroup>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    placeholder="Custom amount"
+                    type="number"
+                    value={customTip}
+                    onChange={handleCustomTipChange}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Typography sx={{ color: 'text.secondary' }}>$</Typography>
+                        </InputAdornment>
+                      ),
+                    }}
                   />
                 </Box>
-              )}
 
-              <Box sx={{ mt: 3 }}>
-                <Grid container spacing={2}>
-                  <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography>Subtotal</Typography>
-                      <Typography>${subtotal.toFixed(2)}</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography>Delivery Fee</Typography>
-                      <Typography>${deliveryFee.toFixed(2)}</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        bgcolor: 'grey.50',
-                        p: 1,
-                        borderRadius: 1,
-                      }}
-                    >
-                      <Box>
-                        <Typography variant="body2" color="text.secondary">
-                          Tax Rate
-                        </Typography>
-                        <Typography>{taxPercentage.toFixed(1)}%</Typography>
-                      </Box>
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Typography variant="body2" color="text.secondary">
-                          Tax Amount
-                        </Typography>
-                        <Typography>${taxAmount.toFixed(2)}</Typography>
-                      </Box>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="subtitle1" gutterBottom>
-                        Add Tip
-                      </Typography>
-                      <ToggleButtonGroup
-                        value={tipPercentage}
-                        exclusive
-                        onChange={handleTipChange}
-                        aria-label="tip percentage"
-                        size="small"
-                        fullWidth
-                        sx={{ mb: 1 }}
-                      >
-                        <ToggleButton value={0} aria-label="no tip">
-                          No Tip
-                        </ToggleButton>
-                        <ToggleButton value={10} aria-label="10%">
-                          10%
-                        </ToggleButton>
-                        <ToggleButton value={15} aria-label="15%">
-                          15%
-                        </ToggleButton>
-                        <ToggleButton value={20} aria-label="20%">
-                          20%
-                        </ToggleButton>
-                      </ToggleButtonGroup>
-                      <TextField
-                        fullWidth
-                        size="small"
-                        label="Custom Tip Amount"
-                        type="number"
-                        value={customTip}
-                        onChange={handleCustomTipChange}
-                        InputProps={{
-                          startAdornment: <Typography sx={{ mr: 1 }}>$</Typography>,
-                        }}
-                        placeholder="Enter custom amount"
-                        sx={{ mt: 1 }}
-                      />
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        bgcolor: 'grey.50',
-                        p: 1,
-                        borderRadius: 1,
-                      }}
-                    >
-                      <Typography>Tip Amount</Typography>
-                      <Typography>${localTipAmount.toFixed(2)}</Typography>
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Divider />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <Typography variant="h6">Total</Typography>
-                      <Typography variant="h6">${total.toFixed(2)}</Typography>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Box>
+                {/* Total */}
+                <Box
+                  sx={{
+                    mt: 2.5,
+                    pt: 2,
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'baseline',
+                  }}
+                >
+                  <Typography sx={{ fontWeight: 700, fontSize: '1.05rem' }}>Total</Typography>
+                  <Typography sx={{ fontWeight: 700, fontSize: '1.35rem' }}>
+                    ${total.toFixed(2)}
+                  </Typography>
+                </Box>
 
               {/* Custom Order Details */}
               {customOrder && (
@@ -1503,6 +1549,7 @@ const CartPage = () => {
                   Login to Continue
                 </Button>
               )}
+              </Box>
             </Paper>
           </Grid>
         </Grid>
