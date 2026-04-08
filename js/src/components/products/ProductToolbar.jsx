@@ -15,6 +15,7 @@ import {
   Tooltip,
   useMediaQuery,
 } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
 import SearchIcon from '@mui/icons-material/Search';
 import TuneIcon from '@mui/icons-material/Tune';
 import SortIcon from '@mui/icons-material/Sort';
@@ -41,6 +42,7 @@ const ProductToolbar = ({
   activeFilterCount,
   onClearFilters,
 }) => {
+  const theme = useTheme();
   const [filtersOpen, setFiltersOpen] = useState(false);
   const isMobile = useMediaQuery('(max-width: 600px)');
 
@@ -75,13 +77,13 @@ const ProductToolbar = ({
             flex: 1,
             '& .MuiOutlinedInput-root': {
               borderRadius: '12px',
-              backgroundColor: '#fafafa',
+              backgroundColor: 'grey.50',
               fontSize: '0.9rem',
               '&:hover .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#FF6B6B',
+                borderColor: 'primary.main',
               },
               '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                borderColor: '#FF6B6B',
+                borderColor: 'primary.main',
                 borderWidth: 2,
               },
             },
@@ -111,16 +113,16 @@ const ProductToolbar = ({
           sx={{
             minWidth: isMobile ? 48 : 180,
             borderRadius: '12px',
-            backgroundColor: '#fafafa',
+            backgroundColor: 'grey.50',
             fontSize: '0.85rem',
             '& .MuiOutlinedInput-notchedOutline': {
-              borderColor: sortBy !== 'default' ? '#FF6B6B' : undefined,
+              borderColor: sortBy !== 'default' ? theme.palette.primary.main : undefined,
             },
             '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#FF6B6B',
+              borderColor: 'primary.main',
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#FF6B6B',
+              borderColor: 'primary.main',
               borderWidth: 2,
             },
           }}
@@ -146,18 +148,18 @@ const ProductToolbar = ({
               height: 40,
               borderRadius: '12px',
               border: '1px solid',
-              borderColor: filtersOpen || activeFilterCount > 0 ? '#FF6B6B' : 'divider',
-              backgroundColor: filtersOpen ? 'rgba(255,107,107,0.08)' : '#fafafa',
+              borderColor: filtersOpen || activeFilterCount > 0 ? 'primary.main' : 'divider',
+              backgroundColor: filtersOpen ? alpha(theme.palette.primary.main, 0.08) : theme.palette.grey[50],
               position: 'relative',
               transition: 'all 0.2s ease',
               '&:hover': {
-                backgroundColor: 'rgba(255,107,107,0.12)',
-                borderColor: '#FF6B6B',
+                backgroundColor: alpha(theme.palette.primary.main, 0.12),
+                borderColor: 'primary.main',
               },
             }}
           >
             <TuneIcon
-              sx={{ fontSize: 20, color: filtersOpen || activeFilterCount > 0 ? '#FF6B6B' : 'text.secondary' }}
+              sx={{ fontSize: 20, color: filtersOpen || activeFilterCount > 0 ? 'primary.main' : 'text.secondary' }}
             />
             {activeFilterCount > 0 && (
               <Box
@@ -168,8 +170,8 @@ const ProductToolbar = ({
                   width: 18,
                   height: 18,
                   borderRadius: '50%',
-                  backgroundColor: '#FF6B6B',
-                  color: '#fff',
+                  backgroundColor: 'primary.main',
+                  color: 'primary.contrastText',
                   fontSize: '0.65rem',
                   fontWeight: 700,
                   display: 'flex',
@@ -191,7 +193,7 @@ const ProductToolbar = ({
             mt: 1.5,
             p: { xs: 1.5, sm: 2 },
             borderRadius: '14px',
-            backgroundColor: '#fafafa',
+            backgroundColor: 'grey.50',
             border: '1px solid',
             borderColor: 'divider',
           }}
@@ -212,8 +214,8 @@ const ProductToolbar = ({
                   onChange={(e) => onInStockOnlyChange(e.target.checked)}
                   size="small"
                   sx={{
-                    '& .MuiSwitch-switchBase.Mui-checked': { color: '#FF6B6B' },
-                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#FF6B6B' },
+                    '& .MuiSwitch-switchBase.Mui-checked': { color: 'primary.main' },
+                    '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: 'primary.main' },
                   }}
                 />
               }
@@ -244,14 +246,14 @@ const ProductToolbar = ({
                   valueLabelFormat={(v) => `$${v.toFixed(0)}`}
                   size="small"
                   sx={{
-                    color: '#FF6B6B',
+                    color: 'primary.main',
                     '& .MuiSlider-thumb': {
                       width: 16,
                       height: 16,
-                      '&:hover, &.Mui-focusVisible': { boxShadow: '0 0 0 6px rgba(255,107,107,0.16)' },
+                      '&:hover, &.Mui-focusVisible': { boxShadow: `0 0 0 6px ${alpha(theme.palette.primary.main, 0.16)}` },
                     },
                     '& .MuiSlider-valueLabel': {
-                      backgroundColor: '#FF6B6B',
+                      backgroundColor: 'primary.main',
                       borderRadius: '8px',
                       fontSize: '0.7rem',
                     },
@@ -272,9 +274,9 @@ const ProductToolbar = ({
                   borderRadius: '8px',
                   fontWeight: 600,
                   fontSize: '0.78rem',
-                  color: '#FF6B6B',
-                  borderColor: '#FF6B6B',
-                  '& .MuiChip-deleteIcon': { color: '#FF6B6B' },
+                  color: 'primary.main',
+                  borderColor: 'primary.main',
+                  '& .MuiChip-deleteIcon': { color: 'primary.main' },
                 }}
                 variant="outlined"
               />
@@ -295,9 +297,9 @@ const ProductToolbar = ({
                 borderRadius: '8px',
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                backgroundColor: 'rgba(255,107,107,0.1)',
-                color: '#FF6B6B',
-                '& .MuiChip-deleteIcon': { color: '#FF6B6B', fontSize: 16 },
+                backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                color: 'primary.main',
+                '& .MuiChip-deleteIcon': { color: 'primary.main', fontSize: 16 },
               }}
             />
           )}
@@ -310,9 +312,9 @@ const ProductToolbar = ({
                 borderRadius: '8px',
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                backgroundColor: 'rgba(255,107,107,0.1)',
-                color: '#FF6B6B',
-                '& .MuiChip-deleteIcon': { color: '#FF6B6B', fontSize: 16 },
+                backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                color: 'primary.main',
+                '& .MuiChip-deleteIcon': { color: 'primary.main', fontSize: 16 },
               }}
             />
           )}
@@ -325,9 +327,9 @@ const ProductToolbar = ({
                 borderRadius: '8px',
                 fontSize: '0.75rem',
                 fontWeight: 600,
-                backgroundColor: 'rgba(255,107,107,0.1)',
-                color: '#FF6B6B',
-                '& .MuiChip-deleteIcon': { color: '#FF6B6B', fontSize: 16 },
+                backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                color: 'primary.main',
+                '& .MuiChip-deleteIcon': { color: 'primary.main', fontSize: 16 },
               }}
             />
           )}

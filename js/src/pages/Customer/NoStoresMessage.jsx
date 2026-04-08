@@ -1,5 +1,6 @@
 import React from 'react';
 import { Paper, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 
 const NoStoresMessage = () => {
   return (
@@ -8,7 +9,7 @@ const NoStoresMessage = () => {
       sx={{
         p: 3,
         textAlign: 'center',
-        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+        backgroundColor: (theme) => alpha(theme.palette.info.main, 0.1),
         borderRadius: 2,
       }}
     >

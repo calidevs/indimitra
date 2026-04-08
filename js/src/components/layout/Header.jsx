@@ -12,6 +12,7 @@ import {
   Button,
 } from '@components';
 import { Drawer, List, ListItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import {
   ShoppingCart,
   Person,
@@ -211,7 +212,7 @@ const Header = () => {
           alignItems: 'center',
           justifyContent: 'center',
           bgcolor: 'primary.main',
-          color: '#fff',
+          color: 'primary.contrastText',
           px: 2,
           py: 2.5,
           minHeight: 64,
@@ -224,7 +225,7 @@ const Header = () => {
             fontWeight: 800,
             letterSpacing: 1,
             fontSize: '1.35rem',
-            color: '#fff',
+            color: 'primary.contrastText',
             textAlign: 'center',
           }}
         >
@@ -350,16 +351,52 @@ const Header = () => {
             gap: { xs: 1, sm: 2 },
           }}
         >
-          {/* Store switcher (brand anchor + switcher for multi-store) */}
-          <StoreSwitcher
-            storeName={selectedStore?.name}
-            canSwitch={
-              userRole !== ROLES.ADMIN &&
-              userRole !== ROLES.STORE_MANAGER &&
-              userRole !== ROLES.DELIVERY_AGENT
-            }
-            onSwitch={() => setStoreModalOpen(true)}
-          />
+          {/* Indimitra brand + store switcher */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: { xs: 1.25, sm: 1.75 },
+              minWidth: 0,
+            }}
+          >
+            <Typography
+              onClick={handleHomeClick}
+              component="span"
+              sx={{
+                cursor: 'pointer',
+                fontWeight: 700,
+                fontSize: { xs: '0.82rem', sm: '0.85rem' },
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color: 'text.primary',
+                whiteSpace: 'nowrap',
+                userSelect: 'none',
+                '&:hover': { color: 'primary.main' },
+                transition: 'color 120ms ease',
+              }}
+            >
+              Indimitra
+            </Typography>
+            <Box
+              sx={{
+                width: '1px',
+                height: 22,
+                backgroundColor: 'divider',
+                flexShrink: 0,
+                display: { xs: 'none', sm: 'block' },
+              }}
+            />
+            <StoreSwitcher
+              storeName={selectedStore?.name}
+              canSwitch={
+                userRole !== ROLES.ADMIN &&
+                userRole !== ROLES.STORE_MANAGER &&
+                userRole !== ROLES.DELIVERY_AGENT
+              }
+              onSwitch={() => setStoreModalOpen(true)}
+            />
+          </Box>
 
           {/* Spacer */}
           <Box sx={{ flexGrow: 1 }} />
@@ -521,7 +558,7 @@ const Header = () => {
               py: 1.5,
               px: 3,
               '&:hover': {
-                backgroundColor: 'rgba(145, 127, 179, 0.1)',
+                backgroundColor: (theme) => theme.palette.custom.menuHover,
               },
             }}
           >
@@ -537,7 +574,7 @@ const Header = () => {
             py: 1.5,
             px: 3,
             '&:hover': {
-              backgroundColor: 'rgba(145, 127, 179, 0.1)',
+              backgroundColor: (theme) => theme.palette.custom.menuHover,
             },
           }}
         >
@@ -551,9 +588,9 @@ const Header = () => {
           sx={{
             py: 1.5,
             px: 3,
-            color: '#FF5757',
+            color: 'error.main',
             '&:hover': {
-              backgroundColor: 'rgba(255, 87, 87, 0.1)',
+              backgroundColor: (theme) => alpha(theme.palette.error.main, 0.1),
             },
           }}
         >

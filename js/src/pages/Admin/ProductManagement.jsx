@@ -582,7 +582,7 @@ const ProductManagement = () => {
                       {name}
                     </MenuItem>
                   ))}
-                  <MenuItem value="new" sx={{ borderTop: '1px solid #e0e0e0', mt: 1 }}>
+                  <MenuItem value="new" sx={{ borderTop: 1, borderColor: 'divider', mt: 1 }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', color: 'primary.main' }}>
                       <AddIcon sx={{ mr: 1 }} />
                       Add New Category

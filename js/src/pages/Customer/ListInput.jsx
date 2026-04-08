@@ -101,7 +101,8 @@ const ListInput = ({ sectionHeaders, answers = {}, onChangeAnswers, onSubmit }) 
                 display: 'flex',
                 flexDirection: 'column',
                 gap: 2,
-                background: 'linear-gradient(135deg, #f8fafc 0%, #e0e7ef 100%)',
+                background: (theme) =>
+                  `linear-gradient(135deg, ${theme.palette.grey[50]} 0%, ${theme.palette.grey[200]} 100%)`,
               }}
             >
               <Typography

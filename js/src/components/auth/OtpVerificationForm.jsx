@@ -72,7 +72,7 @@ const OtpVerificationForm = ({ email, onComplete, onSuccess }) => {
           fontSize: '1rem',
         }}
       >
-        {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : 'Verify OTP'}
+        {loading ? <CircularProgress size={24} sx={{ color: 'primary.contrastText' }} /> : 'Verify OTP'}
       </Button>
     </form>
   );

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Fab, Badge, useMediaQuery } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
 import { ShoppingCart } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import useStore from '@/store/useStore';
@@ -7,6 +8,7 @@ import { ROUTES } from '@/config/constants/routes';
 
 const FloatingCartButton = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
   const isMobile = useMediaQuery('(max-width: 600px)');
   const cartCount = useStore((state) => state.cartCount());
 
@@ -23,12 +25,12 @@ const FloatingCartButton = () => {
         zIndex: 1000,
         width: 52,
         height: 52,
-        background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
-        color: '#fff',
-        boxShadow: '0 4px 14px rgba(255,107,107,0.4)',
+        background: theme.palette.custom.gradientCoral,
+        color: theme.palette.primary.contrastText,
+        boxShadow: theme.palette.custom.primaryGlow,
         '&:hover': {
-          background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
-          boxShadow: '0 6px 20px rgba(255,107,107,0.5)',
+          background: theme.palette.custom.gradientCoralHover,
+          boxShadow: theme.palette.custom.primaryGlowHover,
         },
       }}
     >
@@ -36,8 +38,8 @@ const FloatingCartButton = () => {
         badgeContent={cartCount}
         sx={{
           '& .MuiBadge-badge': {
-            backgroundColor: '#fff',
-            color: '#FF6B6B',
+            backgroundColor: 'background.paper',
+            color: 'primary.main',
             fontWeight: 700,
             fontSize: '0.7rem',
             minWidth: 18,

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Paper, Typography, useTheme } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { LoadingSpinner } from '@components';
 import { Link, useNavigate } from 'react-router-dom';
 import LoginForm from '../components/auth/LoginForm';
@@ -54,7 +55,7 @@ const LoginPage = () => {
           left: 0,
           right: 0,
           bottom: 0,
-          background: 'linear-gradient(135deg, rgba(255,107,107,0.1) 0%, rgba(255,107,107,0.05) 100%)',
+          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
           zIndex: 0,
         }
       }}

@@ -88,7 +88,7 @@ const SignUpForm = ({ referredBy = '', onSuccess }) => {
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <PersonIcon sx={{ color: '#FF6B6B' }} />
+              <PersonIcon sx={{ color: 'primary.main' }} />
             </InputAdornment>
           ),
         }}
@@ -106,7 +106,7 @@ const SignUpForm = ({ referredBy = '', onSuccess }) => {
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <PersonIcon sx={{ color: '#FF6B6B' }} />
+              <PersonIcon sx={{ color: 'primary.main' }} />
             </InputAdornment>
           ),
         }}
@@ -124,7 +124,7 @@ const SignUpForm = ({ referredBy = '', onSuccess }) => {
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <AccountCircleIcon sx={{ color: '#FF6B6B' }} />
+              <AccountCircleIcon sx={{ color: 'primary.main' }} />
             </InputAdornment>
           ),
         }}
@@ -143,7 +143,7 @@ const SignUpForm = ({ referredBy = '', onSuccess }) => {
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <LockIcon sx={{ color: '#FF6B6B' }} />
+              <LockIcon sx={{ color: 'primary.main' }} />
             </InputAdornment>
           ),
           endAdornment: (
@@ -167,7 +167,7 @@ const SignUpForm = ({ referredBy = '', onSuccess }) => {
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <PhoneIcon sx={{ color: '#FF6B6B' }} />
+                <PhoneIcon sx={{ color: 'primary.main' }} />
               </InputAdornment>
             ),
           }}
@@ -182,7 +182,7 @@ const SignUpForm = ({ referredBy = '', onSuccess }) => {
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <PhoneIcon sx={{ color: '#FF6B6B' }} />
+                <PhoneIcon sx={{ color: 'primary.main' }} />
               </InputAdornment>
             ),
           }}
@@ -201,7 +201,7 @@ const SignUpForm = ({ referredBy = '', onSuccess }) => {
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <AccountCircleIcon sx={{ color: '#FF6B6B' }} />
+              <AccountCircleIcon sx={{ color: 'primary.main' }} />
             </InputAdornment>
           ),
         }}

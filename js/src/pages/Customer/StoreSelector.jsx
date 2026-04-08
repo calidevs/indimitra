@@ -566,30 +566,69 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
 
   const requiresSelection = !selectedStore;
 
+  const [storeSearch, setStoreSearch] = useState('');
+  const filteredStores = useMemo(() => {
+    const q = storeSearch.trim().toLowerCase();
+    if (!q) return availableStores;
+    return availableStores.filter((s) =>
+      [s.name, s.address, s.description].filter(Boolean).some((v) => String(v).toLowerCase().includes(q))
+    );
+  }, [availableStores, storeSearch]);
+
   // Step 1: Store selection
   if (step === 'store') {
+    const showSearch = availableStores.length > 5;
+
     return (
-      <Dialog open={open} onClose={onClose} title={<StoreSelectorTitle />} hideClose={requiresSelection}>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        title={
+          <StoreSelectorTitle subtitle="Choose where you'd like to shop. You can switch at any time." />
+        }
+        hideClose={requiresSelection}
+      >
         {availableStores.length === 0 ? (
           <NoStoresMessage />
         ) : (
           <>
-            <Typography
-              paragraph
-              sx={{
-                textAlign: 'center',
-                fontWeight: 500,
-                color: 'text.secondary',
-                mb: 3,
-              }}
-            >
-              Please select a store to browse products from
-            </Typography>
-            <StoresList
-              availableStores={availableStores}
-              selectedStore={selectedStore}
-              handleStoreSelect={handleStoreSelect}
-            />
+            {showSearch && (
+              <TextField
+                size="small"
+                placeholder="Search stores by name or address…"
+                value={storeSearch}
+                onChange={(e) => setStoreSearch(e.target.value)}
+                fullWidth
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  mb: 2,
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: '10px',
+                    fontSize: '0.9rem',
+                  },
+                }}
+              />
+            )}
+
+            {filteredStores.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 4 }}>
+                <Typography variant="body2" color="text.secondary">
+                  No stores match "{storeSearch}".
+                </Typography>
+              </Box>
+            ) : (
+              <StoresList
+                availableStores={filteredStores}
+                selectedStore={selectedStore}
+                handleStoreSelect={handleStoreSelect}
+              />
+            )}
           </>
         )}
       </Dialog>

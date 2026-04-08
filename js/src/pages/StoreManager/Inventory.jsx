@@ -39,6 +39,7 @@ import {
   FormControlLabel,
   Switch,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import {
   Edit,
   KeyboardArrowDown,
@@ -180,6 +181,7 @@ const ADD_PRODUCT_TO_INVENTORY = `
 
 
 const EditDialog = React.memo(({ open, onClose, selectedItem, onUpdate, isLoading }) => {
+  const theme = useTheme();
   const [price, setPrice] = React.useState('');
   const [quantity, setQuantity] = React.useState('');
   const [isAvailable, setIsAvailable] = React.useState(true);
@@ -226,7 +228,7 @@ const EditDialog = React.memo(({ open, onClose, selectedItem, onUpdate, isLoadin
     marginBottom: '16px',
     outline: 'none',
     '&:focus': {
-      borderColor: '#1976d2',
+      borderColor: theme.palette.info.main,
       borderWidth: '2px',
     },
   };
@@ -352,6 +354,7 @@ const EditDialog = React.memo(({ open, onClose, selectedItem, onUpdate, isLoadin
 
 const AddProductDialogNew = React.memo(
   ({ open, onClose, storeId, availableProducts, onAdd, isLoading, errorMessage }) => {
+    const theme = useTheme();
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [formState, setFormState] = useState({
       price: '',
@@ -488,7 +491,7 @@ const AddProductDialogNew = React.memo(
                   position: 'absolute',
                   width: anchorRef.current?.offsetWidth,
                   zIndex: 1300,
-                  backgroundColor: '#fff',
+                  backgroundColor: theme.palette.background.paper,
                   border: '1px solid rgba(0, 0, 0, 0.23)',
                   borderRadius: '4px',
                   maxHeight: '300px',

@@ -1325,8 +1325,10 @@ const CartPage = () => {
                             p: 2,
                             bgcolor: deliveryType === 'pickup' ? 'primary.lighter' : 'grey.50',
                             opacity: deliveryType === 'delivery' && selectedAddressId ? 0.5 : 1,
-                            border:
-                              deliveryType === 'pickup' ? '2px solid #1976d2' : '1px solid #eee',
+                            border: (theme) =>
+                              deliveryType === 'pickup'
+                                ? `2px solid ${theme.palette.info.main}`
+                                : `1px solid ${theme.palette.divider}`,
                             transition: 'all 0.2s',
                           }}
                         >
@@ -1382,8 +1384,10 @@ const CartPage = () => {
                           p: 2,
                           bgcolor: deliveryType === 'delivery' ? 'secondary.lighter' : 'grey.50',
                           opacity: deliveryType === 'pickup' && selectedPickupId ? 0.5 : 1,
-                          border:
-                            deliveryType === 'delivery' ? '2px solid #9c27b0' : '1px solid #eee',
+                          border: (theme) =>
+                            deliveryType === 'delivery'
+                              ? `2px solid ${theme.palette.secondary.main}`
+                              : `1px solid ${theme.palette.divider}`,
                           transition: 'all 0.2s',
                         }}
                       >

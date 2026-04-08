@@ -1,10 +1,10 @@
 import React from 'react';
-import { List } from '@mui/material';
+import { Stack } from '@mui/material';
 import StoreItem from './StoreItem';
 
 const StoresList = ({ availableStores, selectedStore, handleStoreSelect }) => {
   return (
-    <List sx={{ mt: 1 }}>
+    <Stack spacing={1.5}>
       {availableStores.map((store) => (
         <StoreItem
           key={store.id}
@@ -13,7 +13,7 @@ const StoresList = ({ availableStores, selectedStore, handleStoreSelect }) => {
           onSelect={handleStoreSelect}
         />
       ))}
-    </List>
+    </Stack>
   );
 };
 

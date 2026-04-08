@@ -4,57 +4,59 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
+  Box,
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
 
-const Dialog = ({ open, onClose, children, title, footer, hideClose = false, ...props }) => {
-  const theme = useTheme();
+const Dialog = ({ open, onClose, children, title, footer, hideClose = false, maxWidth = 'sm', ...props }) => {
   return (
     <MuiDialog
       open={open}
-      maxWidth="sm"
+      maxWidth={maxWidth}
       fullWidth
       onClose={hideClose ? undefined : onClose}
       PaperProps={{
         sx: {
-          borderRadius: 3,
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.12)',
-          height: '60vh',
-          maxHeight: '60vh',
+          borderRadius: 2,
+          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+          border: '1px solid',
+          borderColor: 'divider',
+          maxHeight: 'min(85vh, 720px)',
           display: 'flex',
           flexDirection: 'column',
+          overflow: 'hidden',
         },
       }}
       {...props}
     >
       {title && (
         <DialogTitle
+          component="div"
           sx={{
-            textAlign: 'center',
-            background: theme.palette.custom.gradientPrimary,
-            color: 'white',
+            px: 3,
             py: 2,
-            position: 'relative',
+            borderBottom: '1px solid',
+            borderColor: 'divider',
+            backgroundColor: 'background.paper',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 2,
             flexShrink: 0,
           }}
         >
-          {title}
+          <Box sx={{ flex: 1, minWidth: 0, color: 'text.primary' }}>{title}</Box>
           {!hideClose && (
             <IconButton
               aria-label="close"
               onClick={onClose}
+              size="small"
               sx={{
-                position: 'absolute',
-                right: 8,
-                top: 8,
-                color: 'white',
-                '&:hover': {
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                },
+                color: 'text.secondary',
+                '&:hover': { color: 'text.primary', backgroundColor: 'action.hover' },
               }}
             >
-              <CloseIcon />
+              <CloseIcon fontSize="small" />
             </IconButton>
           )}
         </DialogTitle>
@@ -64,10 +66,10 @@ const Dialog = ({ open, onClose, children, title, footer, hideClose = false, ...
         sx={{
           flex: 1,
           overflowY: 'auto',
-          py: 2,
-          '&::-webkit-scrollbar': {
-            width: 6,
-          },
+          px: 3,
+          pt: 3,
+          pb: 3,
+          '&::-webkit-scrollbar': { width: 6 },
           '&::-webkit-scrollbar-thumb': {
             backgroundColor: 'rgba(0,0,0,0.15)',
             borderRadius: 3,

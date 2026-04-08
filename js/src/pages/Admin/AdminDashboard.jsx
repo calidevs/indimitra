@@ -128,10 +128,10 @@ const AdminDashboard = () => {
               justifyContent: open && !isMobile ? 'initial' : 'center',
               px: 2.5,
               '&.Mui-selected': {
-                background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+                background: theme.palette.custom.gradientCoral,
                 color: 'white',
                 '&:hover': {
-                  background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
+                  background: theme.palette.custom.gradientCoral,
                   opacity: 0.9,
                 },
                 '& .MuiListItemIcon-root': {

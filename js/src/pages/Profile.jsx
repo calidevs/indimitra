@@ -30,6 +30,7 @@ import {
   Snackbar,
   Alert as MuiAlert,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import {
   ContentCopy,
   Edit,
@@ -358,7 +359,7 @@ const Profile = () => {
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
-                  bgcolor: 'rgba(255,107,107,0.08)',
+                  bgcolor: (theme) => theme.palette.custom.primarySoft,
                   px: 1.5,
                   py: 0.5,
                   borderRadius: 2,
@@ -383,7 +384,7 @@ const Profile = () => {
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
-                    bgcolor: 'rgba(76,205,196,0.08)',
+                    bgcolor: (theme) => alpha(theme.palette.secondary.main, 0.08),
                     px: 1.5,
                     py: 0.5,
                     borderRadius: 2,
@@ -606,7 +607,7 @@ const Profile = () => {
                   sx={{
                     borderRadius: 0,
                     '&.Mui-selected': {
-                      bgcolor: 'rgba(25, 118, 210, 0.08)',
+                      bgcolor: (theme) => alpha(theme.palette.info.main, 0.08),
                       borderLeft: '4px solid',
                       borderColor: 'primary.main',
                     },

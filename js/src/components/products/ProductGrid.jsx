@@ -29,7 +29,7 @@ const ProductGrid = ({ products, title }) => {
               left: 0,
               width: '40%',
               height: '3px',
-              background: 'linear-gradient(45deg, #FF6B6B, #FFA07A)',
+              background: (theme) => theme.palette.custom.gradientCoral,
               borderRadius: '3px',
             },
           }}

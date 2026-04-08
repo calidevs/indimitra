@@ -10,7 +10,7 @@ const Menu = (props) => {
           minWidth: '200px',
           borderRadius: '12px',
           boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-          border: '1px solid rgba(145, 127, 179, 0.1)',
+          border: (theme) => `1px solid ${theme.palette.custom.menuHover}`,
           overflow: 'hidden',
         },
         '& .MuiList-root': {
@@ -19,7 +19,7 @@ const Menu = (props) => {
         '& .MuiMenuItem-root': {
           padding: '12px 24px',
           '&:hover': {
-            backgroundColor: 'rgba(145, 127, 179, 0.1)',
+            backgroundColor: (theme) => theme.palette.custom.menuHover,
           },
         },
         ...props.sx,

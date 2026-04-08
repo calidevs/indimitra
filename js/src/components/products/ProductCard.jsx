@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import { Add, Remove, ShoppingCart } from '@mui/icons-material';
 import { PLACEHOLDER_IMAGE, getRandomGroceryImage } from '@/assets/images';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, alpha } from '@mui/material/styles';
 import useStore, { cartKeyFor } from '@/store/useStore';
 import ProductCategoryChip from '../Chip/ProductCategoryChip';
 
@@ -222,13 +222,13 @@ const ProductCard = ({ product }) => {
               width: '100%',
               height: '48px',
               borderRadius: '8px',
-              background: 'rgba(255, 107, 107, 0.15)',
-              border: '2px solid #FF6B6B',
-              boxShadow: '0 2px 8px rgba(255, 107, 107, 0.15)',
+              background: alpha(theme.palette.primary.main, 0.15),
+              border: `2px solid ${theme.palette.primary.main}`,
+              boxShadow: `0 2px 8px ${alpha(theme.palette.primary.main, 0.15)}`,
               transition: 'all 0.2s ease',
               '&:hover': {
-                background: 'rgba(255, 107, 107, 0.15)',
-                boxShadow: '0 4px 12px rgba(255, 107, 107, 0.2)',
+                background: alpha(theme.palette.primary.main, 0.15),
+                boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.2)}`,
               },
             }}
           >
@@ -237,10 +237,10 @@ const ProductCard = ({ product }) => {
               <IconButton
                 onClick={handleDecrement}
                 sx={{
-                  color: '#FF6B6B',
+                  color: 'primary.main',
                   p: 1,
                   '&:hover': {
-                    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                    backgroundColor: alpha(theme.palette.primary.main, 0.2),
                     transform: 'scale(1.1)',
                   },
                   transition: 'all 0.2s ease',
@@ -254,7 +254,7 @@ const ProductCard = ({ product }) => {
             <Typography
               variant="body1"
               sx={{
-                color: '#FF6B6B',
+                color: 'primary.main',
                 fontWeight: 700,
                 mx: 2,
                 minWidth: '24px',
@@ -270,10 +270,10 @@ const ProductCard = ({ product }) => {
               <IconButton
                 onClick={handleIncrement}
                 sx={{
-                  color: '#FF6B6B',
+                  color: 'primary.main',
                   p: 1,
                   '&:hover': {
-                    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+                    backgroundColor: alpha(theme.palette.primary.main, 0.2),
                     transform: 'scale(1.1)',
                   },
                   transition: 'all 0.2s ease',
@@ -290,14 +290,14 @@ const ProductCard = ({ product }) => {
               width: '100%',
               height: '48px',
               background: 'transparent',
-              color: !isAvailable ? unavailableColor : '#FF6B6B',
+              color: !isAvailable ? unavailableColor : theme.palette.primary.main,
               borderRadius: '8px',
               fontWeight: 600,
               fontSize: '0.95rem',
               textTransform: 'none',
               position: 'relative',
               overflow: 'hidden',
-              border: `2px solid ${!isAvailable ? unavailableColor : '#FF6B6B'}`,
+              border: `2px solid ${!isAvailable ? unavailableColor : theme.palette.primary.main}`,
               transition: 'all 0.2s ease',
               '&:hover': {
                 background: 'transparent',
