@@ -756,21 +756,59 @@ const CartPage = () => {
 
   return (
     <Box sx={{ padding: 3 }}>
-      <Typography
-        variant="h4"
-        component="h1"
-        gutterBottom
+      <Box
         sx={{
-          fontWeight: 600,
-          color: 'primary.main',
           mb: 4,
           display: 'flex',
-          alignItems: 'center',
-          gap: 1,
+          alignItems: { xs: 'flex-start', sm: 'flex-end' },
+          justifyContent: 'space-between',
+          flexDirection: { xs: 'column', sm: 'row' },
+          gap: 2,
         }}
       >
-        <ShoppingBag /> Your Shopping Cart
-      </Typography>
+        <Box>
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{
+              fontWeight: 700,
+              color: 'text.primary',
+              fontSize: { xs: '1.6rem', sm: '1.9rem' },
+              lineHeight: 1.2,
+              letterSpacing: '-0.01em',
+            }}
+          >
+            Your Cart
+          </Typography>
+          {(Object.values(cart).length > 0 || customOrder) && (
+            <Typography
+              variant="body2"
+              sx={{ color: 'text.secondary', mt: 0.5, fontSize: '0.9rem' }}
+            >
+              {Object.values(cart).reduce((n, i) => n + (i.quantity || 0), 0)}{' '}
+              {Object.values(cart).reduce((n, i) => n + (i.quantity || 0), 0) === 1
+                ? 'item'
+                : 'items'}
+              {selectedStore?.name ? ` · ${selectedStore.name}` : ''}
+            </Typography>
+          )}
+        </Box>
+        <Button
+          component={Link}
+          to="/"
+          variant="text"
+          size="small"
+          sx={{
+            color: 'text.secondary',
+            textTransform: 'none',
+            fontWeight: 500,
+            fontSize: '0.9rem',
+            '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
+          }}
+        >
+          ← Continue shopping
+        </Button>
+      </Box>
 
       <Grid container spacing={3}>
           {/* Cart Items Section */}
