@@ -26,6 +26,7 @@ import {
   RadioGroup,
   Radio,
   InputAdornment,
+  Chip,
 } from '@mui/material';
 import { ErrorHandler, PaymentModal, PaymentMethodSelector } from '@/components';
 import OrderSuccessModal from '@/components/OrderSuccessModal/OrderSuccessModal';
@@ -42,7 +43,7 @@ import {
   Store,
   Home,
 } from '@mui/icons-material';
-import useStore, { useAuthStore, useAddressStore } from './../store/useStore';
+import useStore, { useAuthStore, useAddressStore, cartKeyFor } from './../store/useStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import fetchGraphQL from '../config/graphql/graphqlService';
 import { CREATE_ORDER_MUTATION, GET_USER_PROFILE, STORE_PAYMENT_CONFIG, CREATE_ORDER_WITH_COD_MUTATION, DELETE_SAVED_CART } from '../queries/operations';
@@ -781,7 +782,7 @@ const CartPage = () => {
                     Cart Items
                   </Typography>
                   {Object.values(cart).map((item) => (
-                    <Card key={item.id} sx={{ mb: 2, position: 'relative' }}>
+                    <Card key={cartKeyFor(item)} sx={{ mb: 2, position: 'relative' }}>
                       <CardContent>
                         <Grid container alignItems="center" spacing={2}>
                           {/* Mobile: Stack image and details vertically */}
@@ -803,32 +804,44 @@ const CartPage = () => {
                                   height: '48px',
                                   objectFit: 'cover',
                                   borderRadius: 8,
-                                  marginBottom: 4,
                                 }}
                               />
-                              <Typography
-                                variant="subtitle1"
+                              <Box
                                 sx={{
-                                  fontWeight: 500,
-                                  textAlign: { xs: 'center', sm: 'left' },
-                                  fontSize: { xs: '1rem', sm: '1.1rem' },
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  alignItems: { xs: 'center', sm: 'flex-start' },
+                                  gap: 0.5,
+                                  minWidth: 0,
                                 }}
                               >
-                                {item.name}
-                              </Typography>
-                              {item.selectedCut && (
                                 <Typography
-                                  variant="caption"
+                                  variant="subtitle1"
                                   sx={{
-                                    display: 'block',
-                                    color: 'text.secondary',
+                                    fontWeight: 500,
                                     textAlign: { xs: 'center', sm: 'left' },
-                                    mt: 0.25,
+                                    fontSize: { xs: '1rem', sm: '1.1rem' },
+                                    lineHeight: 1.25,
                                   }}
                                 >
-                                  Cut: {item.selectedCut.label}
+                                  {item.name}
                                 </Typography>
-                              )}
+                                {item.selectedCut && (
+                                  <Chip
+                                    label={item.selectedCut.label}
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{
+                                      height: 22,
+                                      fontSize: '0.72rem',
+                                      fontWeight: 500,
+                                      borderColor: 'primary.light',
+                                      color: 'primary.main',
+                                      '& .MuiChip-label': { px: 1 },
+                                    }}
+                                  />
+                                )}
+                              </Box>
                             </Box>
                           </Grid>
                           <Grid item xs={6} sm={3}>
@@ -853,7 +866,7 @@ const CartPage = () => {
                             >
                               <IconButton
                                 size="small"
-                                onClick={() => removeFromCart(item.id)}
+                                onClick={() => removeFromCart(item)}
                                 sx={{
                                   border: '1px solid',
                                   borderColor: 'divider',

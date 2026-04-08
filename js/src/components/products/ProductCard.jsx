@@ -18,7 +18,7 @@ import {
 import { Add, Remove, ShoppingCart } from '@mui/icons-material';
 import { PLACEHOLDER_IMAGE, getRandomGroceryImage } from '@/assets/images';
 import { useTheme } from '@mui/material/styles';
-import useStore from '@/store/useStore';
+import useStore, { cartKeyFor } from '@/store/useStore';
 import ProductCategoryChip from '../Chip/ProductCategoryChip';
 
 const unavailableColor = 'grey';
@@ -27,14 +27,27 @@ const ProductCard = ({ product }) => {
   const theme = useTheme();
   const { cart, addToCart, removeFromCart } = useStore();
   const { id, name, price, description, image, categoryName, isAvailable, cutTypes } = product;
-  const cartQuantity = cart[id]?.quantity || 0;
   const hasCuts = Array.isArray(cutTypes) && cutTypes.length > 0;
-  const [selectedCutId, setSelectedCutId] = useState(cart[id]?.selectedCut?.id ?? '');
+  const [selectedCutId, setSelectedCutId] = useState('');
   const selectedCut = hasCuts ? cutTypes.find((c) => c.id === selectedCutId) || null : null;
   const cutRequirementMet = !hasCuts || selectedCut !== null;
 
+  // Card state tracks the *current* (product, selected-cut) combo only.
+  // Other cut variants of the same product live as separate cart entries
+  // and are not shown here — they render as their own rows in the cart page.
+  const currentKey = cartKeyFor({ id, selectedCut });
+  const cartQuantity = cart[currentKey]?.quantity || 0;
+
   const handleAddToCart = () => {
     addToCart({ ...product, selectedCut });
+  };
+
+  const handleIncrement = () => {
+    addToCart({ ...product, selectedCut });
+  };
+
+  const handleDecrement = () => {
+    removeFromCart(currentKey);
   };
 
   const productImage =
@@ -222,7 +235,7 @@ const ProductCard = ({ product }) => {
             {/* Minus Button */}
             <Tooltip title="Remove from cart">
               <IconButton
-                onClick={() => removeFromCart(id)}
+                onClick={handleDecrement}
                 sx={{
                   color: '#FF6B6B',
                   p: 1,
@@ -255,7 +268,7 @@ const ProductCard = ({ product }) => {
             {/* Plus Button */}
             <Tooltip title="Add to cart">
               <IconButton
-                onClick={handleAddToCart}
+                onClick={handleIncrement}
                 sx={{
                   color: '#FF6B6B',
                   p: 1,

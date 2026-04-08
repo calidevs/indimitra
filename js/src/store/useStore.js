@@ -1,5 +1,29 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
+
+// Composite cart key: one entry per (product, selected cut) combo.
+// Products with no cut selected (e.g. veggies, oil) collapse to "<id>::none".
+export const cartKeyFor = (productOrItem) => {
+  const id = productOrItem?.id ?? productOrItem?.productId;
+  const cutId = productOrItem?.selectedCut?.id ?? 'none';
+  return `${id}::${cutId}`;
+};
+
+// Rewrites legacy cart entries keyed by bare productId into composite form.
+// Safe to re-run: already-composite keys are passed through unchanged.
+const migrateCartShape = (cart) => {
+  if (!cart || typeof cart !== 'object') return {};
+  const migrated = {};
+  for (const [key, value] of Object.entries(cart)) {
+    if (typeof key === 'string' && key.includes('::')) {
+      migrated[key] = value;
+      continue;
+    }
+    const newKey = cartKeyFor(value || { id: key });
+    migrated[newKey] = value;
+  }
+  return migrated;
+};
 import { defineUserAbility } from '../ability/defineAbility';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import fetchGraphQL from '../config/graphql/graphqlService';
@@ -67,7 +91,7 @@ const useStore = create(
 
         set({
           selectedStore: store,
-          cart: restored?.cart || {},
+          cart: migrateCartShape(restored?.cart || {}),
           customOrder: restored?.customOrder || '',
           listInputAnswers: restored?.listInputAnswers || {},
           deliveryType: restored?.deliveryType || 'pickup',
@@ -92,30 +116,38 @@ const useStore = create(
       setDeliveryType: (type) => set({ deliveryType: type }),
 
       addToCart: (product) =>
-        set((state) => ({
-          cart: {
-            ...state.cart,
-            [product.id]: {
-              ...(state.cart[product.id] || product),
-              // Always honor the latest selected cut from the UI (if provided)
-              selectedCut:
-                product.selectedCut !== undefined
-                  ? product.selectedCut
-                  : state.cart[product.id]?.selectedCut ?? null,
-              quantity: (state.cart[product.id]?.quantity || 0) + 1,
-            },
-          },
-        })),
-
-      removeFromCart: (productId) =>
         set((state) => {
-          if (!state.cart[productId]) return state;
+          const key = cartKeyFor(product);
+          const existing = state.cart[key];
+          return {
+            cart: {
+              ...state.cart,
+              [key]: {
+                ...(existing || product),
+                selectedCut: product.selectedCut ?? existing?.selectedCut ?? null,
+                quantity: (existing?.quantity || 0) + 1,
+              },
+            },
+          };
+        }),
+
+      // Accepts either a composite key ("5::3") or a product/cart-entry object.
+      removeFromCart: (keyOrItem) =>
+        set((state) => {
+          const key =
+            typeof keyOrItem === 'string' && keyOrItem.includes('::')
+              ? keyOrItem
+              : cartKeyFor(keyOrItem);
+          if (!state.cart[key]) return state;
 
           const updatedCart = { ...state.cart };
-          if (updatedCart[productId].quantity > 1) {
-            updatedCart[productId].quantity -= 1;
+          if (updatedCart[key].quantity > 1) {
+            updatedCart[key] = {
+              ...updatedCart[key],
+              quantity: updatedCart[key].quantity - 1,
+            };
           } else {
-            delete updatedCart[productId];
+            delete updatedCart[key];
           }
           return { cart: updatedCart };
         }),
@@ -259,6 +291,16 @@ const useStore = create(
     {
       name: 'indimitra-cart-storage',
       storage: createJSONStorage(() => localStorage),
+      version: 2,
+      migrate: (persistedState, _version) => {
+        if (persistedState?.cart) {
+          persistedState.cart = migrateCartShape(persistedState.cart);
+        }
+        return persistedState;
+      },
+      onRehydrateStorage: () => (state) => {
+        if (state?.cart) state.cart = migrateCartShape(state.cart);
+      },
       partialize: (state) => ({
         cart: state.cart,
         selectedStore: state.selectedStore,
