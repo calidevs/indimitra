@@ -42,6 +42,7 @@ import {
   Payment,
   Store,
   Home,
+  DeleteOutline,
 } from '@mui/icons-material';
 import useStore, { useAuthStore, useAddressStore, cartKeyFor } from './../store/useStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -225,6 +226,7 @@ const CartPage = () => {
     cart,
     removeFromCart,
     addToCart,
+    deleteCartLine,
     cartTotal,
     clearCart,
     selectedStore,
@@ -773,207 +775,290 @@ const CartPage = () => {
       <Grid container spacing={3}>
           {/* Cart Items Section */}
           <Grid item xs={12} md={8}>
-            <Paper elevation={2} sx={{ p: 3, mb: 3 }}>
-              {error && <ErrorHandler error={error} title="Order Error" severity="error" />}
+            {error && (
+              <Box sx={{ mb: 2 }}>
+                <ErrorHandler error={error} title="Order Error" severity="error" />
+              </Box>
+            )}
 
-              {Object.values(cart).length > 0 || customOrder ? (
-                <>
-                  <Typography variant="h6" sx={{ mb: 2, fontWeight: 500 }}>
+            {Object.values(cart).length > 0 || customOrder ? (
+              <Paper
+                variant="outlined"
+                sx={{
+                  mb: 3,
+                  borderRadius: 2,
+                  overflow: 'hidden',
+                  borderColor: 'divider',
+                }}
+              >
+                {/* Header */}
+                <Box
+                  sx={{
+                    px: { xs: 2, sm: 3 },
+                    py: 2,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    borderBottom: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Typography sx={{ fontWeight: 600, fontSize: '1.05rem' }}>
                     Cart Items
                   </Typography>
-                  {Object.values(cart).map((item) => (
-                    <Card key={cartKeyFor(item)} sx={{ mb: 2, position: 'relative' }}>
-                      <CardContent>
-                        <Grid container alignItems="center" spacing={2}>
-                          {/* Mobile: Stack image and details vertically */}
-                          <Grid item xs={12} sm={4}>
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 2,
-                                flexDirection: { xs: 'column', sm: 'row' },
-                                justifyContent: { xs: 'center', sm: 'flex-start' },
-                              }}
-                            >
-                              <img
-                                src={item.image}
-                                alt={item.name}
-                                style={{
-                                  width: '48px',
-                                  height: '48px',
-                                  objectFit: 'cover',
-                                  borderRadius: 8,
-                                }}
-                              />
-                              <Box
-                                sx={{
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  alignItems: { xs: 'center', sm: 'flex-start' },
-                                  gap: 0.5,
-                                  minWidth: 0,
-                                }}
-                              >
-                                <Typography
-                                  variant="subtitle1"
-                                  sx={{
-                                    fontWeight: 500,
-                                    textAlign: { xs: 'center', sm: 'left' },
-                                    fontSize: { xs: '1rem', sm: '1.1rem' },
-                                    lineHeight: 1.25,
-                                  }}
-                                >
-                                  {item.name}
-                                </Typography>
-                                {item.selectedCut && (
-                                  <Chip
-                                    label={item.selectedCut.label}
-                                    size="small"
-                                    variant="outlined"
-                                    sx={{
-                                      height: 22,
-                                      fontSize: '0.72rem',
-                                      fontWeight: 500,
-                                      borderColor: 'primary.light',
-                                      color: 'primary.main',
-                                      '& .MuiChip-label': { px: 1 },
-                                    }}
-                                  />
-                                )}
-                              </Box>
-                            </Box>
-                          </Grid>
-                          <Grid item xs={6} sm={3}>
-                            <Typography
-                              color="text.secondary"
-                              sx={{
-                                fontSize: { xs: '0.98rem', sm: '1rem' },
-                                textAlign: { xs: 'center', sm: 'left' },
-                              }}
-                            >
-                              ${item.price.toFixed(2)} each
-                            </Typography>
-                          </Grid>
-                          <Grid item xs={6} sm={3}>
-                            <Box
-                              sx={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: 1,
-                                justifyContent: { xs: 'center', sm: 'flex-start' },
-                              }}
-                            >
-                              <IconButton
-                                size="small"
-                                onClick={() => removeFromCart(item)}
-                                sx={{
-                                  border: '1px solid',
-                                  borderColor: 'divider',
-                                  width: 32,
-                                  height: 32,
-                                }}
-                              >
-                                <Remove fontSize="small" />
-                              </IconButton>
-                              <Typography
-                                sx={{
-                                  minWidth: 32,
-                                  textAlign: 'center',
-                                  fontSize: { xs: '1rem', sm: '1.1rem' },
-                                }}
-                              >
-                                {item.quantity}
-                              </Typography>
-                              <IconButton
-                                size="small"
-                                onClick={() => addToCart(item)}
-                                sx={{
-                                  border: '1px solid',
-                                  borderColor: 'divider',
-                                  width: 32,
-                                  height: 32,
-                                }}
-                              >
-                                <Add fontSize="small" />
-                              </IconButton>
-                            </Box>
-                          </Grid>
-                          <Grid item xs={12} sm={2}>
-                            <Typography
-                              variant="subtitle1"
-                              sx={{
-                                fontWeight: 600,
-                                textAlign: { xs: 'center', sm: 'right' },
-                                fontSize: { xs: '1rem', sm: '1.1rem' },
-                                mt: { xs: 1, sm: 0 },
-                              }}
-                            >
-                              ${(item.price * item.quantity).toFixed(2)}
-                            </Typography>
-                          </Grid>
-                        </Grid>
-                      </CardContent>
-                    </Card>
-                  ))}
-
-                  {/* Custom Order Items */}
-                  {customOrder && (
-                    <Card sx={{ mb: 2, position: 'relative', bgcolor: 'primary.lighter' }}>
-                      <CardContent>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-                          <ShoppingBag color="primary" />
-                          <Typography variant="h6" sx={{ fontWeight: 600, color: 'primary.main' }}>
-                            Custom Shopping List
-                          </Typography>
-                        </Box>
-                        <Box
-                          sx={{
-                            p: 2,
-                            bgcolor: 'background.paper',
-                            borderRadius: 1,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                          }}
-                        >
-                          <Typography
-                            variant="body1"
-                            sx={{
-                              whiteSpace: 'pre-line',
-                              fontFamily: 'monospace',
-                              lineHeight: 1.6,
-                            }}
-                          >
-                            {customOrder}
-                          </Typography>
-                        </Box>
-                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
-                          <Button
-                            variant="outlined"
-                            color="error"
-                            size="small"
-                            onClick={() => setCustomOrder('')}
-                            startIcon={<Remove />}
-                          >
-                            Remove List
-                          </Button>
-                        </Box>
-                      </CardContent>
-                    </Card>
+                  {Object.values(cart).length > 0 && (
+                    <Typography variant="body2" color="text.secondary">
+                      {Object.values(cart).reduce((n, i) => n + (i.quantity || 0), 0)}{' '}
+                      {Object.values(cart).reduce((n, i) => n + (i.quantity || 0), 0) === 1
+                        ? 'item'
+                        : 'items'}
+                    </Typography>
                   )}
-                </>
-              ) : (
-                <Box sx={{ textAlign: 'center', py: 4 }}>
-                  <ShoppingBag sx={{ fontSize: 60, color: 'text.secondary', mb: 2 }} />
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    Your cart is empty
-                  </Typography>
-                  <Button variant="contained" component={Link} to="/" startIcon={<ShoppingBag />}>
-                    Continue Shopping
-                  </Button>
                 </Box>
-              )}
-            </Paper>
+
+                {/* Rows */}
+                {Object.values(cart).map((item, idx, arr) => (
+                  <Box
+                    key={cartKeyFor(item)}
+                    sx={{
+                      px: { xs: 2, sm: 3 },
+                      py: { xs: 2, sm: 2.25 },
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: { xs: 1.5, sm: 2.5 },
+                      borderBottom: idx < arr.length - 1 ? '1px solid' : 'none',
+                      borderColor: 'divider',
+                      transition: 'background-color 120ms ease',
+                      '&:hover': { backgroundColor: 'action.hover' },
+                      '&:hover .cart-row-delete': { opacity: 1 },
+                    }}
+                  >
+                    {/* Thumbnail */}
+                    <Box
+                      component="img"
+                      src={item.image}
+                      alt={item.name}
+                      sx={{
+                        width: { xs: 56, sm: 64 },
+                        height: { xs: 56, sm: 64 },
+                        objectFit: 'cover',
+                        borderRadius: 1.25,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        flexShrink: 0,
+                        backgroundColor: 'background.default',
+                      }}
+                    />
+
+                    {/* Name + variant + unit price */}
+                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                      <Typography
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: { xs: '0.95rem', sm: '1rem' },
+                          lineHeight: 1.3,
+                          color: 'text.primary',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: { xs: 'normal', sm: 'nowrap' },
+                        }}
+                      >
+                        {item.name}
+                      </Typography>
+                      <Box
+                        sx={{
+                          mt: 0.5,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                          flexWrap: 'wrap',
+                        }}
+                      >
+                        {item.selectedCut && (
+                          <Chip
+                            label={item.selectedCut.label}
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              height: 20,
+                              fontSize: '0.7rem',
+                              fontWeight: 500,
+                              borderColor: 'grey.300',
+                              color: 'text.secondary',
+                              backgroundColor: 'background.default',
+                              '& .MuiChip-label': { px: 0.9 },
+                            }}
+                          />
+                        )}
+                        <Typography
+                          variant="body2"
+                          sx={{ color: 'text.secondary', fontSize: '0.82rem' }}
+                        >
+                          ${item.price.toFixed(2)} each
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    {/* Quantity pill */}
+                    <Box
+                      sx={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        borderRadius: 9999,
+                        px: 0.25,
+                        height: 36,
+                        flexShrink: 0,
+                        backgroundColor: 'background.paper',
+                      }}
+                    >
+                      <IconButton
+                        size="small"
+                        onClick={() => removeFromCart(item)}
+                        sx={{
+                          width: 28,
+                          height: 28,
+                          color: 'text.secondary',
+                          '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
+                        }}
+                      >
+                        <Remove sx={{ fontSize: 16 }} />
+                      </IconButton>
+                      <Typography
+                        sx={{
+                          minWidth: 24,
+                          textAlign: 'center',
+                          fontWeight: 600,
+                          fontSize: '0.9rem',
+                          color: 'text.primary',
+                          userSelect: 'none',
+                        }}
+                      >
+                        {item.quantity}
+                      </Typography>
+                      <IconButton
+                        size="small"
+                        onClick={() => addToCart(item)}
+                        sx={{
+                          width: 28,
+                          height: 28,
+                          color: 'text.secondary',
+                          '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
+                        }}
+                      >
+                        <Add sx={{ fontSize: 16 }} />
+                      </IconButton>
+                    </Box>
+
+                    {/* Line total */}
+                    <Typography
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: { xs: '0.95rem', sm: '1rem' },
+                        minWidth: { xs: 64, sm: 80 },
+                        textAlign: 'right',
+                        color: 'text.primary',
+                        flexShrink: 0,
+                      }}
+                    >
+                      ${(item.price * item.quantity).toFixed(2)}
+                    </Typography>
+
+                    {/* Delete (hover-revealed) */}
+                    <Tooltip title="Remove item">
+                      <IconButton
+                        className="cart-row-delete"
+                        size="small"
+                        onClick={() => deleteCartLine(item)}
+                        sx={{
+                          opacity: { xs: 1, sm: 0 },
+                          transition: 'opacity 120ms ease, color 120ms ease',
+                          color: 'text.disabled',
+                          '&:hover': { color: 'error.main', backgroundColor: 'transparent' },
+                        }}
+                      >
+                        <DeleteOutline sx={{ fontSize: 20 }} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                ))}
+
+                {/* Custom Order Items */}
+                {customOrder && (
+                  <Box
+                    sx={{
+                      px: { xs: 2, sm: 3 },
+                      py: 2.5,
+                      borderTop: '1px solid',
+                      borderColor: 'divider',
+                      backgroundColor: 'primary.lighter',
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, mb: 1.5 }}>
+                      <ShoppingBag sx={{ color: 'primary.main', fontSize: 20 }} />
+                      <Typography sx={{ fontWeight: 600, color: 'primary.main', fontSize: '0.95rem' }}>
+                        Custom Shopping List
+                      </Typography>
+                    </Box>
+                    <Box
+                      sx={{
+                        p: 2,
+                        bgcolor: 'background.paper',
+                        borderRadius: 1,
+                        border: '1px solid',
+                        borderColor: 'divider',
+                      }}
+                    >
+                      <Typography
+                        variant="body1"
+                        sx={{
+                          whiteSpace: 'pre-line',
+                          fontFamily: 'monospace',
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        {customOrder}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1.5 }}>
+                      <Button
+                        variant="text"
+                        color="error"
+                        size="small"
+                        onClick={() => setCustomOrder('')}
+                        startIcon={<DeleteOutline />}
+                      >
+                        Remove List
+                      </Button>
+                    </Box>
+                  </Box>
+                )}
+              </Paper>
+            ) : (
+              <Paper
+                variant="outlined"
+                sx={{
+                  mb: 3,
+                  borderRadius: 2,
+                  borderColor: 'divider',
+                  px: 3,
+                  py: 6,
+                  textAlign: 'center',
+                }}
+              >
+                <ShoppingBag sx={{ fontSize: 56, color: 'text.disabled', mb: 1.5 }} />
+                <Typography variant="h6" color="text.secondary" gutterBottom>
+                  Your cart is empty
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+                  Browse items and add them to your cart to get started.
+                </Typography>
+                <Button variant="contained" component={Link} to="/" startIcon={<ShoppingBag />}>
+                  Continue Shopping
+                </Button>
+              </Paper>
+            )}
           </Grid>
 
           {/* Order Summary Section */}

@@ -169,6 +169,19 @@ const useStore = create(
           0
         ),
 
+      // Remove an entire cart line (regardless of its current quantity).
+      deleteCartLine: (keyOrItem) =>
+        set((state) => {
+          const key =
+            typeof keyOrItem === 'string' && keyOrItem.includes('::')
+              ? keyOrItem
+              : cartKeyFor(keyOrItem);
+          if (!state.cart[key]) return state;
+          const updatedCart = { ...state.cart };
+          delete updatedCart[key];
+          return { cart: updatedCart };
+        }),
+
       clearCart: () => set({ cart: {} }),
 
       // Calculate delivery fee based on fees array and delivery type
