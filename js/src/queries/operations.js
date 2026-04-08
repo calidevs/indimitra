@@ -666,6 +666,15 @@ export const GET_STORE_PRODUCTS = `
       storeId
       unit
       updatedAt
+      cutTypes {
+        edges {
+          node {
+            id
+            label
+            text
+          }
+        }
+      }
       product {
         id
         name

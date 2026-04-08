@@ -97,6 +97,11 @@ const useStore = create(
             ...state.cart,
             [product.id]: {
               ...(state.cart[product.id] || product),
+              // Always honor the latest selected cut from the UI (if provided)
+              selectedCut:
+                product.selectedCut !== undefined
+                  ? product.selectedCut
+                  : state.cart[product.id]?.selectedCut ?? null,
               quantity: (state.cart[product.id]?.quantity || 0) + 1,
             },
           },

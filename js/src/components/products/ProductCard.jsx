@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import {
   Card,
   CardActions,
@@ -9,6 +10,10 @@ import {
   Box,
   IconButton,
   Tooltip,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
 } from '@mui/material';
 import { Add, Remove, ShoppingCart } from '@mui/icons-material';
 import { PLACEHOLDER_IMAGE, getRandomGroceryImage } from '@/assets/images';
@@ -21,8 +26,16 @@ const unavailableColor = 'grey';
 const ProductCard = ({ product }) => {
   const theme = useTheme();
   const { cart, addToCart, removeFromCart } = useStore();
-  const { id, name, price, description, image, categoryName, isAvailable } = product;
+  const { id, name, price, description, image, categoryName, isAvailable, cutTypes } = product;
   const cartQuantity = cart[id]?.quantity || 0;
+  const hasCuts = Array.isArray(cutTypes) && cutTypes.length > 0;
+  const [selectedCutId, setSelectedCutId] = useState(cart[id]?.selectedCut?.id ?? '');
+  const selectedCut = hasCuts ? cutTypes.find((c) => c.id === selectedCutId) || null : null;
+  const cutRequirementMet = !hasCuts || selectedCut !== null;
+
+  const handleAddToCart = () => {
+    addToCart({ ...product, selectedCut });
+  };
 
   const productImage =
     image || (categoryName ? getRandomGroceryImage(categoryName) : PLACEHOLDER_IMAGE);
@@ -152,6 +165,34 @@ const ProductCard = ({ product }) => {
         </Box>
       </CardContent>
 
+      {hasCuts && (
+        <Box sx={{ px: 2.5, pb: 1.5 }}>
+          <FormControl fullWidth size="small" disabled={!isAvailable}>
+            <InputLabel id={`cut-select-label-${id}`}>Select cut</InputLabel>
+            <Select
+              labelId={`cut-select-label-${id}`}
+              value={selectedCutId}
+              label="Select cut"
+              onChange={(e) => setSelectedCutId(e.target.value)}
+            >
+              {cutTypes.map((cut) => (
+                <MenuItem key={cut.id} value={cut.id}>
+                  {cut.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          {!cutRequirementMet && (
+            <Typography
+              variant="caption"
+              sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}
+            >
+              Please select a cut to continue
+            </Typography>
+          )}
+        </Box>
+      )}
+
       <CardActions
         sx={{
           justifyContent: 'center',
@@ -214,7 +255,7 @@ const ProductCard = ({ product }) => {
             {/* Plus Button */}
             <Tooltip title="Add to cart">
               <IconButton
-                onClick={() => addToCart(product)}
+                onClick={handleAddToCart}
                 sx={{
                   color: '#FF6B6B',
                   p: 1,
@@ -257,10 +298,14 @@ const ProductCard = ({ product }) => {
               },
             }}
             startIcon={<ShoppingCart sx={{ fontSize: '1.1rem' }} />}
-            onClick={() => addToCart(product)}
-            disabled={!isAvailable}
+            onClick={handleAddToCart}
+            disabled={!isAvailable || !cutRequirementMet}
           >
-            {!isAvailable ? 'Unavailable' : 'Add to Cart'}
+            {!isAvailable
+              ? 'Unavailable'
+              : !cutRequirementMet
+                ? 'Select a cut'
+                : 'Add to Cart'}
           </Button>
         )}
       </CardActions>

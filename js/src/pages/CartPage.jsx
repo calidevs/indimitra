@@ -556,6 +556,7 @@ const CartPage = () => {
     const orderItems = Object.values(cart).map((item) => ({
       productId: item.id,
       quantity: item.quantity,
+      meatCutId: item.selectedCut?.id ?? null,
     }));
 
     // Get the selected pickup address if pickup is selected
@@ -622,6 +623,7 @@ const CartPage = () => {
     const orderItems = Object.values(cart).map(item => ({
       productId: item.id,
       quantity: item.quantity,
+      meatCutId: item.selectedCut?.id ?? null,
     }));
     createCodOrder({
       userId: userProfile.id,
@@ -745,6 +747,8 @@ const CartPage = () => {
   const orderItems = Object.values(cart).map((item) => ({
     productId: item.id,
     quantity: item.quantity,
+    meatCutId: item.selectedCut?.id ?? null,
+    selectedCut: item.selectedCut ?? null,
   }));
 
   return (
@@ -812,6 +816,19 @@ const CartPage = () => {
                               >
                                 {item.name}
                               </Typography>
+                              {item.selectedCut && (
+                                <Typography
+                                  variant="caption"
+                                  sx={{
+                                    display: 'block',
+                                    color: 'text.secondary',
+                                    textAlign: { xs: 'center', sm: 'left' },
+                                    mt: 0.25,
+                                  }}
+                                >
+                                  Cut: {item.selectedCut.label}
+                                </Typography>
+                              )}
                             </Box>
                           </Grid>
                           <Grid item xs={6} sm={3}>

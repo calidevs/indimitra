@@ -119,7 +119,8 @@ const PaymentModal = ({
     // Prepare order items in GraphQL format
     const productItems = orderItems.map(item => ({
       productId: item.productId,
-      quantity: item.quantity
+      quantity: item.quantity,
+      meatCutId: item.meatCutId ?? null,
     }));
 
     // Validate required fields

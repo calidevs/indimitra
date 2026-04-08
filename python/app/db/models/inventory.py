@@ -16,8 +16,9 @@ class InventoryModel(Base):
     is_listed = Column(Boolean, default=True, nullable=False)
     is_available = Column(Boolean, default=True, nullable=False)
     updatedAt = Column(DateTime, default=datetime.utcnow, nullable=True)
-    
+
     # Relationships
     store = relationship("StoreModel", back_populates="inventory")
     product = relationship("ProductModel", back_populates="inventory_items")
     order_items = relationship("OrderItemModel", back_populates="inventory")
+    cut_types = relationship("MeatCutModel", secondary="inventory_meat_cuts", back_populates="inventories")

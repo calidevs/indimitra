@@ -74,6 +74,10 @@ class OrderItem:
 class Address:
     pass
 
+@mapper.type(models.MeatCutModel)
+class MeatCut:
+    pass
+
 @mapper.type(models.InventoryModel)
 class Inventory:
     pass

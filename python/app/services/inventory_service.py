@@ -2,6 +2,7 @@ from app.db.session import SessionLocal
 from app.db.models.inventory import InventoryModel
 from app.db.models.store import StoreModel
 from app.db.models.product import ProductModel
+from sqlalchemy.orm import selectinload
 from typing import List, Optional
 from datetime import datetime
 
@@ -9,11 +10,15 @@ def get_inventory_by_store(store_id: int, is_listed: Optional[bool] = None) -> L
     """Get inventory items for a specific store with optional is_listed filter"""
     db = SessionLocal()
     try:
-        query = db.query(InventoryModel).filter(InventoryModel.storeId == store_id)
-        
+        query = (
+            db.query(InventoryModel)
+            .options(selectinload(InventoryModel.cut_types))
+            .filter(InventoryModel.storeId == store_id)
+        )
+
         if is_listed is not None:
             query = query.filter(InventoryModel.is_listed == is_listed)
-            
+
         return query.all()
     finally:
         db.close()
@@ -22,10 +27,15 @@ def get_inventory_item(store_id: int, product_id: int) -> Optional[InventoryMode
     """Get inventory details for a specific product in a specific store"""
     db = SessionLocal()
     try:
-        return db.query(InventoryModel).filter(
-            InventoryModel.storeId == store_id,
-            InventoryModel.productId == product_id
-        ).first()
+        return (
+            db.query(InventoryModel)
+            .options(selectinload(InventoryModel.cut_types))
+            .filter(
+                InventoryModel.storeId == store_id,
+                InventoryModel.productId == product_id,
+            )
+            .first()
+        )
     finally:
         db.close()
 
