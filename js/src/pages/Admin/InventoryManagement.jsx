@@ -54,17 +54,7 @@ import {
   ADD_PRODUCT_TO_INVENTORY,
   GET_MEAT_CUTS,
 } from '@/queries/operations';
-
-// Categories that support meat-cut assignment. Match is case-insensitive
-// and also matches a category name that contains any of these tokens
-// (e.g. "Fresh Seafood" → seafood).
-const MEAT_CUT_CATEGORIES = ['meat', 'poultry', 'seafood', 'fish'];
-
-const categorySupportsMeatCuts = (categoryName) => {
-  if (!categoryName) return false;
-  const name = categoryName.toLowerCase();
-  return MEAT_CUT_CATEGORIES.some((c) => name.includes(c));
-};
+import { categorySupportsMeatCuts } from '@/utils/categoryMeatCuts';
 
 const extractCutTypes = (item) => {
   if (!Array.isArray(item?.cutTypes)) return [];

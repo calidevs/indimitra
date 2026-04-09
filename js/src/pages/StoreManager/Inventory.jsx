@@ -53,16 +53,7 @@ import fetchGraphQL from '@/config/graphql/graphqlService';
 import { useAuthStore } from '@/store/useStore';
 import { fetchUserAttributes } from 'aws-amplify/auth';
 import Layout from '@/components/StoreManager/Layout';
-
-// Categories that support meat-cut assignment (case-insensitive substring match).
-// Store managers can only pick from existing meat cuts created by the main admin.
-const MEAT_CUT_CATEGORIES = ['meat', 'poultry', 'seafood', 'fish'];
-
-const categorySupportsMeatCuts = (categoryName) => {
-  if (!categoryName) return false;
-  const name = categoryName.toLowerCase();
-  return MEAT_CUT_CATEGORIES.some((c) => name.includes(c));
-};
+import { categorySupportsMeatCuts } from '@/utils/categoryMeatCuts';
 
 const extractCutTypes = (item) => {
   if (!Array.isArray(item?.cutTypes)) return [];

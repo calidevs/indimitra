@@ -166,7 +166,7 @@ const ProductCard = ({ product }) => {
             ${price.toFixed(2)}
           </Typography>
           {/* Quantity display */}
-          {typeof product.quantity !== 'undefined' && (
+          {/* {typeof product.quantity !== 'undefined' && (
             <Typography
               variant="body2"
               color="text.secondary"
@@ -174,7 +174,7 @@ const ProductCard = ({ product }) => {
             >
               Qty: {product.quantity}
             </Typography>
-          )}
+          )} */}
         </Box>
       </CardContent>
 
@@ -314,11 +314,7 @@ const ProductCard = ({ product }) => {
             onClick={handleAddToCart}
             disabled={!isAvailable || !cutRequirementMet}
           >
-            {!isAvailable
-              ? 'Unavailable'
-              : !cutRequirementMet
-                ? 'Select a cut'
-                : 'Add to Cart'}
+            {!isAvailable ? 'Unavailable' : !cutRequirementMet ? 'Select a cut' : 'Add to Cart'}
           </Button>
         )}
       </CardActions>
