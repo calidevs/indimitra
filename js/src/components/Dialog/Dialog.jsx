@@ -8,25 +8,31 @@ import {
 } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 
-const Dialog = ({ open, onClose, children, title, footer, hideClose = false, maxWidth = 'sm', ...props }) => {
+const Dialog = ({ open, onClose, children, title, footer, hideClose = false, maxWidth = 'sm', height, contentSx, ...props }) => {
+  const paperSx = {
+    borderRadius: 2,
+    boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
+    border: '1px solid',
+    borderColor: 'divider',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  };
+
+  if (height) {
+    // Fixed-height mode: keep the dialog a constant size regardless of content.
+    paperSx.height = `min(${height}, 90vh)`;
+  } else {
+    paperSx.maxHeight = 'min(85vh, 720px)';
+  }
+
   return (
     <MuiDialog
       open={open}
       maxWidth={maxWidth}
       fullWidth
       onClose={hideClose ? undefined : onClose}
-      PaperProps={{
-        sx: {
-          borderRadius: 2,
-          boxShadow: '0 12px 40px rgba(0, 0, 0, 0.08)',
-          border: '1px solid',
-          borderColor: 'divider',
-          maxHeight: 'min(85vh, 720px)',
-          display: 'flex',
-          flexDirection: 'column',
-          overflow: 'hidden',
-        },
-      }}
+      PaperProps={{ sx: paperSx }}
       {...props}
     >
       {title && (
@@ -65,6 +71,7 @@ const Dialog = ({ open, onClose, children, title, footer, hideClose = false, max
       <DialogContent
         sx={{
           flex: 1,
+          minHeight: 0,
           overflowY: 'auto',
           px: 3,
           pt: 3,
@@ -74,6 +81,7 @@ const Dialog = ({ open, onClose, children, title, footer, hideClose = false, max
             backgroundColor: 'rgba(0,0,0,0.15)',
             borderRadius: 3,
           },
+          ...contentSx,
         }}
       >
         {children}
