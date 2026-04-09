@@ -816,15 +816,6 @@ def update_order_items(
         if order.status not in editable_statuses:
             raise ValueError(f"Cannot update items for order with status {order.status}. Only orders with status PENDING, ORDER_PLACED, or ACCEPTED can be updated.")
         
-        # Update order amounts
-        order.totalAmount = total_amount
-        
-        if tax_amount is not None:
-            order.taxAmount = tax_amount
-            
-        if order_total_amount is not None:
-            order.orderTotalAmount = order_total_amount
-        
         # Process each order item update
         for update in order_item_updates:
             order_item_id = update.get("order_item_id")
@@ -912,8 +903,30 @@ def update_order_items(
                     # Link to the original item
                     order_item.updatedOrderitemsId = new_order_item.id
         
+        db.flush()
+
+        # Recalculate totals from current active items (head of each edit chain)
+        active_items = [
+            item for item in order.order_items
+            if item.updatedOrderitemsId is None and item.quantity > 0
+        ]
+        recalculated_subtotal = sum(item.orderAmount for item in active_items)
+        order.totalAmount = round(recalculated_subtotal, 2)
+
+        store = order.store
+        tax_pct = store.taxPercentage if store and store.taxPercentage else 0
+        order.taxAmount = round((recalculated_subtotal * tax_pct) / 100, 2)
+
+        order.orderTotalAmount = round(
+            order.totalAmount
+            + (order.taxAmount or 0)
+            + (order.deliveryFee or 0)
+            + (order.tipAmount or 0),
+            2
+        )
+
         db.commit()
         db.refresh(order)
         return order
     finally:
-        db.close() 
+        db.close()

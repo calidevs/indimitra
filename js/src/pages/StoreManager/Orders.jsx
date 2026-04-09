@@ -31,6 +31,7 @@ import {
   InputLabel,
   Select,
   Snackbar,
+  Stack,
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -46,6 +47,8 @@ import {
   ShoppingBag,
   LocalShipping,
   Download as DownloadIcon,
+  Person as PersonIcon,
+  Receipt,
 } from '@mui/icons-material';
 import { useAuthStore } from '@/store/useStore';
 import { useStore } from '@/store/useStore';
@@ -88,12 +91,13 @@ const calculateOrderTotal = (order) => {
     return order.totalAmount;
   }
 
-  // If totalAmount is not available, calculate from order items
   if (order.orderItems?.edges?.length > 0) {
-    const itemsTotal = order.orderItems.edges.reduce((sum, { node }) => {
-      const amount = node.orderAmount || 0;
-      return sum + amount;
-    }, 0);
+    const itemsTotal = order.orderItems.edges
+      .filter(({ node }) => node.updatedOrderitemsId === null)
+      .reduce((sum, { node }) => {
+        const amount = node.orderAmount || 0;
+        return sum + amount;
+      }, 0);
 
     return itemsTotal;
   }
@@ -262,21 +266,14 @@ const StoreOrders = () => {
       const storeTaxPercentage =
         profileData?.getUserProfile?.stores?.edges?.[0]?.node?.taxPercentage || 0;
 
-      // Get the latest active items for each product
-      const latestItems = new Map();
-      currentOrder.orderItems.edges.forEach(({ node }) => {
-        const productId = node.productId;
-        if (!latestItems.has(productId) || node.id > latestItems.get(productId).id) {
-          latestItems.set(productId, node);
-        }
-      });
+      const latestItems = currentOrder.orderItems.edges
+        .map(({ node }) => node)
+        .filter((item) => item.updatedOrderitemsId === null);
 
-      // Check if there are any active items after this update
-      const hasActiveItems = Array.from(latestItems.values()).some((node) =>
+      const hasActiveItems = latestItems.some((node) =>
         node.id === parseInt(itemId) ? quantity > 0 : node.quantity > 0
       );
 
-      // If no active items, set all amounts to 0
       if (!hasActiveItems) {
         return await graphqlService(UPDATE_ORDER_ITEMS, {
           orderId: parseInt(orderId),
@@ -292,14 +289,11 @@ const StoreOrders = () => {
         });
       }
 
-      // Calculate total amount from latest active items
       let totalAmount = 0;
       latestItems.forEach((node) => {
-        // If this is the item being updated, use the new quantity
         if (node.id === parseInt(itemId)) {
           totalAmount += quantity * price;
         } else {
-          // For other items, use their current quantity and price
           const itemPrice = node.product?.inventoryItems?.edges[0]?.node?.price || 0;
           totalAmount += node.quantity * itemPrice;
         }
@@ -629,39 +623,37 @@ const StoreOrders = () => {
     return filteredOrders.slice(start, start + rowsPerPage);
   }, [filteredOrders, page, rowsPerPage]);
 
-  // Update the getLatestOrderItem function to handle the current data structure
   const getLatestOrderItem = (orderItems) => {
-    if (!orderItems?.edges?.length) {
-      return null;
-    }
+    if (!orderItems?.edges?.length) return null;
 
-    // Group items by product ID and get the latest quantity for each product
-    const productMap = new Map();
+    const latestItems = orderItems.edges
+      .map(({ node }) => node)
+      .filter((item) => item.updatedOrderitemsId === null);
 
-    orderItems.edges.forEach(({ node }) => {
-      const productId = node.productId;
-      if (!productMap.has(productId) || node.id > productMap.get(productId).id) {
-        productMap.set(productId, node);
-      }
-    });
-
-    const latestItems = Array.from(productMap.values());
     return latestItems;
   };
 
-  // Update the buildItemHistory function to show quantity changes
   const buildItemHistory = (currentItem, allItems) => {
-    if (!currentItem || !allItems) {
-      return [currentItem];
+    if (!currentItem || !allItems) return [currentItem];
+
+    const itemMap = new Map();
+    allItems.forEach(({ node }) => {
+      itemMap.set(node.id, node);
+    });
+
+    const history = [currentItem];
+    let currentId = currentItem.id;
+
+    while (true) {
+      const nextItem = Array.from(itemMap.values()).find(
+        (item) => item.updatedOrderitemsId === currentId
+      );
+      if (!nextItem) break;
+      history.push(nextItem);
+      currentId = nextItem.id;
     }
 
-    // Get all items for the same product, sorted by ID (which represents chronological order)
-    const productHistory = allItems
-      .map(({ node }) => node)
-      .filter((item) => item.productId === currentItem.productId)
-      .sort((a, b) => a.id - b.id);
-
-    return productHistory;
+    return history.reverse();
   };
 
   // Add a helper function to check if order is editable
@@ -739,7 +731,7 @@ const StoreOrders = () => {
       const details = [
         `Type: ${order.type === 'PICKUP' ? 'Pickup' : 'Delivery'}`,
         `Status: ${ORDER_STATUSES.find((s) => s.value === order.status)?.label || order.status}`,
-        `Total: $${order.orderTotalAmount}`,
+        `Total: ${formatCurrency(order.orderTotalAmount)}`,
         `Customer: ${order.creator?.email || 'N/A'}`,
         `Phone: ${order.creator?.mobile || 'N/A'}`,
         `Address: ${order.type === 'PICKUP' ? order.pickupAddress?.address : order.address?.address || 'N/A'}`,
@@ -891,7 +883,7 @@ const StoreOrders = () => {
                           width: { size: 20, type: WidthType.PERCENTAGE },
                         }),
                         new DocxTableCell({
-                          children: [new Paragraph(`$${order.orderTotalAmount}`)],
+                          children: [new Paragraph(formatCurrency(order.orderTotalAmount))],
                           width: { size: 80, type: WidthType.PERCENTAGE },
                         }),
                       ],
@@ -1249,7 +1241,7 @@ const StoreOrders = () => {
                   <React.Fragment key={order.id}>
                     <TableRow>
                       <TableCell>{order.id}</TableCell>
-                      <TableCell>${order.orderTotalAmount}</TableCell>
+                      <TableCell>{formatCurrency(order.orderTotalAmount)}</TableCell>
                       <TableCell>
                         <Chip
                           label={
@@ -1308,75 +1300,401 @@ const StoreOrders = () => {
                     {expandedOrder === order.id && (
                       <TableRow>
                         <TableCell colSpan={6}>
-                          <Box sx={{ p: 2 }}>
+                          <Box sx={{ p: 1.5 }}>
                             <Grid container spacing={2}>
-                              {/* Order Information */}
                               <Grid item xs={12}>
-                                <Typography
-                                  variant="subtitle1"
-                                  gutterBottom
-                                  sx={{ fontWeight: 'bold' }}
-                                >
-                                  Order Information
-                                </Typography>
-                                <Grid container spacing={2}>
-                                  <Grid item xs={12} md={4}>
-                                    <Typography>
-                                      <strong>Order Code:</strong> {order.displayCode || 'N/A'}
-                                    </Typography>
-                                  </Grid>
-                                  <Grid item xs={12} md={4}>
-                                    <Typography>
-                                      <strong>Type:</strong>{' '}
-                                      {order.type === 'PICKUP' ? (
+                                <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 } }}>
+                                  <Grid container spacing={{ xs: 2, sm: 2, md: 3 }}>
+                                    <Grid item xs={12} sm={6} md={4}>
+                                      <Typography
+                                        variant="h6"
+                                        sx={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 1,
+                                          color: 'primary.main',
+                                          fontWeight: 600,
+                                          mb: 1.25,
+                                          fontSize: { xs: '1rem', sm: '1.25rem' },
+                                        }}
+                                      >
+                                        <LocalShipping /> Delivery information
+                                      </Typography>
+                                      <Stack spacing={1}>
                                         <Box
-                                          component="span"
-                                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                                          sx={{
+                                            display: 'flex',
+                                            flexWrap: 'wrap',
+                                            alignItems: 'baseline',
+                                            columnGap: 1,
+                                            rowGap: 0.25,
+                                          }}
                                         >
-                                          <ShoppingBag fontSize="small" />
-                                          Pickup Order
+                                          <Typography
+                                            component="span"
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={700}
+                                            sx={{ flexShrink: 0 }}
+                                          >
+                                            Order code
+                                          </Typography>
+                                          <Typography
+                                            component="span"
+                                            variant="body2"
+                                            fontWeight={500}
+                                          >
+                                            {order.displayCode || 'N/A'}
+                                          </Typography>
                                         </Box>
-                                      ) : (
                                         <Box
-                                          component="span"
-                                          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
+                                          sx={{
+                                            display: 'flex',
+                                            flexWrap: 'wrap',
+                                            alignItems: 'center',
+                                            columnGap: 1,
+                                            rowGap: 0.25,
+                                          }}
                                         >
-                                          <LocalShipping fontSize="small" />
-                                          Delivery Order
+                                          <Typography
+                                            component="span"
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={700}
+                                            sx={{ flexShrink: 0 }}
+                                          >
+                                            Type
+                                          </Typography>
+                                          <Box
+                                            sx={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              gap: 0.5,
+                                            }}
+                                          >
+                                            {order.type === 'PICKUP' ? (
+                                              <ShoppingBag fontSize="small" />
+                                            ) : (
+                                              <LocalShipping fontSize="small" />
+                                            )}
+                                            <Typography
+                                              component="span"
+                                              variant="body2"
+                                              fontWeight={500}
+                                            >
+                                              {order.type === 'PICKUP' ? 'Pickup' : 'Delivery'}
+                                            </Typography>
+                                          </Box>
                                         </Box>
-                                      )}
-                                    </Typography>
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            flexWrap: 'wrap',
+                                            alignItems: 'baseline',
+                                            columnGap: 1,
+                                            rowGap: 0.25,
+                                          }}
+                                        >
+                                          <Typography
+                                            component="span"
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={700}
+                                            sx={{ flexShrink: 0 }}
+                                          >
+                                            {order.type === 'PICKUP'
+                                              ? 'Pickup location'
+                                              : 'Delivery address'}
+                                          </Typography>
+                                          <Typography
+                                            component="span"
+                                            variant="body2"
+                                            fontWeight={500}
+                                          >
+                                            {order.type === 'PICKUP'
+                                              ? order.pickupAddress?.address || 'No pickup address'
+                                              : order.address?.address || 'No delivery address'}
+                                          </Typography>
+                                        </Box>
+                                        {order.deliveryInstructions && (
+                                          <Box
+                                            sx={{
+                                              display: 'flex',
+                                              flexWrap: 'wrap',
+                                              alignItems: 'baseline',
+                                              columnGap: 1,
+                                              rowGap: 0.25,
+                                            }}
+                                          >
+                                            <Typography
+                                              component="span"
+                                              variant="subtitle2"
+                                              color="text.secondary"
+                                              fontWeight={700}
+                                              sx={{ flexShrink: 0 }}
+                                            >
+                                              {order.type === 'PICKUP'
+                                                ? 'Pickup notes'
+                                                : 'Delivery instructions'}
+                                            </Typography>
+                                            <Typography
+                                              component="span"
+                                              variant="body2"
+                                              fontWeight={500}
+                                            >
+                                              {order.deliveryInstructions}
+                                            </Typography>
+                                          </Box>
+                                        )}
+                                        {order.deliveryDate && (
+                                          <Box
+                                            sx={{
+                                              display: 'flex',
+                                              flexWrap: 'wrap',
+                                              alignItems: 'baseline',
+                                              columnGap: 1,
+                                              rowGap: 0.25,
+                                            }}
+                                          >
+                                            <Typography
+                                              component="span"
+                                              variant="subtitle2"
+                                              color="text.secondary"
+                                              fontWeight={600}
+                                              sx={{ flexShrink: 0 }}
+                                            >
+                                              Expected delivery date
+                                            </Typography>
+                                            <Typography
+                                              component="span"
+                                              variant="body2"
+                                              fontWeight={500}
+                                            >
+                                              {formatDate(order.deliveryDate)}
+                                            </Typography>
+                                          </Box>
+                                        )}
+                                        {order.cancelMessage && (
+                                          <Box
+                                            sx={{
+                                              display: 'flex',
+                                              flexWrap: 'wrap',
+                                              alignItems: 'baseline',
+                                              columnGap: 1,
+                                              rowGap: 0.25,
+                                            }}
+                                          >
+                                            <Typography
+                                              component="span"
+                                              variant="subtitle2"
+                                              color="error"
+                                              fontWeight={700}
+                                              sx={{ flexShrink: 0 }}
+                                            >
+                                              Cancellation reason
+                                            </Typography>
+                                            <Typography
+                                              component="span"
+                                              variant="body2"
+                                              color="error"
+                                              fontWeight={500}
+                                            >
+                                              {order.cancelMessage}
+                                            </Typography>
+                                          </Box>
+                                        )}
+                                      </Stack>
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={4}>
+                                      <Typography
+                                        variant="h6"
+                                        sx={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 1,
+                                          color: 'primary.main',
+                                          fontWeight: 600,
+                                          mb: 1.25,
+                                          fontSize: { xs: '1rem', sm: '1.25rem' },
+                                        }}
+                                      >
+                                        <PersonIcon /> Customer
+                                      </Typography>
+                                      <Stack spacing={1}>
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            flexWrap: 'wrap',
+                                            alignItems: 'baseline',
+                                            columnGap: 1,
+                                            rowGap: 0.25,
+                                          }}
+                                        >
+                                          <Typography
+                                            component="span"
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={700}
+                                            sx={{ flexShrink: 0 }}
+                                          >
+                                            Email
+                                          </Typography>
+                                          <Typography
+                                            component="span"
+                                            variant="body2"
+                                            fontWeight={500}
+                                          >
+                                            {order?.creator?.email || 'N/A'}
+                                          </Typography>
+                                        </Box>
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            flexWrap: 'wrap',
+                                            alignItems: 'baseline',
+                                            columnGap: 1,
+                                            rowGap: 0.25,
+                                          }}
+                                        >
+                                          <Typography
+                                            component="span"
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={700}
+                                            sx={{ flexShrink: 0 }}
+                                          >
+                                            Phone
+                                          </Typography>
+                                          <Typography
+                                            component="span"
+                                            variant="body2"
+                                            fontWeight={500}
+                                          >
+                                            {order?.creator?.mobile || 'N/A'}
+                                          </Typography>
+                                        </Box>
+                                      </Stack>
+                                    </Grid>
+                                    <Grid item xs={12} sm={12} md={4}>
+                                      <Typography
+                                        variant="h6"
+                                        sx={{
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          gap: 1,
+                                          color: 'primary.main',
+                                          fontWeight: 600,
+                                          mb: 1.25,
+                                          fontSize: { xs: '1rem', sm: '1.25rem' },
+                                        }}
+                                      >
+                                        <Receipt /> Order summary
+                                      </Typography>
+                                      <Stack spacing={0.5}>
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'baseline',
+                                            gap: 1,
+                                          }}
+                                        >
+                                          <Typography
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={700}
+                                          >
+                                            Subtotal
+                                          </Typography>
+                                          <Typography variant="body2" fontWeight={500}>
+                                            {formatCurrency(order.totalAmount)}
+                                          </Typography>
+                                        </Box>
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'baseline',
+                                            gap: 1,
+                                          }}
+                                        >
+                                          <Typography
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={700}
+                                          >
+                                            Delivery fee
+                                          </Typography>
+                                          <Typography variant="body2" fontWeight={500}>
+                                            {formatCurrency(order.deliveryFee)}
+                                          </Typography>
+                                        </Box>
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'baseline',
+                                            gap: 1,
+                                          }}
+                                        >
+                                          <Typography
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={700}
+                                          >
+                                            Tax
+                                          </Typography>
+                                          <Typography variant="body2" fontWeight={500}>
+                                            {formatCurrency(order.taxAmount)}
+                                          </Typography>
+                                        </Box>
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'baseline',
+                                            gap: 1,
+                                          }}
+                                        >
+                                          <Typography
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={700}
+                                          >
+                                            Tip
+                                          </Typography>
+                                          <Typography variant="body2" fontWeight={500}>
+                                            {formatCurrency(order.tipAmount)}
+                                          </Typography>
+                                        </Box>
+                                        <Divider sx={{ my: 0.5 }} />
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            justifyContent: 'space-between',
+                                            alignItems: 'baseline',
+                                            gap: 1,
+                                          }}
+                                        >
+                                          <Typography
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={700}
+                                          >
+                                            Total
+                                          </Typography>
+                                          <Typography
+                                            variant="subtitle1"
+                                            color="primary"
+                                            fontWeight={700}
+                                          >
+                                            {formatCurrency(order.orderTotalAmount)}
+                                          </Typography>
+                                        </Box>
+                                      </Stack>
+                                    </Grid>
                                   </Grid>
-                                  <Grid item xs={12} md={4}>
-                                    <Typography>
-                                      <strong>Address:</strong>{' '}
-                                      {order.type === 'PICKUP'
-                                        ? order.pickupAddress?.address || 'No pickup address'
-                                        : order.address?.address || 'No delivery address'}
-                                    </Typography>
-                                  </Grid>
-                                </Grid>
-                              </Grid>
-
-                              {/* Customer Information */}
-                              <Grid item xs={12}>
-                                <Typography
-                                  variant="subtitle1"
-                                  gutterBottom
-                                  sx={{ fontWeight: 'bold' }}
-                                >
-                                  Customer Information
-                                </Typography>
-                                <Grid container spacing={2}>
-                                  <Grid item xs={12} md={6}>
-                                    <Typography>Email: {order?.creator?.email || 'N/A'}</Typography>
-                                  </Grid>
-                                  <Grid item xs={12} md={6}>
-                                    <Typography>
-                                      Phone: {order?.creator?.mobile || 'N/A'}
-                                    </Typography>
-                                  </Grid>
-                                </Grid>
+                                </Paper>
                               </Grid>
 
                               {/* Order Items */}
@@ -1388,165 +1706,295 @@ const StoreOrders = () => {
                                 >
                                   Order Items
                                 </Typography>
-                                <Table size="small">
-                                  <TableHead>
-                                    <TableRow>
-                                      <TableCell>Product</TableCell>
-                                      <TableCell>Quantity</TableCell>
-                                      <TableCell>Price</TableCell>
-                                      <TableCell>Total</TableCell>
-                                      <TableCell>Actions</TableCell>
-                                    </TableRow>
-                                  </TableHead>
-                                  <TableBody>
-                                    {order.orderItems?.edges?.length > 0 ? (
-                                      getLatestOrderItem(order.orderItems)?.map((node) => {
-                                        const itemHistory = buildItemHistory(
-                                          node,
-                                          order.orderItems.edges
-                                        );
-                                        const price =
-                                          node.product?.inventoryItems?.edges[0]?.node?.price || 0;
+                                {order.orderItems?.edges?.length > 0 ? (
+                                  <Grid container spacing={1.5}>
+                                    {getLatestOrderItem(order.orderItems)?.map((node) => {
+                                      const itemHistory = buildItemHistory(
+                                        node,
+                                        order.orderItems.edges
+                                      );
+                                      const price =
+                                        node.product?.inventoryItems?.edges[0]?.node?.price || 0;
+                                      const inventoryItem =
+                                        node.product?.inventoryItems?.edges[0]?.node;
 
-                                        return (
-                                          <React.Fragment key={node.id}>
-                                            <TableRow>
-                                              <TableCell>{node.product?.name || 'N/A'}</TableCell>
-                                              <TableCell>{node.quantity}</TableCell>
-                                              <TableCell>{formatCurrency(price)}</TableCell>
-                                              <TableCell>
-                                                {formatCurrency(node.quantity * price)}
-                                              </TableCell>
-                                              <TableCell>
-                                                {isOrderEditable(order.status) && (
-                                                  <>
-                                                    <IconButton
-                                                      size="small"
-                                                      onClick={() => handleEditItem(node, order.id)}
-                                                      sx={{ mr: 1 }}
-                                                    >
-                                                      <EditIcon fontSize="small" />
-                                                    </IconButton>
-                                                    <IconButton
-                                                      size="small"
-                                                      onClick={() =>
-                                                        handleDeleteItem(node, order.id)
-                                                      }
-                                                      color="error"
-                                                    >
-                                                      <DeleteIcon fontSize="small" />
-                                                    </IconButton>
-                                                  </>
+                                      return (
+                                        <Grid item xs={12} key={node.id}>
+                                          <Card
+                                            variant="outlined"
+                                            sx={{
+                                              p: 2,
+                                              '&:hover': { bgcolor: 'grey.50' },
+                                            }}
+                                          >
+                                            <Grid container spacing={2} alignItems="center">
+                                              <Grid item xs={12} sm={4}>
+                                                <Typography variant="subtitle1" fontWeight={700}>
+                                                  {node.product?.name || 'N/A'}
+                                                </Typography>
+                                                <Typography
+                                                  variant="body2"
+                                                  color="text.secondary"
+                                                  fontWeight={500}
+                                                >
+                                                  {node.product?.description || ''}
+                                                </Typography>
+                                                {node.meatCut && (
+                                                  <Chip
+                                                    label={node.meatCut.label}
+                                                    size="small"
+                                                    variant="outlined"
+                                                    color="info"
+                                                    sx={{
+                                                      mt: 0.5,
+                                                      fontWeight: 600,
+                                                      fontSize: '0.7rem',
+                                                    }}
+                                                  />
                                                 )}
-                                              </TableCell>
-                                            </TableRow>
-                                            {(node.instructions || node.allowSubstitute !== null) && (
-                                              <TableRow>
-                                                <TableCell colSpan={5} sx={{ py: 1, borderBottom: 'none' }}>
+                                                {itemHistory.length > 1 && (
+                                                  <Typography
+                                                    variant="caption"
+                                                    color="primary"
+                                                    sx={{ display: 'block', mt: 0.5 }}
+                                                  >
+                                                    {itemHistory.length - 1} previous version
+                                                    {itemHistory.length > 2 ? 's' : ''}
+                                                  </Typography>
+                                                )}
+                                              </Grid>
+                                              <Grid item xs={4} sm={2}>
+                                                <Typography
+                                                  variant="body2"
+                                                  color="text.secondary"
+                                                  fontWeight={600}
+                                                >
+                                                  Unit Price
+                                                </Typography>
+                                                <Typography variant="body1" fontWeight={500}>
+                                                  {formatCurrency(price)}
+                                                </Typography>
+                                                {inventoryItem && inventoryItem.measurement && (
+                                                  <Typography
+                                                    variant="caption"
+                                                    color="text.secondary"
+                                                  >
+                                                    {inventoryItem.measurement} {inventoryItem.unit}
+                                                  </Typography>
+                                                )}
+                                              </Grid>
+                                              <Grid item xs={4} sm={2}>
+                                                <Typography
+                                                  variant="body2"
+                                                  color="text.secondary"
+                                                  fontWeight={600}
+                                                >
+                                                  Quantity
+                                                </Typography>
+                                                <Typography variant="body1" fontWeight={500}>
+                                                  {node.quantity}
+                                                </Typography>
+                                              </Grid>
+                                              <Grid item xs={4} sm={4}>
+                                                <Box
+                                                  sx={{
+                                                    display: 'flex',
+                                                    justifyContent: {
+                                                      xs: 'flex-start',
+                                                      sm: 'flex-end',
+                                                    },
+                                                    alignItems: 'center',
+                                                    gap: 1,
+                                                  }}
+                                                >
+                                                  <Typography
+                                                    variant="body2"
+                                                    color="text.secondary"
+                                                    fontWeight={600}
+                                                  >
+                                                    Total:
+                                                  </Typography>
+                                                  <Typography
+                                                    variant="h6"
+                                                    color="primary"
+                                                    fontWeight={700}
+                                                    sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}
+                                                  >
+                                                    {formatCurrency(node.quantity * price)}
+                                                  </Typography>
+                                                  {isOrderEditable(order.status) && (
+                                                    <>
+                                                      <IconButton
+                                                        size="small"
+                                                        onClick={() =>
+                                                          handleEditItem(node, order.id)
+                                                        }
+                                                      >
+                                                        <EditIcon fontSize="small" />
+                                                      </IconButton>
+                                                      <IconButton
+                                                        size="small"
+                                                        onClick={() =>
+                                                          handleDeleteItem(node, order.id)
+                                                        }
+                                                        color="error"
+                                                      >
+                                                        <DeleteIcon fontSize="small" />
+                                                      </IconButton>
+                                                    </>
+                                                  )}
+                                                </Box>
+                                              </Grid>
+                                            </Grid>
+
+                                            {(node.instructions ||
+                                              node.allowSubstitute !== null) && (
+                                              <Box
+                                                sx={{
+                                                  mt: 1.5,
+                                                  p: 1.5,
+                                                  bgcolor: 'grey.50',
+                                                  borderRadius: 1,
+                                                  borderLeft: '3px solid',
+                                                  borderColor: node.allowSubstitute
+                                                    ? 'warning.main'
+                                                    : 'error.main',
+                                                  display: 'flex',
+                                                  flexDirection: 'column',
+                                                  gap: 0.75,
+                                                }}
+                                              >
+                                                {node.instructions && (
                                                   <Box
                                                     sx={{
-                                                      pl: 2,
                                                       display: 'flex',
-                                                      flexDirection: 'column',
-                                                      gap: 0.5,
+                                                      alignItems: 'flex-start',
+                                                      gap: 0.75,
                                                     }}
                                                   >
-                                                    {node.instructions && (
-                                                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                                        <strong>Instructions:</strong> <em>{node.instructions}</em>
-                                                      </Typography>
-                                                    )}
+                                                    <Typography
+                                                      variant="body2"
+                                                      color="text.secondary"
+                                                      fontWeight={700}
+                                                      sx={{ whiteSpace: 'nowrap' }}
+                                                    >
+                                                      Instructions:
+                                                    </Typography>
                                                     <Typography
                                                       variant="body2"
                                                       sx={{
-                                                        color: node.allowSubstitute ? 'warning.dark' : 'error.main',
-                                                        fontWeight: 500,
+                                                        fontStyle: 'italic',
+                                                        color: 'text.primary',
                                                       }}
                                                     >
-                                                      <strong>If unavailable:</strong>{' '}
-                                                      {node.allowSubstitute
-                                                        ? 'Replace with a similar item'
-                                                        : 'Cancel this item'}
+                                                      {node.instructions}
                                                     </Typography>
                                                   </Box>
-                                                </TableCell>
-                                              </TableRow>
+                                                )}
+                                                <Chip
+                                                  label={
+                                                    node.allowSubstitute
+                                                      ? 'If unavailable: Replace with a similar item'
+                                                      : 'If unavailable: Cancel this item'
+                                                  }
+                                                  size="small"
+                                                  color={node.allowSubstitute ? 'warning' : 'error'}
+                                                  variant="outlined"
+                                                  sx={{
+                                                    alignSelf: 'flex-start',
+                                                    fontWeight: 600,
+                                                    fontSize: '0.7rem',
+                                                  }}
+                                                />
+                                              </Box>
                                             )}
+
                                             {itemHistory.length > 1 && (
-                                              <TableRow>
-                                                <TableCell colSpan={5}>
-                                                  <Box sx={{ pl: 2, py: 1 }}>
-                                                    <Typography
-                                                      variant="caption"
-                                                      color="text.secondary"
-                                                      sx={{ display: 'block', mb: 1 }}
+                                              <Box
+                                                sx={{
+                                                  mt: 2,
+                                                  pt: 2,
+                                                  borderTop: '1px solid',
+                                                  borderColor: 'divider',
+                                                }}
+                                              >
+                                                <Typography
+                                                  variant="subtitle2"
+                                                  color="text.secondary"
+                                                  fontWeight={600}
+                                                  gutterBottom
+                                                  sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    gap: 1,
+                                                  }}
+                                                >
+                                                  Order Change History ({itemHistory.length - 1}{' '}
+                                                  changes)
+                                                </Typography>
+                                                <Box sx={{ pl: 2 }}>
+                                                  {itemHistory.slice(0, -1).map((item, index) => (
+                                                    <Box
+                                                      key={item.id}
+                                                      sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 2,
+                                                        color: 'text.secondary',
+                                                        bgcolor: 'grey.50',
+                                                        p: 1.5,
+                                                        borderRadius: 1,
+                                                        mb: 1,
+                                                      }}
                                                     >
-                                                      Order Change History ({itemHistory.length - 1}{' '}
-                                                      changes)
-                                                    </Typography>
-                                                    {itemHistory.slice(0, -1).map((item, index) => (
-                                                      <Box
-                                                        key={item.id}
+                                                      <Typography
+                                                        variant="body2"
                                                         sx={{
-                                                          display: 'flex',
-                                                          alignItems: 'center',
-                                                          gap: 2,
+                                                          textDecoration: 'line-through',
                                                           color: 'text.secondary',
-                                                          bgcolor: 'grey.50',
-                                                          p: 1,
-                                                          borderRadius: 1,
-                                                          mb: 1,
+                                                          minWidth: '120px',
+                                                          fontWeight: 500,
                                                         }}
                                                       >
+                                                        Change {index + 1}
+                                                      </Typography>
+                                                      <Box sx={{ display: 'flex', gap: 3 }}>
                                                         <Typography
-                                                          variant="caption"
+                                                          variant="body2"
                                                           sx={{
                                                             textDecoration: 'line-through',
                                                             color: 'text.secondary',
-                                                            minWidth: '100px',
                                                           }}
                                                         >
-                                                          Change {index + 1}
+                                                          Quantity: {item.quantity}
                                                         </Typography>
-                                                        <Box sx={{ display: 'flex', gap: 3 }}>
-                                                          <Typography
-                                                            variant="caption"
-                                                            sx={{
-                                                              textDecoration: 'line-through',
-                                                              color: 'text.secondary',
-                                                            }}
-                                                          >
-                                                            Quantity: {item.quantity}
-                                                          </Typography>
-                                                          <Typography
-                                                            variant="caption"
-                                                            sx={{
-                                                              textDecoration: 'line-through',
-                                                              color: 'text.secondary',
-                                                            }}
-                                                          >
-                                                            Amount:{' '}
-                                                            {formatCurrency(item.orderAmount)}
-                                                          </Typography>
-                                                        </Box>
+                                                        <Typography
+                                                          variant="body2"
+                                                          sx={{
+                                                            textDecoration: 'line-through',
+                                                            color: 'text.secondary',
+                                                          }}
+                                                        >
+                                                          Amount: {formatCurrency(item.orderAmount)}
+                                                        </Typography>
                                                       </Box>
-                                                    ))}
-                                                  </Box>
-                                                </TableCell>
-                                              </TableRow>
+                                                    </Box>
+                                                  ))}
+                                                </Box>
+                                              </Box>
                                             )}
-                                          </React.Fragment>
-                                        );
-                                      })
-                                    ) : (
-                                      <TableRow>
-                                        <TableCell colSpan={5} align="center">
-                                          No items found for this order
-                                        </TableCell>
-                                      </TableRow>
-                                    )}
-                                  </TableBody>
-                                </Table>
+                                          </Card>
+                                        </Grid>
+                                      );
+                                    })}
+                                  </Grid>
+                                ) : (
+                                  <Box sx={{ textAlign: 'center', py: 3, color: 'text.secondary' }}>
+                                    <Typography fontWeight={500}>
+                                      No items found for this order.
+                                    </Typography>
+                                  </Box>
+                                )}
                               </Grid>
 
                               {/* Custom Order Details */}
@@ -1588,77 +2036,6 @@ const StoreOrders = () => {
                                       return null;
                                     })}
                                   </Box>
-                                </Grid>
-                              )}
-
-                              {/* Order Summary */}
-                              <Grid item xs={12}>
-                                <Typography
-                                  variant="subtitle1"
-                                  gutterBottom
-                                  sx={{ fontWeight: 'bold' }}
-                                >
-                                  Order Summary
-                                </Typography>
-                                <Box sx={{ bgcolor: 'grey.50', p: 2, borderRadius: 1 }}>
-                                  <Grid container spacing={1}>
-                                    <Grid item xs={6}>
-                                      <Typography>Subtotal:</Typography>
-                                    </Grid>
-                                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                                      <Typography>{formatCurrency(order.totalAmount)}</Typography>
-                                    </Grid>
-
-                                    <Grid item xs={6}>
-                                      <Typography>Delivery Fee:</Typography>
-                                    </Grid>
-                                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                                      <Typography>{formatCurrency(order.deliveryFee)}</Typography>
-                                    </Grid>
-
-                                    <Grid item xs={6}>
-                                      <Typography>Tax:</Typography>
-                                    </Grid>
-                                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                                      <Typography>{formatCurrency(order.taxAmount)}</Typography>
-                                    </Grid>
-
-                                    <Grid item xs={6}>
-                                      <Typography>Tip:</Typography>
-                                    </Grid>
-                                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                                      <Typography>{formatCurrency(order.tipAmount)}</Typography>
-                                    </Grid>
-
-                                    <Grid item xs={12}>
-                                      <Divider sx={{ my: 1 }} />
-                                    </Grid>
-
-                                    <Grid item xs={6}>
-                                      <Typography sx={{ fontWeight: 'bold' }}>
-                                        Total Amount:
-                                      </Typography>
-                                    </Grid>
-                                    <Grid item xs={6} sx={{ textAlign: 'right' }}>
-                                      <Typography sx={{ fontWeight: 'bold' }}>
-                                        {formatCurrency(order.orderTotalAmount)}
-                                      </Typography>
-                                    </Grid>
-                                  </Grid>
-                                </Box>
-                              </Grid>
-
-                              {/* Delivery Instructions */}
-                              {order.deliveryInstructions && (
-                                <Grid item xs={12}>
-                                  <Typography
-                                    variant="subtitle1"
-                                    gutterBottom
-                                    sx={{ fontWeight: 'bold' }}
-                                  >
-                                    Delivery Instructions
-                                  </Typography>
-                                  <Typography>{order.deliveryInstructions}</Typography>
                                 </Grid>
                               )}
                             </Grid>

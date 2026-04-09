@@ -26,6 +26,7 @@ import {
   Grid,
   Divider,
   Card,
+  Stack,
 } from '@mui/material';
 import {
   KeyboardArrowDown,
@@ -365,10 +366,9 @@ const Orders = () => {
     }
   };
 
-  // Add a helper function to check if order is editable
-  const isOrderEditable = (status) => {
-    return ['PENDING', 'ORDER_PLACED', 'ACCEPTED'].includes(status);
-  };
+  /** Cancel order and edit/delete line items — only while PENDING or ORDER_PLACED. */
+  const canUserModifyOrder = (status) =>
+    status === 'PENDING' || status === 'ORDER_PLACED';
 
   // Show loading while fetching profile or orders
   if (profileLoading || (ordersLoading && effectiveProfile?.id))
@@ -418,7 +418,9 @@ const Orders = () => {
                 <TableCell sx={{ display: { xs: 'none', md: 'table-cell' } }}>Order ID</TableCell>
                 <TableCell>Address</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>Total</TableCell>
+                <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
+                  Total Amount
+                </TableCell>
                 <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                   Delivery Date
                 </TableCell>
@@ -436,7 +438,10 @@ const Orders = () => {
                     <TableCell>
                       {/* Show Order ID above address on mobile */}
                       {isMobile && (
-                        <Typography variant="caption" sx={{ fontWeight: 700, color: 'primary.main', display: 'block', mb: 0.5 }}>
+                        <Typography
+                          variant="caption"
+                          sx={{ fontWeight: 700, color: 'primary.main', display: 'block', mb: 0.5 }}
+                        >
                           Order #{order.id}
                         </Typography>
                       )}
@@ -457,7 +462,8 @@ const Orders = () => {
                     <TableCell>
                       <Chip
                         label={
-                          ORDER_STATUSES.find((s) => s.value === order.status)?.label || order.status
+                          ORDER_STATUSES.find((s) => s.value === order.status)?.label ||
+                          order.status
                         }
                         size={isMobile ? 'small' : 'medium'}
                         color={
@@ -466,7 +472,7 @@ const Orders = () => {
                       />
                     </TableCell>
                     <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
-                      ${order.totalAmount.toFixed(2)}
+                      ${order.orderTotalAmount != null ? order.orderTotalAmount.toFixed(2) : '0.00'}
                     </TableCell>
                     <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' } }}>
                       {order.deliveryDate
@@ -498,7 +504,7 @@ const Orders = () => {
                             e.stopPropagation();
                             handleOpenModal(order.id);
                           }}
-                          disabled={!isOrderEditable(order.status)}
+                          disabled={!canUserModifyOrder(order.status)}
                         >
                           Cancel
                         </Button>
@@ -570,7 +576,7 @@ const Orders = () => {
                                               <Grid item xs={12} sm={4}>
                                                 <Typography
                                                   variant="subtitle1"
-                                                  fontWeight={600}
+                                                  fontWeight={700}
                                                   sx={{ fontSize: { xs: '0.875rem', sm: '1rem' } }}
                                                 >
                                                   {node.product.name}
@@ -582,6 +588,19 @@ const Orders = () => {
                                                 >
                                                   {node.product.category.name}
                                                 </Typography>
+                                                {node.meatCut && (
+                                                  <Chip
+                                                    label={node.meatCut.label}
+                                                    size="small"
+                                                    variant="outlined"
+                                                    color="info"
+                                                    sx={{
+                                                      mt: 0.5,
+                                                      fontWeight: 600,
+                                                      fontSize: '0.7rem',
+                                                    }}
+                                                  />
+                                                )}
                                                 {itemHistory.length > 1 && (
                                                   <Typography
                                                     variant="caption"
@@ -622,7 +641,8 @@ const Orders = () => {
                                                 >
                                                   Quantity
                                                 </Typography>
-                                                {editingQuantity === node.id ? (
+                                                {editingQuantity === node.id &&
+                                                canUserModifyOrder(order.status) ? (
                                                   <Box
                                                     sx={{
                                                       display: 'flex',
@@ -675,7 +695,7 @@ const Orders = () => {
                                                     <Typography variant="body1" fontWeight={500}>
                                                       {node.quantity}
                                                     </Typography>
-                                                    {isOrderEditable(order.status) && (
+                                                    {canUserModifyOrder(order.status) && (
                                                       <IconButton
                                                         size="small"
                                                         onClick={() => handleEditQuantity(node)}
@@ -719,7 +739,7 @@ const Orders = () => {
                                                         ?.price || 0)
                                                     ).toFixed(2)}
                                                   </Typography>
-                                                  {isOrderEditable(order.status) && (
+                                                  {canUserModifyOrder(order.status) && (
                                                     <IconButton
                                                       size="small"
                                                       color="error"
@@ -735,39 +755,65 @@ const Orders = () => {
                                               </Grid>
                                             </Grid>
 
-                                            {/* Per-item instructions & substitution preference */}
-                                            {(node.instructions || node.allowSubstitute !== null) && (
+                                            {(node.instructions ||
+                                              node.allowSubstitute !== null) && (
                                               <Box
                                                 sx={{
                                                   mt: 1.5,
-                                                  pt: 1.5,
-                                                  borderTop: '1px dashed',
-                                                  borderColor: 'divider',
+                                                  p: 1.5,
+                                                  bgcolor: 'grey.50',
+                                                  borderRadius: 1,
+                                                  borderLeft: '3px solid',
+                                                  borderColor: node.allowSubstitute
+                                                    ? 'warning.main'
+                                                    : 'error.main',
                                                   display: 'flex',
                                                   flexDirection: 'column',
-                                                  gap: 0.5,
+                                                  gap: 0.75,
                                                 }}
                                               >
                                                 {node.instructions && (
-                                                  <Typography
-                                                    variant="body2"
+                                                  <Box
                                                     sx={{
-                                                      color: 'text.secondary',
-                                                      fontStyle: 'italic',
+                                                      display: 'flex',
+                                                      alignItems: 'flex-start',
+                                                      gap: 0.75,
                                                     }}
                                                   >
-                                                    <strong>Instructions:</strong> {node.instructions}
-                                                  </Typography>
+                                                    <Typography
+                                                      variant="body2"
+                                                      color="text.secondary"
+                                                      fontWeight={700}
+                                                      sx={{ whiteSpace: 'nowrap' }}
+                                                    >
+                                                      Instructions:
+                                                    </Typography>
+                                                    <Typography
+                                                      variant="body2"
+                                                      sx={{
+                                                        fontStyle: 'italic',
+                                                        color: 'text.primary',
+                                                      }}
+                                                    >
+                                                      {node.instructions}
+                                                    </Typography>
+                                                  </Box>
                                                 )}
-                                                <Typography
-                                                  variant="body2"
-                                                  sx={{ color: 'text.secondary' }}
-                                                >
-                                                  <strong>If unavailable:</strong>{' '}
-                                                  {node.allowSubstitute
-                                                    ? 'Replace with a similar item'
-                                                    : 'Cancel this item'}
-                                                </Typography>
+                                                <Chip
+                                                  label={
+                                                    node.allowSubstitute
+                                                      ? 'If unavailable: Replace with a similar item'
+                                                      : 'If unavailable: Cancel this item'
+                                                  }
+                                                  size="small"
+                                                  color={node.allowSubstitute ? 'warning' : 'error'}
+                                                  variant="outlined"
+                                                  sx={{
+                                                    alignSelf: 'flex-start',
+                                                    fontWeight: 600,
+                                                    fontSize: '0.75rem',
+                                                  }}
+                                                />
                                               </Box>
                                             )}
 
@@ -870,37 +916,250 @@ const Orders = () => {
                                 )}
                               </Paper>
                             </Grid>
-                            {/* Combined Order Details and Delivery Information Section */}
+                            {/* Delivery information + order details (side by side from sm+) */}
                             <Grid item xs={12}>
                               <Paper sx={{ p: { xs: 1.5, sm: 2 }, mb: 3 }}>
-                                <Grid container spacing={{ xs: 2, sm: 3 }}>
-                                  {/* Order Details */}
-                                  <Grid item xs={12} md={6}>
+                                <Grid container spacing={{ xs: 2, sm: 2, md: 3 }}>
+                                  <Grid item xs={12} sm={6}>
                                     <Typography
                                       variant="h6"
-                                      gutterBottom
                                       sx={{
                                         display: 'flex',
                                         alignItems: 'center',
                                         gap: 1,
                                         color: 'primary.main',
                                         fontWeight: 600,
-                                        mb: 1,
+                                        mb: 1.25,
                                         fontSize: { xs: '1rem', sm: '1.25rem' },
                                       }}
                                     >
-                                      <Receipt /> Order Details
+                                      <LocalShipping /> Delivery information
                                     </Typography>
-                                    <Box sx={{ pl: 1 }}>
-                                      {order.customOrder && (
-                                        <Box sx={{ mb: 2 }}>
+                                    <Stack spacing={1}>
+                                      {order.displayCode && (
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            flexWrap: 'wrap',
+                                            alignItems: 'baseline',
+                                            columnGap: 1,
+                                            rowGap: 0.25,
+                                          }}
+                                        >
                                           <Typography
+                                            component="span"
                                             variant="subtitle2"
                                             color="text.secondary"
                                             fontWeight={700}
+                                            sx={{ flexShrink: 0 }}
                                           >
-                                            Custom Order Instructions
+                                            Order code
                                           </Typography>
+                                          <Typography
+                                            component="span"
+                                            variant="body2"
+                                            fontWeight={500}
+                                          >
+                                            {order.displayCode}
+                                          </Typography>
+                                        </Box>
+                                      )}
+                                      <Box
+                                        sx={{
+                                          display: 'flex',
+                                          flexWrap: 'wrap',
+                                          alignItems: 'center',
+                                          columnGap: 1,
+                                          rowGap: 0.25,
+                                        }}
+                                      >
+                                        <Typography
+                                          component="span"
+                                          variant="subtitle2"
+                                          color="text.secondary"
+                                          fontWeight={700}
+                                          sx={{ flexShrink: 0 }}
+                                        >
+                                          Type
+                                        </Typography>
+                                        <Box
+                                          sx={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: 0.5,
+                                          }}
+                                        >
+                                          {order.type === 'PICKUP' ? (
+                                            <ShoppingBag fontSize="small" />
+                                          ) : (
+                                            <LocalShipping fontSize="small" />
+                                          )}
+                                          <Typography
+                                            component="span"
+                                            variant="body2"
+                                            fontWeight={500}
+                                          >
+                                            {order.type === 'PICKUP' ? 'Pickup' : 'Delivery'}
+                                          </Typography>
+                                        </Box>
+                                      </Box>
+                                      <Box
+                                        sx={{
+                                          display: 'flex',
+                                          flexWrap: 'wrap',
+                                          alignItems: 'baseline',
+                                          columnGap: 1,
+                                          rowGap: 0.25,
+                                        }}
+                                      >
+                                        <Typography
+                                          component="span"
+                                          variant="subtitle2"
+                                          color="text.secondary"
+                                          fontWeight={700}
+                                          sx={{ flexShrink: 0 }}
+                                        >
+                                          {order.type === 'PICKUP'
+                                            ? 'Pickup location'
+                                            : 'Delivery address'}
+                                        </Typography>
+                                        <Typography
+                                          component="span"
+                                          variant="body2"
+                                          fontWeight={500}
+                                        >
+                                          {order.type === 'PICKUP'
+                                            ? order.pickupAddress?.address ||
+                                              'Pickup location not specified'
+                                            : order.address?.address || 'No address provided'}
+                                        </Typography>
+                                      </Box>
+                                      {order.deliveryInstructions && (
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            flexWrap: 'wrap',
+                                            alignItems: 'baseline',
+                                            columnGap: 1,
+                                            rowGap: 0.25,
+                                          }}
+                                        >
+                                          <Typography
+                                            component="span"
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={700}
+                                            sx={{ flexShrink: 0 }}
+                                          >
+                                            {order.type === 'PICKUP'
+                                              ? 'Pickup notes'
+                                              : 'Delivery instructions'}
+                                          </Typography>
+                                          <Typography
+                                            component="span"
+                                            variant="body2"
+                                            fontWeight={500}
+                                          >
+                                            {order.deliveryInstructions}
+                                          </Typography>
+                                        </Box>
+                                      )}
+                                      {order.deliveryDate && (
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            flexWrap: 'wrap',
+                                            alignItems: 'baseline',
+                                            columnGap: 1,
+                                            rowGap: 0.25,
+                                          }}
+                                        >
+                                          <Typography
+                                            component="span"
+                                            variant="subtitle2"
+                                            color="text.secondary"
+                                            fontWeight={600}
+                                            sx={{ flexShrink: 0 }}
+                                          >
+                                            Expected delivery date
+                                          </Typography>
+                                          <Typography
+                                            component="span"
+                                            variant="body2"
+                                            fontWeight={500}
+                                          >
+                                            {new Date(order.deliveryDate).toLocaleDateString()}
+                                          </Typography>
+                                        </Box>
+                                      )}
+                                      {order.cancelMessage && (
+                                        <Box
+                                          sx={{
+                                            display: 'flex',
+                                            flexWrap: 'wrap',
+                                            alignItems: 'baseline',
+                                            columnGap: 1,
+                                            rowGap: 0.25,
+                                          }}
+                                        >
+                                          <Typography
+                                            component="span"
+                                            variant="subtitle2"
+                                            color="error"
+                                            fontWeight={700}
+                                            sx={{ flexShrink: 0 }}
+                                          >
+                                            Cancellation reason
+                                          </Typography>
+                                          <Typography
+                                            component="span"
+                                            variant="body2"
+                                            color="error"
+                                            fontWeight={500}
+                                          >
+                                            {order.cancelMessage}
+                                          </Typography>
+                                        </Box>
+                                      )}
+                                    </Stack>
+                                  </Grid>
+
+                                  <Grid item xs={12} sm={6}>
+                                    <Typography
+                                      variant="h6"
+                                      sx={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: 1,
+                                        color: 'primary.main',
+                                        fontWeight: 600,
+                                        mb: 1.25,
+                                        fontSize: { xs: '1rem', sm: '1.25rem' },
+                                      }}
+                                    >
+                                      <Receipt /> Order details
+                                    </Typography>
+                                    <Box sx={{ pl: { xs: 0, sm: 0.5 } }}>
+                                      {order.customOrder && (
+                                        <Box sx={{ mb: 2 }}>
+                                          <Box
+                                            sx={{
+                                              display: 'flex',
+                                              flexWrap: 'wrap',
+                                              alignItems: 'baseline',
+                                              columnGap: 1,
+                                              mb: 0.5,
+                                            }}
+                                          >
+                                            <Typography
+                                              component="span"
+                                              variant="subtitle2"
+                                              color="text.secondary"
+                                              fontWeight={700}
+                                            >
+                                              Custom order instructions
+                                            </Typography>
+                                          </Box>
                                           <Typography
                                             variant="body2"
                                             fontWeight={500}
@@ -909,7 +1168,6 @@ const Orders = () => {
                                               bgcolor: 'grey.50',
                                               p: 1.5,
                                               borderRadius: 1,
-                                              mt: 0.5,
                                             }}
                                           >
                                             {order.customOrder}
@@ -932,7 +1190,10 @@ const Orders = () => {
                                           Subtotal
                                         </Typography>
                                         <Typography fontWeight={500}>
-                                          ${order.totalAmount ? order.totalAmount.toFixed(2) : '0.00'}
+                                          $
+                                          {order.totalAmount
+                                            ? order.totalAmount.toFixed(2)
+                                            : '0.00'}
                                         </Typography>
                                       </Box>
 
@@ -952,7 +1213,10 @@ const Orders = () => {
                                             Delivery Fee
                                           </Typography>
                                           <Typography fontWeight={500}>
-                                            ${order.deliveryFee ? order.deliveryFee.toFixed(2) : '0.00'}
+                                            $
+                                            {order.deliveryFee
+                                              ? order.deliveryFee.toFixed(2)
+                                              : '0.00'}
                                           </Typography>
                                         </Box>
                                       )}
@@ -1016,96 +1280,12 @@ const Orders = () => {
                                           color="primary"
                                           fontWeight={700}
                                         >
-                                          ${order.orderTotalAmount ? order.orderTotalAmount.toFixed(2) : '0.00'}
+                                          $
+                                          {order.orderTotalAmount
+                                            ? order.orderTotalAmount.toFixed(2)
+                                            : '0.00'}
                                         </Typography>
                                       </Box>
-                                    </Box>
-                                  </Grid>
-
-                                  {/* Delivery Information */}
-                                  <Grid item xs={12} md={6}>
-                                    <Typography
-                                      variant="h6"
-                                      gutterBottom
-                                      sx={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: 1,
-                                        color: 'primary.main',
-                                        fontWeight: 600,
-                                        mb: 1,
-                                        fontSize: { xs: '1rem', sm: '1.25rem' },
-                                      }}
-                                    >
-                                      <LocalShipping /> Delivery Information
-                                    </Typography>
-                                    <Box sx={{ pl: 1 }}>
-                                      <Box sx={{ mb: 1 }}>
-                                        <Typography
-                                          variant="subtitle2"
-                                          color="text.secondary"
-                                          fontWeight={700}
-                                        >
-                                          {order.type === 'PICKUP'
-                                            ? 'Pickup Location'
-                                            : 'Delivery Address'}
-                                        </Typography>
-                                        <Typography variant="body2" fontWeight={500}>
-                                          {order.type === 'PICKUP'
-                                            ? order.pickupAddress?.address ||
-                                              'Pickup location not specified'
-                                            : order.address?.address || 'No address provided'}
-                                        </Typography>
-                                      </Box>
-
-                                      {order.deliveryInstructions && (
-                                        <Box sx={{ mb: 1 }}>
-                                          <Typography
-                                            variant="subtitle2"
-                                            color="text.secondary"
-                                            fontWeight={700}
-                                          >
-                                            Delivery Instructions
-                                          </Typography>
-                                          <Typography variant="body2" fontWeight={500}>
-                                            {order.deliveryInstructions}
-                                          </Typography>
-                                        </Box>
-                                      )}
-
-                                      {order.deliveryDate && (
-                                        <Box sx={{ mb: 1 }}>
-                                          <Typography
-                                            variant="subtitle2"
-                                            color="text.secondary"
-                                            fontWeight={600}
-                                          >
-                                            Expected Delivery Date
-                                          </Typography>
-                                          <Typography variant="body2" fontWeight={500}>
-                                            {new Date(order.deliveryDate).toLocaleDateString()}
-                                          </Typography>
-                                        </Box>
-                                      )}
-
-                                      {order.cancelMessage && (
-                                        <Box sx={{ mb: 1 }}>
-                                          <Typography
-                                            variant="subtitle2"
-                                            color="error"
-                                            fontWeight={700}
-                                          >
-                                            Cancellation Reason
-                                          </Typography>
-                                          <Typography
-                                            variant="body2"
-                                            color="error"
-                                            fontWeight={500}
-                                          >
-                                            {order.cancelMessage}
-                                          </Typography>
-                                        </Box>
-                                      )}
                                     </Box>
                                   </Grid>
                                 </Grid>
