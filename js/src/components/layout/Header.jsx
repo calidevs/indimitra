@@ -360,33 +360,7 @@ const Header = () => {
               minWidth: 0,
             }}
           >
-            <Typography
-              onClick={handleHomeClick}
-              component="span"
-              sx={{
-                cursor: 'pointer',
-                fontWeight: 700,
-                fontSize: { xs: '0.82rem', sm: '0.85rem' },
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                color: 'text.primary',
-                whiteSpace: 'nowrap',
-                userSelect: 'none',
-                '&:hover': { color: 'primary.main' },
-                transition: 'color 120ms ease',
-              }}
-            >
-              Indimitra
-            </Typography>
-            <Box
-              sx={{
-                width: '1px',
-                height: 22,
-                backgroundColor: 'divider',
-                flexShrink: 0,
-                display: { xs: 'none', sm: 'block' },
-              }}
-            />
+            {/* Indimitra brand logo intentionally hidden for now. */}
             <StoreSwitcher
               storeName={selectedStore?.name}
               canSwitch={
