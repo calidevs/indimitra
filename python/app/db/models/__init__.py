@@ -16,3 +16,4 @@ from .pickup_address import PickupAddressModel
 from .fees import FeesModel
 from .payment_onboarding import PaymentOnboardingModel, PaymentOnboardingStatus, PaymentMethod
 from .saved_cart import SavedCartModel
+from .meat_cut import MeatCutModel

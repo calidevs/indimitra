@@ -17,6 +17,7 @@ from app.graphql.resolvers.fee_resolver import FeeQuery, FeeMutation
 from app.graphql.resolvers.payment_onboarding_resolver import PaymentOnboardingQuery, PaymentOnboardingMutation
 from app.graphql.resolvers.square_credential_resolver import SquareCredentialQuery, SquareCredentialMutation
 from app.graphql.resolvers.cart_resolver import CartQuery, CartMutation
+from app.graphql.resolvers.meat_cut_resolver import MeatCutQuery, MeatCutMutation
 
 
 @strawberry.type
@@ -35,7 +36,8 @@ class Query(
     FeeQuery,
     PaymentOnboardingQuery,
     SquareCredentialQuery,
-    CartQuery
+    CartQuery,
+    MeatCutQuery
 ):
     pass
 
@@ -55,7 +57,8 @@ class Mutation(
     FeeMutation,
     PaymentOnboardingMutation,
     SquareCredentialMutation,
-    CartMutation
+    CartMutation,
+    MeatCutMutation
 ):
     pass
 

@@ -1440,6 +1440,38 @@ const StoreOrders = () => {
                                                 )}
                                               </TableCell>
                                             </TableRow>
+                                            {(node.instructions || node.allowSubstitute !== null) && (
+                                              <TableRow>
+                                                <TableCell colSpan={5} sx={{ py: 1, borderBottom: 'none' }}>
+                                                  <Box
+                                                    sx={{
+                                                      pl: 2,
+                                                      display: 'flex',
+                                                      flexDirection: 'column',
+                                                      gap: 0.5,
+                                                    }}
+                                                  >
+                                                    {node.instructions && (
+                                                      <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                                        <strong>Instructions:</strong> <em>{node.instructions}</em>
+                                                      </Typography>
+                                                    )}
+                                                    <Typography
+                                                      variant="body2"
+                                                      sx={{
+                                                        color: node.allowSubstitute ? 'warning.dark' : 'error.main',
+                                                        fontWeight: 500,
+                                                      }}
+                                                    >
+                                                      <strong>If unavailable:</strong>{' '}
+                                                      {node.allowSubstitute
+                                                        ? 'Replace with a similar item'
+                                                        : 'Cancel this item'}
+                                                    </Typography>
+                                                  </Box>
+                                                </TableCell>
+                                              </TableRow>
+                                            )}
                                             {itemHistory.length > 1 && (
                                               <TableRow>
                                                 <TableCell colSpan={5}>

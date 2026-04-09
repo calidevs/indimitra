@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { Box, Typography, IconButton } from '@mui/material';
+import { useTheme, alpha } from '@mui/material/styles';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import CategoryIcon from '@mui/icons-material/Category';
@@ -12,6 +13,7 @@ const CategoryFilterScroll = ({
   selectedCategoryId,
   onSelectCategory,
 }) => {
+  const theme = useTheme();
   const scrollRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -57,22 +59,22 @@ const CategoryFilterScroll = ({
   const arrowButtonBase = {
     width: 36,
     height: 36,
-    bgcolor: '#fff',
-    color: '#FF6B6B',
-    border: '2px solid #FF6B6B',
+    bgcolor: 'background.paper',
+    color: 'primary.main',
+    border: `2px solid ${theme.palette.primary.main}`,
     boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
     zIndex: 2,
     transition: 'all 0.2s ease',
     '&:hover': {
-      bgcolor: '#FF6B6B',
-      color: '#fff',
+      bgcolor: 'primary.main',
+      color: 'primary.contrastText',
       transform: 'scale(1.15)',
-      boxShadow: '0 4px 12px rgba(255,107,107,0.4)',
+      boxShadow: `0 4px 12px ${alpha(theme.palette.primary.main, 0.4)}`,
     },
     '&.Mui-disabled': {
-      bgcolor: '#f5f5f5',
-      color: '#bbb',
-      border: '2px solid #ddd',
+      bgcolor: 'grey.100',
+      color: 'grey.400',
+      border: `2px solid ${theme.palette.grey[300]}`,
       boxShadow: '0 1px 4px rgba(0,0,0,0.08)',
     },
   };
@@ -152,7 +154,7 @@ const CategoryFilterScroll = ({
                   height: { xs: 110, md: 130, lg: 140 },
                   borderRadius: '16px',
                   border: '2px solid',
-                  borderColor: selected ? '#FF6B6B' : 'transparent',
+                  borderColor: selected ? 'primary.main' : 'transparent',
                   cursor: 'pointer',
                   position: 'relative',
                   overflow: 'hidden',
@@ -162,21 +164,21 @@ const CategoryFilterScroll = ({
                   alignItems: 'center',
                   justifyContent: 'flex-end',
                   background: isAll
-                    ? 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)'
+                    ? theme.palette.custom.gradientCoral
                     : 'none',
                   boxShadow: selected
-                    ? '0 4px 16px rgba(255,107,107,0.3)'
+                    ? `0 4px 16px ${alpha(theme.palette.primary.main, 0.3)}`
                     : '0 2px 8px rgba(0,0,0,0.08)',
                   transform: 'scale(1)',
                   transition: 'all 0.25s ease',
                   '&:hover': {
                     transform: 'scale(1.05)',
                     boxShadow: selected
-                      ? '0 8px 24px rgba(255,107,107,0.35)'
+                      ? `0 8px 24px ${alpha(theme.palette.primary.main, 0.35)}`
                       : '0 6px 20px rgba(0,0,0,0.12)',
                   },
                   '&:focus-visible': {
-                    outline: '2px solid #FF6B6B',
+                    outline: `2px solid ${theme.palette.primary.main}`,
                     outlineOffset: 2,
                   },
                 }}
@@ -209,7 +211,7 @@ const CategoryFilterScroll = ({
                 {isAll && (
                   <CategoryIcon
                     sx={{
-                      color: '#fff',
+                      color: 'common.white',
                       fontSize: { xs: '1.6rem', md: '2rem' },
                       mb: 0.5,
                       zIndex: 1,
@@ -224,7 +226,7 @@ const CategoryFilterScroll = ({
                   sx={{
                     position: 'relative',
                     zIndex: 1,
-                    color: '#fff',
+                    color: 'common.white',
                     fontWeight: selected ? 700 : 600,
                     fontSize: { xs: '0.7rem', md: '0.78rem' },
                     lineHeight: 1.25,
@@ -251,7 +253,7 @@ const CategoryFilterScroll = ({
                       right: '15%',
                       height: 3,
                       borderRadius: '3px 3px 0 0',
-                      background: 'linear-gradient(90deg, #FF6B6B, #FFA07A)',
+                      background: theme.palette.custom.gradientCoral,
                     }}
                   />
                 )}

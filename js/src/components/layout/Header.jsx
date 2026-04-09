@@ -12,7 +12,14 @@ import {
   Button,
 } from '@components';
 import { Drawer, List, ListItem, ListItemIcon, ListItemText, Divider } from '@mui/material';
-import { ShoppingCart, Person, Storefront, ShoppingBag } from '@mui/icons-material';
+import { alpha } from '@mui/material/styles';
+import {
+  ShoppingCart,
+  Person,
+  Storefront,
+  ShoppingBag,
+  KeyboardArrowDown,
+} from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { signOut } from 'aws-amplify/auth';
 import { useMediaQuery } from '@mui/material';
@@ -26,52 +33,81 @@ import StoreSelector from '@/pages/Customer/StoreSelector';
 import MenuIcon from '@mui/icons-material/Menu';
 import { ROLES } from '@/config/constants/roles';
 
-const Logo = ({ navigate, userRole, storeName }) => {
-  const { setUser } = useAuthStore();
+// Clickable store-switcher pill (multi-store). Serves as both the brand
+// anchor (current store) and the store switcher trigger. Hidden for staff
+// roles that don't shop (admin / store_manager / delivery_agent).
+const StoreSwitcher = ({ storeName, canSwitch, onSwitch }) => {
+  const label = storeName || 'Select a store';
 
-  const handleLogoClick = async () => {
-    let roleToUse = userRole;
-
-    if (!roleToUse) {
-      try {
-        const session = await fetchAuthSession();
-        if (session?.tokens?.idToken) {
-          roleToUse = session.tokens.idToken.payload['custom:role']?.toLowerCase();
-          setUser({ role: roleToUse });
-        }
-      } catch (error) {
-        console.error('Error fetching role from session:', error);
-      }
-    }
-
-    if (roleToUse) {
-      navigate(`/${roleToUse}`);
-    } else {
-      navigate(`/`);
-    }
+  const baseSx = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 1,
+    maxWidth: { xs: 200, sm: 320, md: 'none' },
+    px: { xs: 1.25, sm: 1.75 },
+    py: 0.75,
+    borderRadius: 9999,
+    border: '1px solid',
+    borderColor: 'divider',
+    backgroundColor: 'background.paper',
+    color: 'text.primary',
+    textTransform: 'none',
+    fontWeight: 600,
+    fontSize: { xs: '0.92rem', sm: '1rem' },
+    letterSpacing: 0,
+    transition: 'border-color 120ms ease, background-color 120ms ease',
   };
 
-  if (!storeName) return null;
+  // Non-clickable variant (staff who can't switch)
+  if (!canSwitch) {
+    return (
+      <Box sx={baseSx}>
+        <Storefront sx={{ fontSize: 18, color: 'text.secondary' }} />
+        <Typography
+          sx={{
+            fontWeight: 600,
+            fontSize: 'inherit',
+            color: storeName ? 'text.primary' : 'text.secondary',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {label}
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
-    <Typography
-      onClick={handleLogoClick}
+    <Button
+      onClick={onSwitch}
+      disableRipple={false}
       sx={{
+        ...baseSx,
         cursor: 'pointer',
-        fontWeight: 800,
-        fontSize: { xs: '1.2rem', sm: '1.5rem', md: '1.75rem' },
-        background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
-        WebkitBackgroundClip: 'text',
-        WebkitTextFillColor: 'transparent',
-        letterSpacing: '0.5px',
-        maxWidth: { xs: 180, sm: 280, md: 'none' },
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
+        '&:hover': {
+          borderColor: 'text.primary',
+          backgroundColor: 'action.hover',
+        },
       }}
     >
-      {storeName}
-    </Typography>
+      <Storefront sx={{ fontSize: 18, color: 'text.secondary' }} />
+      <Typography
+        component="span"
+        sx={{
+          fontWeight: 600,
+          fontSize: 'inherit',
+          color: storeName ? 'text.primary' : 'text.secondary',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {label}
+      </Typography>
+      <KeyboardArrowDown sx={{ fontSize: 18, color: 'text.secondary', ml: -0.25 }} />
+    </Button>
   );
 };
 
@@ -112,6 +148,21 @@ const Header = () => {
   const handleSignInClick = () => {
     setModalOpen(true);
     setCurrentForm('login');
+  };
+
+  const handleHomeClick = async () => {
+    let roleToUse = userRole;
+    if (!roleToUse) {
+      try {
+        const session = await fetchAuthSession();
+        if (session?.tokens?.idToken) {
+          roleToUse = session.tokens.idToken.payload['custom:role']?.toLowerCase();
+        }
+      } catch (error) {
+        /* not signed in — fall through to '/' */
+      }
+    }
+    navigate(roleToUse ? `/${roleToUse}` : '/');
   };
 
   const handleLogout = async () => {
@@ -161,7 +212,7 @@ const Header = () => {
           alignItems: 'center',
           justifyContent: 'center',
           bgcolor: 'primary.main',
-          color: '#fff',
+          color: 'primary.contrastText',
           px: 2,
           py: 2.5,
           minHeight: 64,
@@ -174,7 +225,7 @@ const Header = () => {
             fontWeight: 800,
             letterSpacing: 1,
             fontSize: '1.35rem',
-            color: '#fff',
+            color: 'primary.contrastText',
             textAlign: 'center',
           }}
         >
@@ -183,6 +234,14 @@ const Header = () => {
       </Box>
       <Divider />
       <List sx={{ flex: 1, py: 1 }}>
+        <ListItem button onClick={handleHomeClick} sx={{ py: 2 }}>
+          <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}>
+            <Storefront />
+          </ListItemIcon>
+          <ListItemText
+            primary={<Typography sx={{ fontWeight: 600, fontSize: '1.1rem' }}>Home</Typography>}
+          />
+        </ListItem>
         {!cognitoId && (
           <ListItem button onClick={handleSignInClick} sx={{ py: 2 }}>
             <ListItemIcon sx={{ color: 'primary.main', minWidth: 40 }}>
@@ -280,18 +339,38 @@ const Header = () => {
           left: 0,
           right: 0,
           zIndex: 1100,
-          backgroundColor: '#ffffff',
-          boxShadow: '0 2px 20px rgba(0,0,0,0.08)',
+          backgroundColor: 'background.paper',
+          borderBottom: '1px solid',
+          borderColor: 'divider',
         }}
       >
         <Toolbar
           sx={{
-            minHeight: { xs: '56px', sm: '64px', md: '70px' },
-            px: { xs: 1, sm: 2, md: 4 },
+            minHeight: { xs: '56px', sm: '64px', md: '68px' },
+            px: { xs: 1.5, sm: 3, md: 4 },
+            gap: { xs: 1, sm: 2 },
           }}
         >
-          {/* Logo / Store name */}
-          <Logo navigate={navigate} userRole={user?.role} storeName={selectedStore?.name} />
+          {/* Indimitra brand + store switcher */}
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: { xs: 1.25, sm: 1.75 },
+              minWidth: 0,
+            }}
+          >
+            {/* Indimitra brand logo intentionally hidden for now. */}
+            <StoreSwitcher
+              storeName={selectedStore?.name}
+              canSwitch={
+                userRole !== ROLES.ADMIN &&
+                userRole !== ROLES.STORE_MANAGER &&
+                userRole !== ROLES.DELIVERY_AGENT
+              }
+              onSwitch={() => setStoreModalOpen(true)}
+            />
+          </Box>
 
           {/* Spacer */}
           <Box sx={{ flexGrow: 1 }} />
@@ -300,10 +379,9 @@ const Header = () => {
           {isMobile ? (
             <IconButton
               edge="end"
-              color="inherit"
               aria-label="menu"
               onClick={() => setDrawerOpen(true)}
-              sx={{ ml: 1 }}
+              sx={{ ml: 1, color: 'text.primary' }}
             >
               <MenuIcon />
             </IconButton>
@@ -313,152 +391,109 @@ const Header = () => {
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: { xs: 0.5, sm: 1, md: 2 },
-                flexDirection: { xs: 'row', sm: 'row' },
-                position: 'relative',
+                gap: { sm: 0.5, md: 1 },
               }}
             >
+              <Button
+                onClick={handleHomeClick}
+                sx={{
+                  color: 'text.primary',
+                  textTransform: 'none',
+                  fontSize: '0.95rem',
+                  fontWeight: 500,
+                  px: 2,
+                  py: 1,
+                  borderRadius: 1.5,
+                  '&:hover': { backgroundColor: 'action.hover' },
+                }}
+              >
+                Home
+              </Button>
+
               {!cognitoId && (
                 <Button
                   onClick={handleSignInClick}
                   sx={{
-                    color: '#2A2F4F',
+                    color: 'text.primary',
                     textTransform: 'none',
-                    fontSize: { xs: '0.95rem', sm: '1rem' },
+                    fontSize: '0.95rem',
                     fontWeight: 500,
-                    px: { xs: 1, sm: 2 },
-                    py: { xs: 0.5, sm: 1 },
-                    minWidth: { xs: 0, sm: 64 },
-                    '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
+                    px: 2,
+                    py: 1,
+                    borderRadius: 1.5,
+                    '&:hover': { backgroundColor: 'action.hover' },
                   }}
                 >
                   Sign In
                 </Button>
               )}
+
               {/* Orders (Desktop) */}
-              {!isMobile && cognitoId && userAbility && userAbility.can('view', 'orders') && (
+              {cognitoId && userAbility && userAbility.can('view', 'orders') && (
                 <Button
                   onClick={() => navigate(ROUTES.ORDERS)}
                   sx={{
-                    color: '#2A2F4F',
+                    color: 'text.primary',
                     textTransform: 'none',
-                    fontSize: { xs: '0.95rem', sm: '1rem' },
+                    fontSize: '0.95rem',
                     fontWeight: 500,
-                    px: { xs: 1, sm: 2 },
-                    py: { xs: 0.5, sm: 1 },
-                    minWidth: { xs: 0, sm: 64 },
-                    '&:hover': {
-                      backgroundColor: 'rgba(42, 47, 79, 0.08)',
-                    },
+                    px: 2,
+                    py: 1,
+                    borderRadius: 1.5,
+                    '&:hover': { backgroundColor: 'action.hover' },
                   }}
                 >
                   Orders
                 </Button>
               )}
-              {/* Only show Change Store for regular users or guests, not for admin/store_manager/delivery_agent */}
-              {userRole !== ROLES.ADMIN &&
-                userRole !== ROLES.STORE_MANAGER &&
-                userRole !== ROLES.DELIVERY_AGENT && (
-                  <Button
-                    variant="outlined"
-                    startIcon={<Storefront sx={{ fontSize: { xs: 18, sm: 22 } }} />}
-                    onClick={() => setStoreModalOpen(true)}
-                    sx={{
-                      color: '#2A2F4F',
-                      borderColor: '#2A2F4F',
-                      textTransform: 'none',
-                      fontSize: { xs: '0.95rem', sm: '1rem' },
-                      fontWeight: 500,
-                      px: { xs: 1, sm: 2 },
-                      py: { xs: 0.5, sm: 1 },
-                      minWidth: { xs: 0, sm: 64 },
-                      mr: { xs: 0.5, sm: 1 },
-                      '&:hover': { backgroundColor: 'rgba(42, 47, 79, 0.08)' },
-                    }}
-                  >
-                    {selectedStore ? 'Change Store' : 'Select Store'}
-                  </Button>
-                )}
-              {user ? (
-                userAbility?.can('view', 'cart') && (
-                  <Tooltip title="Cart">
-                    <IconButton
-                      onClick={() => navigate(ROUTES.CART)}
-                      sx={{
-                        background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
-                        color: 'white',
-                        p: { xs: 0.75, sm: 1 },
-                        '&:hover': {
-                          background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
-                        },
-                      }}
-                    >
-                      <Badge
-                        badgeContent={cartCount}
-                        color="error"
-                        sx={{
-                          '& .MuiBadge-badge': {
-                            backgroundColor: '#FF6B6B',
-                            color: 'white',
-                            fontWeight: 'bold',
-                            fontSize: { xs: '0.7rem', sm: '0.8rem' },
-                            minWidth: { xs: 18, sm: 20 },
-                            height: { xs: 18, sm: 20 },
-                          },
-                        }}
-                      >
-                        <ShoppingCart sx={{ fontSize: { xs: 20, sm: 24 } }} />
-                      </Badge>
-                    </IconButton>
-                  </Tooltip>
-                )
-              ) : (
+
+              {/* Cart (ghost icon with neutral badge) */}
+              {(!user || userAbility?.can('view', 'cart')) && (
                 <Tooltip title="Cart">
                   <IconButton
                     onClick={() => navigate(ROUTES.CART)}
                     sx={{
-                      background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
-                      color: 'white',
-                      p: { xs: 0.75, sm: 1 },
-                      '&:hover': {
-                        background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
-                      },
+                      color: 'text.primary',
+                      width: 40,
+                      height: 40,
+                      borderRadius: 1.5,
+                      '&:hover': { backgroundColor: 'action.hover' },
                     }}
                   >
                     <Badge
                       badgeContent={cartCount}
-                      color="error"
+                      color="primary"
+                      overlap="circular"
                       sx={{
                         '& .MuiBadge-badge': {
-                          backgroundColor: '#FF6B6B',
-                          color: 'white',
-                          fontWeight: 'bold',
-                          fontSize: { xs: '0.7rem', sm: '0.8rem' },
-                          minWidth: { xs: 18, sm: 20 },
-                          height: { xs: 18, sm: 20 },
+                          fontWeight: 700,
+                          fontSize: '0.7rem',
+                          minWidth: 18,
+                          height: 18,
+                          padding: '0 5px',
                         },
                       }}
                     >
-                      <ShoppingCart sx={{ fontSize: { xs: 20, sm: 24 } }} />
+                      <ShoppingCart sx={{ fontSize: 22 }} />
                     </Badge>
                   </IconButton>
                 </Tooltip>
               )}
+
+              {/* Profile (ghost) */}
               {cognitoId && (
                 <Tooltip title="Profile">
                   <IconButton
                     onClick={handleMenuOpen}
                     sx={{
-                      background: 'linear-gradient(45deg, #FF6B6B 30%, #FF8E53 90%)',
-                      color: 'white',
-                      p: { xs: 0.75, sm: 1 },
-                      ml: { xs: 0.5, sm: 1 },
-                      '&:hover': {
-                        background: 'linear-gradient(45deg, #FF8E53 30%, #FF6B6B 90%)',
-                      },
+                      color: 'text.primary',
+                      width: 40,
+                      height: 40,
+                      borderRadius: 1.5,
+                      '&:hover': { backgroundColor: 'action.hover' },
                     }}
                   >
-                    <Person sx={{ fontSize: { xs: 20, sm: 24 } }} />
+                    <Person sx={{ fontSize: 22 }} />
                   </IconButton>
                 </Tooltip>
               )}
@@ -497,7 +532,7 @@ const Header = () => {
               py: 1.5,
               px: 3,
               '&:hover': {
-                backgroundColor: 'rgba(145, 127, 179, 0.1)',
+                backgroundColor: (theme) => theme.palette.custom.menuHover,
               },
             }}
           >
@@ -513,7 +548,7 @@ const Header = () => {
             py: 1.5,
             px: 3,
             '&:hover': {
-              backgroundColor: 'rgba(145, 127, 179, 0.1)',
+              backgroundColor: (theme) => theme.palette.custom.menuHover,
             },
           }}
         >
@@ -527,9 +562,9 @@ const Header = () => {
           sx={{
             py: 1.5,
             px: 3,
-            color: '#FF5757',
+            color: 'error.main',
             '&:hover': {
-              backgroundColor: 'rgba(255, 87, 87, 0.1)',
+              backgroundColor: (theme) => alpha(theme.palette.error.main, 0.1),
             },
           }}
         >
@@ -541,7 +576,7 @@ const Header = () => {
       <StoreSelector open={storeModalOpen} onClose={() => setStoreModalOpen(false)} />
 
       {/* Spacer for fixed header */}
-      <Box sx={{ height: { xs: '56px', sm: '64px', md: '70px' } }} />
+      <Box sx={{ height: { xs: '56px', sm: '64px', md: '68px' } }} />
       <LoginModal
         open={modalOpen}
         onClose={handleCloseModal}

@@ -114,6 +114,8 @@ export const GET_USER_ORDERS = `
             orderAmount
             quantity
             updatedOrderitemsId
+            instructions
+            allowSubstitute
             product {
               id
               name
@@ -179,6 +181,8 @@ query GetAllOrders {
           }
           quantity
           orderAmount
+          instructions
+          allowSubstitute
         }
       }
     }
@@ -358,6 +362,8 @@ export const GET_ORDERS_BY_STORE = `
             productId
             quantity
             updatedOrderitemsId
+            instructions
+            allowSubstitute
             product {
               id
               name
@@ -482,6 +488,11 @@ export const GET_STORE_INVENTORY = `
       updatedAt
       isAvailable
       isListed
+      cutTypes {
+        id
+        label
+        text
+      }
       product {
         id
         name
@@ -496,6 +507,16 @@ export const GET_STORE_INVENTORY = `
   }
 `;
 
+export const GET_MEAT_CUTS = `
+  query GetMeatCuts {
+    meatCuts {
+      id
+      label
+      text
+    }
+  }
+`;
+
 export const UPDATE_INVENTORY_ITEM = `
   mutation UpdateInventoryItem(
     $inventoryId: Int!
@@ -503,6 +524,7 @@ export const UPDATE_INVENTORY_ITEM = `
     $quantity: Int
     $isAvailable: Boolean
     $isListed: Boolean
+    $meatCutIds: [Int!]
   ) {
     updateInventoryItem(
       inventoryId: $inventoryId
@@ -510,6 +532,7 @@ export const UPDATE_INVENTORY_ITEM = `
       quantity: $quantity
       isAvailable: $isAvailable
       isListed: $isListed
+      meatCutIds: $meatCutIds
     ) {
       id
       isAvailable
@@ -521,6 +544,11 @@ export const UPDATE_INVENTORY_ITEM = `
       storeId
       unit
       updatedAt
+      cutTypes {
+        id
+        label
+        text
+      }
     }
   }
 `;
@@ -533,6 +561,7 @@ export const ADD_PRODUCT_TO_INVENTORY = `
     $quantity: Int!
     $measurement: Int
     $unit: String
+    $meatCutIds: [Int!]
   ) {
     addProductToInventory(
       productId: $productId
@@ -541,6 +570,7 @@ export const ADD_PRODUCT_TO_INVENTORY = `
       quantity: $quantity
       measurement: $measurement
       unit: $unit
+      meatCutIds: $meatCutIds
     ) {
       id
       measurement
@@ -549,6 +579,11 @@ export const ADD_PRODUCT_TO_INVENTORY = `
       quantity
       storeId
       unit
+      cutTypes {
+        id
+        label
+        text
+      }
     }
   }
 `;
@@ -666,6 +701,11 @@ export const GET_STORE_PRODUCTS = `
       storeId
       unit
       updatedAt
+      cutTypes {
+        id
+        label
+        text
+      }
       product {
         id
         name
@@ -727,6 +767,10 @@ export const GET_PRODUCTS = `
       description
       categoryId
       image
+      category {
+        id
+        name
+      }
       inventoryItems {
         edges {
           node {

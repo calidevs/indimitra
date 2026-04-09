@@ -1,181 +1,159 @@
 import React from 'react';
-import {
-  Paper,
-  ListItem,
-  ListItemButton,
-  Box,
-  Avatar,
-  Typography,
-  Chip,
-  Tooltip,
-} from '@mui/material';
+import { Box, Typography, Chip } from '@mui/material';
 import StoreIcon from '@mui/icons-material/Store';
 import LocationOn from '@mui/icons-material/LocationOn';
-import MyLocation from '@mui/icons-material/MyLocation';
 import AccessTime from '@mui/icons-material/AccessTime';
+import MyLocation from '@mui/icons-material/MyLocation';
+import CheckCircle from '@mui/icons-material/CheckCircle';
 import DoNotDisturbOn from '@mui/icons-material/DoNotDisturbOn';
 
 const StoreItem = ({ store, isSelected, onSelect }) => {
-  const isStoreActive = store.isActive;
+  const isActive = store.isActive;
 
   return (
-    <Paper
-      elevation={0}
+    <Box
+      role="button"
+      tabIndex={isActive ? 0 : -1}
+      onClick={() => isActive && onSelect(store)}
+      onKeyDown={(e) => {
+        if (isActive && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onSelect(store);
+        }
+      }}
+      aria-disabled={!isActive}
+      aria-pressed={isSelected}
       sx={{
-        mb: 2,
+        display: 'flex',
+        gap: 2,
+        alignItems: 'flex-start',
+        px: 2.25,
+        py: 2.25,
         borderRadius: 2,
-        overflow: 'hidden',
-        transition: 'all 0.2s ease',
         border: '1px solid',
-        borderColor: isSelected
-          ? 'primary.main'
-          : isStoreActive
-            ? 'rgba(0, 0, 0, 0.08)'
-            : 'rgba(211, 47, 47, 0.3)',
-        backgroundColor: isStoreActive ? 'transparent' : 'rgba(0, 0, 0, 0.01)',
-        '&:hover': {
-          transform: isStoreActive ? 'translateY(-2px)' : 'none',
-          boxShadow: isStoreActive ? 2 : 0,
+        borderColor: isSelected ? 'primary.main' : 'divider',
+        backgroundColor: isSelected ? 'primary.lighter' : 'background.paper',
+        cursor: isActive ? 'pointer' : 'not-allowed',
+        opacity: isActive ? 1 : 0.6,
+        transition: 'border-color 120ms ease, background-color 120ms ease',
+        '&:hover': isActive
+          ? {
+              borderColor: isSelected ? 'primary.main' : 'text.primary',
+              backgroundColor: isSelected ? 'primary.lighter' : 'action.hover',
+            }
+          : {},
+        '&:focus-visible': {
+          outline: '2px solid',
+          outlineColor: 'primary.main',
+          outlineOffset: 2,
         },
       }}
     >
-      <ListItem disablePadding>
-        <ListItemButton
-          onClick={() => isStoreActive && onSelect(store)}
-          selected={isSelected}
-          disabled={!isStoreActive}
-          sx={{
-            p: 0,
-            cursor: isStoreActive ? 'pointer' : 'not-allowed',
-          }}
-        >
-          <Box sx={{ width: '100%' }}>
-            <Box
+      {/* Icon tile */}
+      <Box
+        sx={{
+          width: 36,
+          height: 36,
+          borderRadius: 1.25,
+          backgroundColor: isSelected ? 'primary.lighter' : 'grey.100',
+          color: isSelected ? 'primary.main' : 'text.secondary',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          mt: 0.25,
+        }}
+      >
+        {isActive ? <StoreIcon sx={{ fontSize: 19 }} /> : <DoNotDisturbOn sx={{ fontSize: 19 }} />}
+      </Box>
+
+      {/* Content */}
+      <Box sx={{ flex: 1, minWidth: 0 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <Typography sx={{ fontWeight: 600, fontSize: '1rem', color: 'text.primary' }}>
+            {store.name}
+          </Typography>
+          {!isActive && (
+            <Chip
+              label="Closed"
+              size="small"
               sx={{
-                p: 2,
-                backgroundColor: isSelected ? 'rgba(0, 0, 0, 0.02)' : 'transparent',
+                height: 20,
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                color: 'error.main',
+                backgroundColor: 'error.lighter',
+                border: '1px solid',
+                borderColor: 'error.light',
+              }}
+            />
+          )}
+        </Box>
+
+        {store.description && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.75 }}>
+            <AccessTime sx={{ fontSize: 14, color: 'text.secondary' }} />
+            <Typography
+              variant="body2"
+              sx={{
+                color: 'text.secondary',
+                fontSize: '0.82rem',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
               }}
             >
-              <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 1 }}>
-                <Avatar
-                  sx={{
-                    bgcolor: isStoreActive
-                      ? isSelected
-                        ? 'primary.main'
-                        : 'grey.300'
-                      : 'rgba(211, 47, 47, 0.1)',
-                    mr: 2,
-                    color: isStoreActive ? 'inherit' : 'error.main',
-                  }}
-                >
-                  {isStoreActive ? <StoreIcon /> : <DoNotDisturbOn />}
-                </Avatar>
-                <Box sx={{ flex: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
-                    <Typography fontWeight={600} fontSize="1.1rem" color="text.primary">
-                      {store.name}
-                    </Typography>
-                    {!isStoreActive && (
-                      <Chip
-                        label="Offline"
-                        size="small"
-                        sx={{
-                          height: 20,
-                          fontSize: '0.75rem',
-                          backgroundColor: 'rgba(211, 47, 47, 0.1)',
-                          color: 'error.main',
-                          fontWeight: 500,
-                        }}
-                      />
-                    )}
-                  </Box>
-
-                  {/* Store Description/Timings - Always visible for inactive stores */}
-                  {(!isStoreActive || store.description) && (
-                    <Box
-                      sx={{
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        mb: 1,
-                        backgroundColor: !isStoreActive ? 'rgba(0, 0, 0, 0.02)' : 'transparent',
-                        p: !isStoreActive ? 1 : 0,
-                        borderRadius: 1,
-                      }}
-                    >
-                      <AccessTime
-                        sx={{
-                          fontSize: '0.9rem',
-                          color: !isStoreActive ? 'error.main' : 'text.secondary',
-                          mr: 0.5,
-                          mt: 0.2,
-                        }}
-                      />
-                      <Typography
-                        variant="body2"
-                        color="text.secondary"
-                        sx={{
-                          fontStyle: !isStoreActive ? 'italic' : 'normal',
-                          fontWeight: !isStoreActive ? 500 : 400,
-                        }}
-                      >
-                        {store.description || 'Store timings not available'}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                    <LocationOn
-                      sx={{
-                        fontSize: '0.9rem',
-                        color: 'text.secondary',
-                        mr: 0.5,
-                      }}
-                    />
-                    <Typography variant="body2" color="text.secondary">
-                      {store.address}
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box>
-
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mt: 1,
-                }}
-              >
-                {store.radius && (
-                  <Chip
-                    icon={<MyLocation fontSize="small" />}
-                    label={`${store.radius} mi radius`}
-                    size="small"
-                    variant="outlined"
-                    color={isSelected ? 'primary' : 'default'}
-                    sx={{
-                      opacity: isStoreActive ? 1 : 0.7,
-                    }}
-                  />
-                )}
-                {!isStoreActive && (
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      ml: 'auto',
-                      color: 'error.main',
-                      fontStyle: 'italic',
-                    }}
-                  >
-                    Store is currently offline
-                  </Typography>
-                )}
-              </Box>
-            </Box>
+              {store.description}
+            </Typography>
           </Box>
-        </ListItemButton>
-      </ListItem>
-    </Paper>
+        )}
+
+        {store.address && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.75 }}>
+            <LocationOn sx={{ fontSize: 14, color: 'text.secondary' }} />
+            <Typography
+              variant="body2"
+              sx={{
+                color: 'text.secondary',
+                fontSize: '0.82rem',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {store.address}
+            </Typography>
+          </Box>
+        )}
+
+        {store.radius && (
+          <Box sx={{ mt: 1.5 }}>
+            <Chip
+              icon={<MyLocation sx={{ fontSize: 12 }} />}
+              label={`${store.radius} mi radius`}
+              size="small"
+              variant="outlined"
+              sx={{
+                height: 22,
+                fontSize: '0.7rem',
+                fontWeight: 500,
+                borderColor: 'grey.300',
+                color: 'text.secondary',
+                '& .MuiChip-icon': {
+                  color: 'text.secondary',
+                  ml: '6px',
+                },
+              }}
+            />
+          </Box>
+        )}
+      </Box>
+
+      {/* Selection indicator */}
+      {isSelected && (
+        <CheckCircle sx={{ color: 'primary.main', fontSize: 20, flexShrink: 0, mt: 0.625 }} />
+      )}
+    </Box>
   );
 };
 

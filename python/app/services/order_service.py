@@ -222,10 +222,13 @@ def create_order(user_id: int, store_id: int, product_items: List[dict],
                 quantity=item["quantity"],
                 orderId=order.id,
                 orderAmount=inventory_item.price * item["quantity"],
-                inventoryId=inventory_item.id
+                inventoryId=inventory_item.id,
+                meatCutId=item.get("meat_cut_id"),
+                instructions=(item.get("instructions") or None),
+                allow_substitute=bool(item.get("allow_substitute") or False),
             )
             db.add(order_item)
-            
+
         db.commit()
         db.refresh(order)
         
@@ -398,7 +401,10 @@ def create_order_with_payment(
                 quantity=item["quantity"],
                 orderId=order.id,
                 orderAmount=inventory_item.price * item["quantity"],
-                inventoryId=inventory_item.id
+                inventoryId=inventory_item.id,
+                meatCutId=item.get("meat_cut_id"),
+                instructions=(item.get("instructions") or None),
+                allow_substitute=bool(item.get("allow_substitute") or False),
             )
             db.add(order_item)
 
@@ -596,7 +602,10 @@ def create_order_with_cod_payment(
                 quantity=item["quantity"],
                 orderId=order.id,
                 orderAmount=inventory_item.price * item["quantity"],
-                inventoryId=inventory_item.id
+                inventoryId=inventory_item.id,
+                meatCutId=item.get("meat_cut_id"),
+                instructions=(item.get("instructions") or None),
+                allow_substitute=bool(item.get("allow_substitute") or False),
             )
             db.add(order_item)
 

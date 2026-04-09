@@ -65,6 +65,9 @@ class OrderItemInput:
     """Defines input format for creating order items"""
     productId: int
     quantity: int
+    meatCutId: Optional[int] = None
+    instructions: Optional[str] = None
+    allowSubstitute: Optional[bool] = None
 
 
 # ✅ Input Type for Payment
@@ -147,7 +150,16 @@ class OrderMutation:
                 raise ValueError("Pickup address ID is required for pickup orders")
 
             # Convert OrderItemInput to dictionary
-            items = [{"product_id": item.productId, "quantity": item.quantity} for item in productItems]
+            items = [
+                {
+                    "product_id": item.productId,
+                    "quantity": item.quantity,
+                    "meat_cut_id": item.meatCutId,
+                    "instructions": item.instructions,
+                    "allow_substitute": item.allowSubstitute,
+                }
+                for item in productItems
+            ]
             
             return create_order(
                 user_id=userId, 
@@ -238,7 +250,16 @@ class OrderMutation:
                 raise ValueError("Pickup address ID is required for pickup orders")
 
             # Convert OrderItemInput to dictionary
-            items = [{"product_id": item.productId, "quantity": item.quantity} for item in productItems]
+            items = [
+                {
+                    "product_id": item.productId,
+                    "quantity": item.quantity,
+                    "meat_cut_id": item.meatCutId,
+                    "instructions": item.instructions,
+                    "allow_substitute": item.allowSubstitute,
+                }
+                for item in productItems
+            ]
 
             # Step 1: Calculate server-side amount
             server_amounts = calculate_order_amount(
@@ -389,7 +410,16 @@ class OrderMutation:
                 db.close()
 
             # Convert OrderItemInput to dictionary
-            items = [{"product_id": item.productId, "quantity": item.quantity} for item in productItems]
+            items = [
+                {
+                    "product_id": item.productId,
+                    "quantity": item.quantity,
+                    "meat_cut_id": item.meatCutId,
+                    "instructions": item.instructions,
+                    "allow_substitute": item.allowSubstitute,
+                }
+                for item in productItems
+            ]
 
             # Calculate server-side amount
             server_amounts = calculate_order_amount(

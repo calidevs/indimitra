@@ -25,8 +25,58 @@ from app.db.models.address import AddressModel
 from app.db.models.store import StoreModel
 from app.db.models.inventory import InventoryModel
 from app.db.models.pickup_address import PickupAddressModel
+from app.db.models.meat_cut import MeatCutModel
 
 _BOOTSTRAP_DIR = Path(__file__).resolve().parent
+
+# Standard meat cut catalogue seeded once and reused everywhere.
+# Keep this list stable — admins may add more via the UI.
+_MEAT_CUTS = [
+    ("Boneless", "Meat cut with all bones removed"),
+    ("Bone-In", "Traditional cut with bone for added flavor"),
+    ("Curry Cut", "Small pieces ideal for curries"),
+    ("Biryani Cut", "Medium pieces sized for biryani"),
+    ("Tandoori Cut", "Cut specifically for tandoori preparations"),
+    ("Mince / Keema", "Finely ground meat"),
+    ("Drumstick", "Leg portion, typically poultry"),
+    ("Breast", "Lean breast portion"),
+    ("Thigh", "Juicy thigh portion"),
+    ("Whole", "Entire cut, uncut"),
+]
+
+# Categories whose inventory items should get meat cut variants attached
+# (matches the frontend `MEAT_CUT_CATEGORIES` allowlist — case-insensitive
+# substring match). Everything else is left without cuts so the dropdown
+# doesn't appear in the UI.
+_MEAT_CUT_CATEGORY_TOKENS = ("meat", "poultry", "seafood", "fish")
+
+
+def _category_supports_meat_cuts(category_name: str) -> bool:
+    if not category_name:
+        return False
+    lower = category_name.lower()
+    return any(token in lower for token in _MEAT_CUT_CATEGORY_TOKENS)
+
+
+# Per-product cut assignments. Products that aren't in this map get a
+# reasonable default based on their name (e.g. chicken → curry/boneless/
+# biryani, fish → whole/curry, etc.).
+_DEFAULT_CUTS_BY_CATEGORY = {
+    "meat": ["Curry Cut", "Boneless", "Biryani Cut", "Bone-In", "Mince / Keema"],
+    "poultry": ["Curry Cut", "Drumstick", "Breast", "Thigh", "Whole"],
+    "seafood": ["Whole", "Curry Cut", "Boneless"],
+    "fish": ["Whole", "Curry Cut", "Boneless"],
+}
+
+
+def _cuts_for_category(category_name: str) -> list[str]:
+    if not category_name:
+        return []
+    lower = category_name.lower()
+    for token, cuts in _DEFAULT_CUTS_BY_CATEGORY.items():
+        if token in lower:
+            return cuts
+    return []
 
 
 def create_data():
@@ -191,22 +241,41 @@ def create_data():
             categories[cat_name] = category_obj
 
     # Create product objects using the correct category relationship.
+    # Idempotent: skip products that already exist (matched by name).
     products = []
     for item in data:
         cat_name = item.get("category")
         category_obj = categories.get(cat_name)
-        # Note: Price is removed from product model and will be in inventory
+        existing_product = (
+            db.query(ProductModel).filter_by(name=item.get("name")).first()
+        )
+        if existing_product:
+            products.append(existing_product)
+            continue
         product = ProductModel(
             name=item.get("name"),
             description=item.get("description"),
             image=item.get("image"),
-            # Assign the category relationship directly (SQLAlchemy will set categoryId).
-            category=category_obj
+            category=category_obj,
         )
+        db.add(product)
         products.append(product)
 
-    db.add_all(products)
     db.commit()
+
+    # Seed the standard meat cut catalogue if it's not already populated.
+    existing_cut_labels = {
+        label for (label,) in db.query(MeatCutModel.label).all()
+    }
+    for label, text in _MEAT_CUTS:
+        if label not in existing_cut_labels:
+            db.add(MeatCutModel(label=label, text=text))
+    db.commit()
+
+    # Cache meat cut rows by label for quick lookup when linking inventory.
+    meat_cuts_by_label = {
+        mc.label: mc for mc in db.query(MeatCutModel).all()
+    }
 
     # Define measurement and unit information based on category
     category_units = {
@@ -225,8 +294,11 @@ def create_data():
     # Now create inventory items for the products in the store
     print("Creating inventory items...")
     import re
+    inventory_by_product = {}
     for product in products:
         # Find the product's price and category from the original data
+        price = None
+        category = None
         for item in data:
             if item.get("name") == product.name:
                 price = item.get("price")
@@ -259,22 +331,56 @@ def create_data():
                 measurement = int(value)
                 unit = "ml"
 
-        # Create inventory entry for this product in the store
-        inventory_item = InventoryModel(
-            storeId=store.id,
-            productId=product.id,
-            price=price,  # Use the price from the data
-            quantity=50,  # Default stock of 50
-            measurement=measurement,
-            unit=unit,
-            is_listed=True,
-            is_available=True
+        # Idempotent: reuse existing inventory row for (store, product) if present.
+        inventory_item = (
+            db.query(InventoryModel)
+            .filter_by(storeId=store.id, productId=product.id)
+            .first()
         )
-        db.add(inventory_item)
+        if not inventory_item:
+            inventory_item = InventoryModel(
+                storeId=store.id,
+                productId=product.id,
+                price=price,
+                quantity=50,
+                measurement=measurement,
+                unit=unit,
+                is_listed=True,
+                is_available=True,
+            )
+            db.add(inventory_item)
+            db.flush()  # assign inventory_item.id for the cut link step below
+
+        inventory_by_product[product.id] = (inventory_item, category)
 
     db.commit()
+
+    # Link meat cuts ONLY to inventory items whose category is in the non-veg
+    # allowlist. Everything else stays empty so the frontend hides the cut
+    # dropdown for those products (per MEAT_CUT_CATEGORIES on the UI).
+    print("Linking meat cuts to non-veg inventory items...")
+    linked_count = 0
+    for product_id, (inventory_item, category) in inventory_by_product.items():
+        if not _category_supports_meat_cuts(category):
+            # Leave veg items untouched so `cut_types` stays empty.
+            continue
+
+        desired_labels = _cuts_for_category(category)
+        desired_cuts = [
+            meat_cuts_by_label[label]
+            for label in desired_labels
+            if label in meat_cuts_by_label
+        ]
+        # Replace the relationship rather than appending — keeps the script
+        # re-runnable without piling on duplicate links.
+        inventory_item.cut_types = desired_cuts
+        linked_count += 1
+
+    db.commit()
+    print(f"Linked meat cuts to {linked_count} non-veg inventory items.")
+
     db.close()
-    print("Bootstrap complete with users, store, products and inventory with measurements and units.")
+    print("Bootstrap complete with users, store, products, inventory, and meat cut links.")
 
 
 if __name__ == "__main__":

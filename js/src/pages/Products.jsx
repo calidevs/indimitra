@@ -97,6 +97,7 @@ const Products = () => {
           unit: item.unit,
           isAvailable: item.isAvailable,
           isListed: item.isListed,
+          cutTypes: Array.isArray(item.cutTypes) ? item.cutTypes : [],
         };
       }) || []
     );

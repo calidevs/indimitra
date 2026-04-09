@@ -104,7 +104,7 @@ const LoginForm = ({ onSuccess, onError }) => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <AccountCircleIcon sx={{ color: '#FF6B6B' }} />
+                  <AccountCircleIcon sx={{ color: 'primary.main' }} />
                 </InputAdornment>
               ),
             }}
@@ -123,7 +123,7 @@ const LoginForm = ({ onSuccess, onError }) => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <LockIcon sx={{ color: '#FF6B6B' }} />
+                  <LockIcon sx={{ color: 'primary.main' }} />
                 </InputAdornment>
               ),
               endAdornment: (
@@ -157,7 +157,7 @@ const LoginForm = ({ onSuccess, onError }) => {
               fontSize: '1rem',
             }}
           >
-            {loading ? <CircularProgress size={24} sx={{ color: '#fff' }} /> : 'Login'}
+            {loading ? <CircularProgress size={24} sx={{ color: 'primary.contrastText' }} /> : 'Login'}
           </Button>
         </form>
       )}

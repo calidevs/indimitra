@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { resetPassword, confirmResetPassword } from 'aws-amplify/auth';
 import { Box, Paper, Typography, InputForm } from '../components';
+import { alpha } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 
 const ForgotPassword = ({ onSuccess }) => {
@@ -76,8 +77,8 @@ const ForgotPassword = ({ onSuccess }) => {
           left: 0,
           right: 0,
           bottom: 0,
-          background:
-            'linear-gradient(135deg, rgba(255,107,107,0.1) 0%, rgba(255,107,107,0.05) 100%)',
+          background: (theme) =>
+            `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)} 0%, ${alpha(theme.palette.primary.main, 0.05)} 100%)`,
           zIndex: 0,
         },
       }}

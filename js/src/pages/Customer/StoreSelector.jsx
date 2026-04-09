@@ -566,94 +566,149 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
 
   const requiresSelection = !selectedStore;
 
-  // Step 1: Store selection
-  if (step === 'store') {
-    return (
-      <Dialog open={open} onClose={onClose} title={<StoreSelectorTitle />} hideClose={requiresSelection}>
-        {availableStores.length === 0 ? (
-          <NoStoresMessage />
-        ) : (
-          <>
-            <Typography
-              paragraph
+  const [storeSearch, setStoreSearch] = useState('');
+  const filteredStores = useMemo(() => {
+    const q = storeSearch.trim().toLowerCase();
+    if (!q) return availableStores;
+    return availableStores.filter((s) =>
+      [s.name, s.address, s.description].filter(Boolean).some((v) => String(v).toLowerCase().includes(q))
+    );
+  }, [availableStores, storeSearch]);
+
+  // Shared dialog config — single Dialog instance keeps the modal size/position
+  // constant across step transitions.
+  const isPickupStep = step === 'pickup';
+  const showStoreSearch = availableStores.length > 5;
+  const pickupAddresses = tempStore?.pickupAddresses?.edges?.map((e) => e.node) || [];
+  const hasPickupAddresses = pickupAddresses.length > 0;
+
+  const dialogTitle = isPickupStep ? (
+    <StoreSelectorTitle
+      subtitle={tempStore ? `Choose how you'd like to receive your order from ${tempStore.name}` : undefined}
+    />
+  ) : (
+    <StoreSelectorTitle subtitle="Choose where you'd like to shop. You can switch at any time." />
+  );
+
+  const dialogFooter = isPickupStep ? (
+    <Button
+      onClick={handleBack}
+      variant="text"
+      color="inherit"
+      size="small"
+      startIcon={<ArrowBackIcon />}
+      sx={{ fontWeight: 500 }}
+    >
+      Back to stores
+    </Button>
+  ) : null;
+
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title={dialogTitle}
+      footer={dialogFooter}
+      hideClose={requiresSelection}
+      height="640px"
+      contentSx={{ px: 0, pt: 0, pb: 0 }}
+    >
+      {!isPickupStep && (
+        <Box sx={{ px: 3, pt: 3.5, pb: 3 }}>
+          {availableStores.length === 0 ? (
+            <NoStoresMessage />
+          ) : (
+            <>
+              {showStoreSearch && (
+                <TextField
+                  size="small"
+                  placeholder="Search stores by name or address…"
+                  value={storeSearch}
+                  onChange={(e) => setStoreSearch(e.target.value)}
+                  fullWidth
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <SearchIcon sx={{ fontSize: 18, color: 'text.disabled' }} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    mb: 2,
+                    '& .MuiOutlinedInput-root': {
+                      borderRadius: '10px',
+                      fontSize: '0.9rem',
+                    },
+                  }}
+                />
+              )}
+
+              {filteredStores.length === 0 ? (
+                <Box sx={{ textAlign: 'center', py: 4 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No stores match "{storeSearch}".
+                  </Typography>
+                </Box>
+              ) : (
+                <StoresList
+                  availableStores={filteredStores}
+                  selectedStore={selectedStore}
+                  handleStoreSelect={handleStoreSelect}
+                />
+              )}
+            </>
+          )}
+        </Box>
+      )}
+
+      {isPickupStep && (
+        <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {/* Edge-to-edge tab bar directly under the header */}
+          <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0 }}>
+            <Tabs
+              value={activeTab}
+              onChange={(_, newValue) => setActiveTab(newValue)}
+              variant="fullWidth"
               sx={{
-                textAlign: 'center',
-                fontWeight: 500,
-                color: 'text.secondary',
-                mb: 3,
+                minHeight: 46,
+                '& .MuiTabs-indicator': {
+                  height: 3,
+                  borderRadius: '3px 3px 0 0',
+                },
               }}
             >
-              Please select a store to browse products from
-            </Typography>
-            <StoresList
-              availableStores={availableStores}
-              selectedStore={selectedStore}
-              handleStoreSelect={handleStoreSelect}
-            />
-          </>
-        )}
-      </Dialog>
-    );
-  }
+              <Tab
+                icon={<StoreIcon sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label="Pickup"
+                sx={{ fontWeight: 600, textTransform: 'none', fontSize: '0.9rem', minHeight: 46, py: 0 }}
+              />
+              <Tab
+                icon={<HomeIcon sx={{ fontSize: 18 }} />}
+                iconPosition="start"
+                label="Delivery"
+                sx={{ fontWeight: 600, textTransform: 'none', fontSize: '0.9rem', minHeight: 46, py: 0 }}
+              />
+            </Tabs>
+          </Box>
 
-  // Step 2: Pickup address and home delivery selection
-  if (step === 'pickup') {
-    const pickupAddresses = tempStore?.pickupAddresses?.edges?.map((e) => e.node) || [];
-    const hasPickupAddresses = pickupAddresses.length > 0;
-
-    const backButton = (
-      <Button
-        onClick={handleBack}
-        variant="text"
-        color="inherit"
-        size="small"
-        startIcon={<ArrowBackIcon />}
-        sx={{ fontWeight: 500 }}
-      >
-        Back to stores
-      </Button>
-    );
-
-    return (
-      <Dialog open={open} onClose={onClose} title={<StoreSelectorTitle />} footer={backButton} hideClose={requiresSelection}>
-        <Typography
-          variant="body2"
-          sx={{ textAlign: 'center', color: 'text.secondary', mb: 2 }}
-        >
-          Choose how you'd like to receive your order from <b>{tempStore?.name}</b>
-        </Typography>
-
-        {/* Tabs */}
-        <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 2 }}>
-          <Tabs
-            value={activeTab}
-            onChange={(_, newValue) => setActiveTab(newValue)}
-            variant="fullWidth"
+          {/* Scrollable tab panel */}
+          <Box
             sx={{
-              minHeight: 42,
-              '& .MuiTabs-indicator': {
-                height: 3,
-                borderRadius: '3px 3px 0 0',
+              flex: 1,
+              minHeight: 0,
+              overflowY: 'auto',
+              px: 3,
+              pt: 2.5,
+              pb: 2.5,
+              '&::-webkit-scrollbar': { width: 6 },
+              '&::-webkit-scrollbar-thumb': {
+                backgroundColor: 'rgba(0,0,0,0.15)',
+                borderRadius: 3,
               },
             }}
           >
-            <Tab
-              icon={<StoreIcon sx={{ fontSize: 18 }} />}
-              iconPosition="start"
-              label="Pickup"
-              sx={{ fontWeight: 600, textTransform: 'none', fontSize: '0.9rem', minHeight: 42, py: 0 }}
-            />
-            <Tab
-              icon={<HomeIcon sx={{ fontSize: 18 }} />}
-              iconPosition="start"
-              label="Delivery"
-              sx={{ fontWeight: 600, textTransform: 'none', fontSize: '0.9rem', minHeight: 42, py: 0 }}
-            />
-          </Tabs>
-        </Box>
-
-        {/* Pickup Tab Content */}
-        {activeTab === 0 && (
+            {activeTab === 0 && (
           <Stack spacing={2}>
             {hasPickupAddresses ? (
               <>
@@ -857,12 +912,12 @@ const StoreSelector = ({ open, onClose, forceStep, initialStore }) => {
                   : 'Validate & Confirm Delivery')}
             </Button>
           </Stack>
-        )}
-      </Dialog>
-    );
-  }
-
-  return null;
+            )}
+          </Box>
+        </Box>
+      )}
+    </Dialog>
+  );
 };
 
 export default StoreSelector;

@@ -1,14 +1,31 @@
 import React from 'react';
 import { Box, Typography } from '@mui/material';
-import { Store as StoreIcon } from '@mui/icons-material';
 
-const StoreSelectorTitle = () => {
+const StoreSelectorTitle = ({ subtitle }) => {
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-      <StoreIcon />
-      <Typography variant="h5" fontWeight={600}>
-        Select a Store
+    <Box>
+      <Typography
+        sx={{
+          fontWeight: 600,
+          fontSize: '1.1rem',
+          color: 'text.primary',
+          lineHeight: 1.3,
+        }}
+      >
+        Select a store
       </Typography>
+      {subtitle && (
+        <Typography
+          sx={{
+            mt: 0.5,
+            fontSize: '0.82rem',
+            color: 'text.secondary',
+            lineHeight: 1.35,
+          }}
+        >
+          {subtitle}
+        </Typography>
+      )}
     </Box>
   );
 };

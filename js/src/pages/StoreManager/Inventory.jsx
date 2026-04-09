@@ -38,7 +38,9 @@ import {
   Stack,
   FormControlLabel,
   Switch,
+  Autocomplete,
 } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
 import {
   Edit,
   KeyboardArrowDown,
@@ -51,6 +53,21 @@ import fetchGraphQL from '@/config/graphql/graphqlService';
 import { useAuthStore } from '@/store/useStore';
 import { fetchUserAttributes } from 'aws-amplify/auth';
 import Layout from '@/components/StoreManager/Layout';
+
+// Categories that support meat-cut assignment (case-insensitive substring match).
+// Store managers can only pick from existing meat cuts created by the main admin.
+const MEAT_CUT_CATEGORIES = ['meat', 'poultry', 'seafood', 'fish'];
+
+const categorySupportsMeatCuts = (categoryName) => {
+  if (!categoryName) return false;
+  const name = categoryName.toLowerCase();
+  return MEAT_CUT_CATEGORIES.some((c) => name.includes(c));
+};
+
+const extractCutTypes = (item) => {
+  if (!Array.isArray(item?.cutTypes)) return [];
+  return item.cutTypes.filter(Boolean);
+};
 
 // GraphQL Queries and Mutations
 const GET_USER_PROFILE = `
@@ -86,6 +103,11 @@ const GET_STORE_WITH_INVENTORY = `
               isAvailable
               isListed
               updatedAt
+              cutTypes {
+                id
+                label
+                text
+              }
               product {
                 id
                 name
@@ -112,6 +134,16 @@ const GET_STORE_WITH_INVENTORY = `
   }
 `;
 
+const GET_MEAT_CUTS = `
+  query GetMeatCuts {
+    meatCuts {
+      id
+      label
+      text
+    }
+  }
+`;
+
 const UPDATE_INVENTORY_ITEM = `
   mutation UpdateInventoryItem(
     $inventoryId: Int!
@@ -119,6 +151,7 @@ const UPDATE_INVENTORY_ITEM = `
     $quantity: Int!
     $isAvailable: Boolean
     $isListed: Boolean
+    $meatCutIds: [Int!]
   ) {
     updateInventoryItem(
       inventoryId: $inventoryId
@@ -126,6 +159,7 @@ const UPDATE_INVENTORY_ITEM = `
       quantity: $quantity
       isAvailable: $isAvailable
       isListed: $isListed
+      meatCutIds: $meatCutIds
     ) {
       id
       price
@@ -133,6 +167,11 @@ const UPDATE_INVENTORY_ITEM = `
       isAvailable
       isListed
       updatedAt
+      cutTypes {
+        id
+        label
+        text
+      }
     }
   }
 `;
@@ -147,6 +186,7 @@ const ADD_PRODUCT_TO_INVENTORY = `
     $quantity: Int!
     $measurement: Int
     $unit: String
+    $meatCutIds: [Int!]
   ) {
     addProductToInventory(
       productId: $productId
@@ -155,6 +195,7 @@ const ADD_PRODUCT_TO_INVENTORY = `
       quantity: $quantity
       measurement: $measurement
       unit: $unit
+      meatCutIds: $meatCutIds
     ) {
       id
       measurement
@@ -164,6 +205,11 @@ const ADD_PRODUCT_TO_INVENTORY = `
       storeId
       unit
       updatedAt
+      cutTypes {
+        id
+        label
+        text
+      }
       product {
         id
         name
@@ -179,12 +225,17 @@ const ADD_PRODUCT_TO_INVENTORY = `
 `;
 
 
-const EditDialog = React.memo(({ open, onClose, selectedItem, onUpdate, isLoading }) => {
+const EditDialog = React.memo(
+  ({ open, onClose, selectedItem, onUpdate, isLoading, meatCuts, isLoadingMeatCuts }) => {
+  const theme = useTheme();
   const [price, setPrice] = React.useState('');
   const [quantity, setQuantity] = React.useState('');
   const [isAvailable, setIsAvailable] = React.useState(true);
   const [isListed, setIsListed] = React.useState(true);
+  const [selectedMeatCuts, setSelectedMeatCuts] = React.useState([]);
   const [error, setError] = React.useState('');
+
+  const supportsMeatCuts = categorySupportsMeatCuts(selectedItem?.product?.category?.name);
 
   React.useEffect(() => {
     if (selectedItem) {
@@ -192,6 +243,7 @@ const EditDialog = React.memo(({ open, onClose, selectedItem, onUpdate, isLoadin
       setQuantity(selectedItem.quantity ? selectedItem.quantity.toString() : '');
       setIsAvailable(selectedItem.isAvailable !== undefined ? selectedItem.isAvailable : true);
       setIsListed(selectedItem.isListed !== undefined ? selectedItem.isListed : true);
+      setSelectedMeatCuts(extractCutTypes(selectedItem));
     }
   }, [selectedItem]);
 
@@ -208,13 +260,17 @@ const EditDialog = React.memo(({ open, onClose, selectedItem, onUpdate, isLoadin
     }
 
     setError('');
-    onUpdate({
+    const payload = {
       inventoryId: selectedItem.id,
       price,
       quantity,
       isAvailable,
       isListed,
-    });
+    };
+    if (supportsMeatCuts) {
+      payload.meatCutIds = selectedMeatCuts.map((mc) => parseInt(mc.id, 10));
+    }
+    onUpdate(payload);
   };
 
   const inputStyles = {
@@ -226,7 +282,7 @@ const EditDialog = React.memo(({ open, onClose, selectedItem, onUpdate, isLoadin
     marginBottom: '16px',
     outline: 'none',
     '&:focus': {
-      borderColor: '#1976d2',
+      borderColor: theme.palette.info.main,
       borderWidth: '2px',
     },
   };
@@ -317,6 +373,28 @@ const EditDialog = React.memo(({ open, onClose, selectedItem, onUpdate, isLoadin
                   label="Listed (Visible to Customers)"
                 />
               </Box>
+
+              {supportsMeatCuts && (
+                <Box sx={{ mt: 3 }}>
+                  <Autocomplete
+                    multiple
+                    options={meatCuts || []}
+                    loading={isLoadingMeatCuts}
+                    value={selectedMeatCuts}
+                    onChange={(_, value) => setSelectedMeatCuts(value)}
+                    getOptionLabel={(option) => option.label || ''}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label="Meat Cuts"
+                        placeholder="Assign cut types"
+                        helperText="Leave empty for no specific cuts. You may select one or multiple."
+                      />
+                    )}
+                  />
+                </Box>
+              )}
             </Box>
           </>
         )}
@@ -348,10 +426,22 @@ const EditDialog = React.memo(({ open, onClose, selectedItem, onUpdate, isLoadin
       </DialogActions>
     </Dialog>
   );
-});
+  }
+);
 
 const AddProductDialogNew = React.memo(
-  ({ open, onClose, storeId, availableProducts, onAdd, isLoading, errorMessage }) => {
+  ({
+    open,
+    onClose,
+    storeId,
+    availableProducts,
+    onAdd,
+    isLoading,
+    errorMessage,
+    meatCuts,
+    isLoadingMeatCuts,
+  }) => {
+    const theme = useTheme();
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [formState, setFormState] = useState({
       price: '',
@@ -360,8 +450,13 @@ const AddProductDialogNew = React.memo(
       unit: '',
       searchInput: '',
     });
+    const [selectedMeatCuts, setSelectedMeatCuts] = useState([]);
     const [dropdownOpen, setDropdownOpen] = useState(false);
     const anchorRef = useRef(null);
+
+    const supportsMeatCuts = categorySupportsMeatCuts(
+      selectedProduct?.category?.name
+    );
 
     const handleInputChange = (e) => {
       const { name, value } = e.target;
@@ -383,6 +478,9 @@ const AddProductDialogNew = React.memo(
         ...prev,
         searchInput: product.name,
       }));
+      // Clear meat cut selection when the product changes — user can
+      // reassign if the new product still supports meat cuts.
+      setSelectedMeatCuts([]);
       setDropdownOpen(false);
     };
 
@@ -398,14 +496,18 @@ const AddProductDialogNew = React.memo(
     const handleAdd = () => {
       if (!selectedProduct) return;
 
-      onAdd({
+      const payload = {
         storeId,
         productId: selectedProduct.id,
         price: formState.price,
         quantity: formState.quantity,
         measurement: formState.measurement || null,
         unit: formState.unit || null,
-      });
+      };
+      if (supportsMeatCuts) {
+        payload.meatCutIds = selectedMeatCuts.map((mc) => parseInt(mc.id, 10));
+      }
+      onAdd(payload);
     };
 
     const resetForm = () => {
@@ -417,6 +519,7 @@ const AddProductDialogNew = React.memo(
         unit: '',
         searchInput: '',
       });
+      setSelectedMeatCuts([]);
     };
 
     React.useEffect(() => {
@@ -488,7 +591,7 @@ const AddProductDialogNew = React.memo(
                   position: 'absolute',
                   width: anchorRef.current?.offsetWidth,
                   zIndex: 1300,
-                  backgroundColor: '#fff',
+                  backgroundColor: theme.palette.background.paper,
                   border: '1px solid rgba(0, 0, 0, 0.23)',
                   borderRadius: '4px',
                   maxHeight: '300px',
@@ -589,6 +692,28 @@ const AddProductDialogNew = React.memo(
               <option value="5">Pieces (pcs)</option>
             </select>
           </Box>
+
+          {supportsMeatCuts && (
+            <Box sx={{ mt: 2 }}>
+              <Autocomplete
+                multiple
+                options={meatCuts || []}
+                loading={isLoadingMeatCuts}
+                value={selectedMeatCuts}
+                onChange={(_, value) => setSelectedMeatCuts(value)}
+                getOptionLabel={(option) => option.label || ''}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    label="Meat Cuts"
+                    placeholder="Assign cut types"
+                    helperText="Leave empty for no specific cuts. You may select one or multiple."
+                  />
+                )}
+              />
+            </Box>
+          )}
 
           {errorMessage && (
             <Alert severity="error" sx={{ mt: 2 }}>
@@ -694,6 +819,16 @@ const Inventory = () => {
     }
   }, [storeData]);
 
+  // Fetch meat cuts (read-only for store managers) when either dialog is open
+  const { data: meatCutsData = [], isLoading: isLoadingMeatCuts } = useQuery({
+    queryKey: ['meatCuts'],
+    queryFn: async () => {
+      const response = await fetchGraphQL(GET_MEAT_CUTS);
+      return response?.meatCuts || [];
+    },
+    enabled: addModalOpen || editModalOpen,
+  });
+
   // Extract store, inventory, and products from the combined query response
   const store = storeData?.storesByManager && storeData.storesByManager[0];
   const inventoryItems = store?.inventory?.edges?.map((edge) => edge.node) || [];
@@ -738,13 +873,14 @@ const Inventory = () => {
 
   // Mutation for updating inventory
   const updateMutation = useMutation({
-    mutationFn: ({ inventoryId, price, quantity, isAvailable, isListed }) => {
+    mutationFn: ({ inventoryId, price, quantity, isAvailable, isListed, meatCutIds }) => {
       return fetchGraphQL(UPDATE_INVENTORY_ITEM, {
         inventoryId,
         price: parseFloat(price),
         quantity: parseInt(quantity, 10),
         isAvailable: isAvailable !== undefined ? isAvailable : null,
         isListed: isListed !== undefined ? isListed : null,
+        meatCutIds: meatCutIds !== undefined ? meatCutIds : null,
       });
     },
     onSuccess: () => {
@@ -763,7 +899,7 @@ const Inventory = () => {
 
   // Mutation for adding product to inventory
   const addMutation = useMutation({
-    mutationFn: ({ storeId, productId, price, quantity, measurement, unit }) => {
+    mutationFn: ({ storeId, productId, price, quantity, measurement, unit, meatCutIds }) => {
       return fetchGraphQL(ADD_PRODUCT_TO_INVENTORY, {
         storeId: parseInt(storeId, 10),
         productId: parseInt(productId, 10),
@@ -771,6 +907,7 @@ const Inventory = () => {
         quantity: parseInt(quantity, 10),
         measurement: measurement ? parseInt(measurement, 10) : null,
         unit: unit || null,
+        meatCutIds: meatCutIds !== undefined ? meatCutIds : null,
       });
     },
     onSuccess: () => {
@@ -1142,6 +1279,8 @@ const Inventory = () => {
           selectedItem={selectedItem}
           onUpdate={(data) => updateMutation.mutate(data)}
           isLoading={updateMutation.isPending}
+          meatCuts={meatCutsData}
+          isLoadingMeatCuts={isLoadingMeatCuts}
         />
 
 
@@ -1154,6 +1293,8 @@ const Inventory = () => {
           onAdd={addMutation.mutate}
           isLoading={addMutation.isPending}
           errorMessage={errorMessage}
+          meatCuts={meatCutsData}
+          isLoadingMeatCuts={isLoadingMeatCuts}
         />
       </>
     </Layout>

@@ -7,9 +7,9 @@ const InputForm = ({ fields, onSubmit, buttonLabel, loading, error, success }) =
   const getIconForField = (type) => {
     switch (type) {
       case 'email':
-        return <AccountCircleIcon sx={{ color: '#FF6B6B' }} />;
+        return <AccountCircleIcon sx={{ color: 'primary.main' }} />;
       case 'password':
-        return <LockIcon sx={{ color: '#FF6B6B' }} />;
+        return <LockIcon sx={{ color: 'primary.main' }} />;
       default:
         return null;
     }
@@ -54,7 +54,7 @@ const InputForm = ({ fields, onSubmit, buttonLabel, loading, error, success }) =
         disabled={loading}
         sx={{ mt: 2 }}
       >
-        {loading ? <LoadingSpinner size={24} sx={{ color: '#fff' }} /> : buttonLabel}
+        {loading ? <LoadingSpinner size={24} sx={{ color: 'primary.contrastText' }} /> : buttonLabel}
       </Button>
     </form>
   );

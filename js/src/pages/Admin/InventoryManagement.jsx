@@ -33,6 +33,7 @@ import {
   Popper,
   ClickAwayListener,
   MenuList,
+  Autocomplete,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -51,7 +52,24 @@ import {
   UPDATE_INVENTORY_ITEM,
   GET_PRODUCTS,
   ADD_PRODUCT_TO_INVENTORY,
+  GET_MEAT_CUTS,
 } from '@/queries/operations';
+
+// Categories that support meat-cut assignment. Match is case-insensitive
+// and also matches a category name that contains any of these tokens
+// (e.g. "Fresh Seafood" → seafood).
+const MEAT_CUT_CATEGORIES = ['meat', 'poultry', 'seafood', 'fish'];
+
+const categorySupportsMeatCuts = (categoryName) => {
+  if (!categoryName) return false;
+  const name = categoryName.toLowerCase();
+  return MEAT_CUT_CATEGORIES.some((c) => name.includes(c));
+};
+
+const extractCutTypes = (item) => {
+  if (!Array.isArray(item?.cutTypes)) return [];
+  return item.cutTypes.filter(Boolean);
+};
 
 const InventoryManagement = () => {
   const [page, setPage] = useState(0);
@@ -79,6 +97,9 @@ const InventoryManagement = () => {
     measurement: '',
     unit: '',
   });
+  // Meat cut selections for add/edit dialogs
+  const [editMeatCuts, setEditMeatCuts] = useState([]);
+  const [addMeatCuts, setAddMeatCuts] = useState([]);
   const anchorRef = useRef(null);
 
   // Fetch all stores
@@ -106,6 +127,16 @@ const InventoryManagement = () => {
     enabled: addModalOpen, // Only fetch when the add modal is open
   });
 
+  // Fetch all meat cuts (shared by add/edit dialogs)
+  const { data: meatCutsData = [], isLoading: isLoadingMeatCuts } = useQuery({
+    queryKey: ['meatCuts'],
+    queryFn: async () => {
+      const response = await fetchGraphQL(GET_MEAT_CUTS);
+      return response?.meatCuts || [];
+    },
+    enabled: addModalOpen || editModalOpen,
+  });
+
   // Fetch inventory for selected store
   const {
     data: inventoryData,
@@ -128,21 +159,14 @@ const InventoryManagement = () => {
   // Update inventory item mutation
   const updateInventoryMutation = useMutation({
     mutationFn: (variables) => fetchGraphQL(UPDATE_INVENTORY_ITEM, variables),
-    onSuccess: (data, variables) => {
-      // Update the inventory item in-place in the inventory list
-      if (inventoryData) {
-        inventoryData.forEach((item) => {
-          if (item.id === variables.inventoryId) {
-            Object.assign(item, variables);
-          }
-        });
-      }
+    onSuccess: () => {
       setSnackbar({
         open: true,
         message: 'Inventory item updated successfully',
         severity: 'success',
       });
       setEditModalOpen(false);
+      refetchInventory();
     },
     onError: (error) => {
       setSnackbar({
@@ -200,6 +224,7 @@ const InventoryManagement = () => {
     setNewPrice(item.price.toString());
     setIsAvailable(item.isAvailable);
     setIsListed(item.isListed);
+    setEditMeatCuts(extractCutTypes(item));
     setEditModalOpen(true);
   };
 
@@ -208,13 +233,20 @@ const InventoryManagement = () => {
   const handleUpdateConfirm = () => {
     if (!selectedItem) return;
 
-    updateInventoryMutation.mutate({
+    const variables = {
       inventoryId: selectedItem.id,
       price: parseFloat(newPrice),
       quantity: parseInt(newQuantity),
       isAvailable,
       isListed,
-    });
+    };
+
+    // Only send meatCutIds for categories that support them.
+    if (categorySupportsMeatCuts(selectedItem.product?.category?.name)) {
+      variables.meatCutIds = editMeatCuts.map((mc) => parseInt(mc.id));
+    }
+
+    updateInventoryMutation.mutate(variables);
   };
 
 
@@ -250,6 +282,7 @@ const InventoryManagement = () => {
       measurement: '',
       unit: '',
     });
+    setAddMeatCuts([]);
   };
 
   const handleProductSearchChange = (event) => {
@@ -261,6 +294,9 @@ const InventoryManagement = () => {
     setSelectedProduct(product);
     setProductSearchInput(product.name);
     setDropdownOpen(false);
+    // Clear meat cuts when switching products — user can reassign
+    // if the new product's category still supports them.
+    setAddMeatCuts([]);
   };
 
   const handleClickAway = () => {
@@ -294,14 +330,30 @@ const InventoryManagement = () => {
       return;
     }
 
-    addProductMutation.mutate({
+    const variables = {
       productId: selectedProduct.id,
       storeId: parseInt(selectedStore),
       price: parseFloat(addProductForm.price),
       quantity: parseInt(addProductForm.quantity),
       measurement: addProductForm.measurement ? parseInt(addProductForm.measurement) : null,
       unit: addProductForm.unit || '',
-    });
+    };
+
+    // Only send meatCutIds for categories that support them.
+    if (categorySupportsMeatCuts(getSelectedProductCategoryName())) {
+      variables.meatCutIds = addMeatCuts.map((mc) => parseInt(mc.id));
+    }
+
+    addProductMutation.mutate(variables);
+  };
+
+  // Resolve the selected product's category name. Product search results only
+  // carry categoryId, so fall back to the products list when available.
+  const getSelectedProductCategoryName = () => {
+    if (!selectedProduct) return null;
+    if (selectedProduct.category?.name) return selectedProduct.category.name;
+    const full = productsData?.find((p) => p.id === selectedProduct.id);
+    return full?.category?.name || null;
   };
 
   const getFilteredData = () => {
@@ -664,6 +716,27 @@ const InventoryManagement = () => {
                   <MenuItem value={false}>Not Listed</MenuItem>
                 </Select>
               </FormControl>
+
+              {categorySupportsMeatCuts(selectedItem.product?.category?.name) && (
+                <Autocomplete
+                  multiple
+                  options={meatCutsData}
+                  loading={isLoadingMeatCuts}
+                  value={editMeatCuts}
+                  onChange={(_, value) => setEditMeatCuts(value)}
+                  getOptionLabel={(option) => option.label || ''}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Meat Cuts"
+                      placeholder="Assign cut types"
+                      helperText="Leave empty for no specific cuts. You may select one or multiple."
+                    />
+                  )}
+                  sx={{ mb: 2 }}
+                />
+              )}
             </Box>
           )}
         </DialogContent>
@@ -824,6 +897,28 @@ const InventoryManagement = () => {
                   placeholder="e.g., kg, g, L, ml"
                 />
               </Grid>
+              {selectedProduct &&
+                categorySupportsMeatCuts(getSelectedProductCategoryName()) && (
+                  <Grid item xs={12}>
+                    <Autocomplete
+                      multiple
+                      options={meatCutsData}
+                      loading={isLoadingMeatCuts}
+                      value={addMeatCuts}
+                      onChange={(_, value) => setAddMeatCuts(value)}
+                      getOptionLabel={(option) => option.label || ''}
+                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label="Meat Cuts"
+                          placeholder="Assign cut types"
+                          helperText="Leave empty for no specific cuts. You may select one or multiple."
+                        />
+                      )}
+                    />
+                  </Grid>
+                )}
             </Grid>
           </Box>
         </DialogContent>

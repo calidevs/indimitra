@@ -149,7 +149,7 @@ const StoreImageSlider = ({
           sx={{
             flexShrink: 0,
             bgcolor: 'rgba(255,255,255,0.2)',
-            color: '#fff',
+            color: 'common.white',
             backdropFilter: 'blur(8px)',
             border: '1px solid rgba(255,255,255,0.3)',
             borderRadius: 2,
@@ -206,7 +206,8 @@ const StoreImageSlider = ({
           mb: { xs: 2, sm: 3 },
           borderRadius: 3,
           overflow: 'hidden',
-          background: 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)',
+          background: (theme) =>
+            `linear-gradient(135deg, ${theme.palette.grey[50]} 0%, ${theme.palette.grey[300]} 100%)`,
         }}
       >
         {/* Centered placeholder when no overlay info */}
@@ -274,7 +275,7 @@ const StoreImageSlider = ({
                 sx={{
                   flexShrink: 0,
                   bgcolor: 'rgba(255,255,255,0.2)',
-                  color: '#fff',
+                  color: 'common.white',
                   backdropFilter: 'blur(8px)',
                   border: '1px solid rgba(255,255,255,0.3)',
                   borderRadius: 2,
@@ -419,11 +420,11 @@ const StoreImageSlider = ({
                   width: currentIndex === index ? 16 : 6,
                   height: 6,
                   borderRadius: 3,
-                  backgroundColor: currentIndex === index ? '#fff' : 'rgba(255, 255, 255, 0.5)',
+                  backgroundColor: currentIndex === index ? 'common.white' : 'rgba(255, 255, 255, 0.5)',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease',
                   '&:hover': {
-                    backgroundColor: currentIndex === index ? '#fff' : 'rgba(255, 255, 255, 0.75)',
+                    backgroundColor: currentIndex === index ? 'common.white' : 'rgba(255, 255, 255, 0.75)',
                   },
                 }}
               />

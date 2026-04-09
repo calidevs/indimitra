@@ -517,11 +517,38 @@ const Orders = () => {
                     </TableHead>
                     <TableBody>
                       {selectedOrder.orderItems?.edges?.map(({ node: item }) => (
-                        <TableRow key={item.id}>
-                          <TableCell>{item.product?.name || 'N/A'}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>{formatCurrency(item.orderAmount)}</TableCell>
-                        </TableRow>
+                        <React.Fragment key={item.id}>
+                          <TableRow>
+                            <TableCell>{item.product?.name || 'N/A'}</TableCell>
+                            <TableCell>{item.quantity}</TableCell>
+                            <TableCell>{formatCurrency(item.orderAmount)}</TableCell>
+                          </TableRow>
+                          {(item.instructions || item.allowSubstitute !== null) && (
+                            <TableRow>
+                              <TableCell colSpan={3} sx={{ py: 1, borderBottom: 'none' }}>
+                                <Box sx={{ pl: 2, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                                  {item.instructions && (
+                                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                      <strong>Instructions:</strong> <em>{item.instructions}</em>
+                                    </Typography>
+                                  )}
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      color: item.allowSubstitute ? 'warning.dark' : 'error.main',
+                                      fontWeight: 500,
+                                    }}
+                                  >
+                                    <strong>If unavailable:</strong>{' '}
+                                    {item.allowSubstitute
+                                      ? 'Replace with a similar item'
+                                      : 'Cancel this item'}
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                            </TableRow>
+                          )}
+                        </React.Fragment>
                       ))}
                     </TableBody>
                   </Table>

@@ -119,7 +119,8 @@ const PaymentModal = ({
     // Prepare order items in GraphQL format
     const productItems = orderItems.map(item => ({
       productId: item.productId,
-      quantity: item.quantity
+      quantity: item.quantity,
+      meatCutId: item.meatCutId ?? null,
     }));
 
     // Validate required fields
@@ -196,8 +197,8 @@ const PaymentModal = ({
       <DialogTitle
         sx={{
           textAlign: 'center',
-          background: (theme) => theme.palette.custom?.gradientPrimary || 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
+          background: (theme) => theme.palette.custom.gradientPrimary,
+          color: 'common.white',
           py: 2.5,
           mb: 2,
           position: 'relative',

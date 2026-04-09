@@ -23,9 +23,9 @@ const WhatsAppButton = () => {
         bottom: 20,
         right: 20,
         zIndex: 1000,
-        backgroundColor: '#25D366',
+        backgroundColor: (theme) => theme.palette.custom.whatsapp.main,
         '&:hover': {
-          backgroundColor: '#128C7E',
+          backgroundColor: (theme) => theme.palette.custom.whatsapp.dark,
         },
       }}
     >
