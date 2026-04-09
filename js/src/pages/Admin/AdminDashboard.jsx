@@ -29,6 +29,7 @@ import {
   Category as CategoryIcon,
   LocationOn as LocationIcon,
   LocalShipping as PickupIcon,
+  Restaurant as RestaurantIcon,
 } from '@mui/icons-material';
 import Header from '@/components/layout/Header';
 import { signOut } from 'aws-amplify/auth';
@@ -46,6 +47,7 @@ import CategoryManagement from './CategoryManagement';
 import FeesManagement from './FeesManagement';
 import StoreLocationCodeManagement from './StoreLocationCodeManagement';
 import PickupAddressManagement from './PickupAddressManagement';
+import MeatCutManagement from './MeatCutManagement';
 
 const DRAWER_WIDTH = 240;
 const COLLAPSED_DRAWER_WIDTH = 65;
@@ -59,6 +61,7 @@ const menuItems = [
   { text: 'Users', icon: <PeopleIcon />, path: '/admin/users' },
   { text: 'Payment Settings', icon: <PaymentIcon />, path: '/admin/payment-settings' },
   { text: 'Categories', icon: <CategoryIcon />, path: '/admin/categories' },
+  { text: 'Meat Cuts', icon: <RestaurantIcon />, path: '/admin/meat-cuts' },
   { text: 'Fees Management', icon: <PaymentIcon />, path: '/admin/fees' },
   { text: 'Location Codes', icon: <LocationIcon />, path: '/admin/location-codes' },
   { text: 'Pickup Addresses', icon: <PickupIcon />, path: '/admin/pickup-addresses' },
@@ -244,6 +247,7 @@ const AdminDashboard = () => {
           <Route path="orders" element={<Orders />} />
           <Route path="payment-settings" element={<PaymentSettings />} />
           <Route path="categories" element={<CategoryManagement />} />
+          <Route path="meat-cuts" element={<MeatCutManagement />} />
           <Route path="fees" element={<FeesManagement />} />
           <Route path="location-codes" element={<StoreLocationCodeManagement />} />
           <Route path="pickup-addresses" element={<PickupAddressManagement />} />

@@ -33,12 +33,16 @@ class InventoryMutation:
         price: Optional[float] = None,
         quantity: Optional[int] = None,
         measurement: Optional[int] = None,
-        unit: Optional[str] = None
+        unit: Optional[str] = None,
+        meat_cut_ids: Optional[List[int]] = None
     ) -> Inventory:
         """Add a product to a store's inventory with store-specific pricing"""
-        return add_product_to_inventory(
-            store_id, product_id, price, quantity, measurement, unit
-        )
+        try:
+            return add_product_to_inventory(
+                store_id, product_id, price, quantity, measurement, unit, meat_cut_ids
+            )
+        except ValueError as e:
+            raise Exception(str(e))
     
     @strawberry.mutation
     def update_inventory_quantity(
@@ -76,7 +80,8 @@ class InventoryMutation:
         price: Optional[float] = None,
         quantity: Optional[int] = None,
         is_listed: Optional[bool] = None,
-        is_available: Optional[bool] = None
+        is_available: Optional[bool] = None,
+        meat_cut_ids: Optional[List[int]] = None
     ) -> Optional[Inventory]:
         """Update an inventory item"""
         try:
@@ -85,10 +90,11 @@ class InventoryMutation:
                 price,
                 quantity,
                 is_listed,
-                is_available
+                is_available,
+                meat_cut_ids
             )
             if not inventory:
                 raise Exception(f"Inventory item with ID {inventory_id} not found")
             return inventory
         except ValueError as e:
-            raise Exception(str(e)) 
+            raise Exception(str(e))

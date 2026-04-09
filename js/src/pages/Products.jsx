@@ -97,7 +97,7 @@ const Products = () => {
           unit: item.unit,
           isAvailable: item.isAvailable,
           isListed: item.isListed,
-          cutTypes: item.cutTypes?.edges?.map((e) => e.node) || [],
+          cutTypes: Array.isArray(item.cutTypes) ? item.cutTypes : [],
         };
       }) || []
     );

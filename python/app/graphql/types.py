@@ -1,8 +1,9 @@
 import strawberry
 from strawberry_sqlalchemy_mapper import StrawberrySQLAlchemyMapper
 from app.db import models
-from typing import Optional
+from typing import List, Optional
 from datetime import datetime
+from sqlalchemy import inspect as sa_inspect
 from app.db.models.order import OrderStatus
 from app.db.models.fees import FeeType
 from strawberry.scalars import JSON
@@ -10,7 +11,38 @@ from app.db.custom_types.encrypted import EncryptedType
 from sqlalchemy.sql.sqltypes import LargeBinary
 
 # Create a single mapper instance.
-mapper = StrawberrySQLAlchemyMapper()
+#
+# We register every mapped strawberry type below under a stripped name (e.g.
+# `class MeatCut` for `MeatCutModel`). The auto-mapper, however, looks types up
+# by `model.__name__` (`"MeatCutModel"`), so without an override it would fail
+# to find our hand-mapped types, then silently auto-generate duplicates like
+# `MeatCutModelConnection` that bypass our overrides.
+#
+# This map must contain every model that has a `@mapper.type(...)` declaration
+# below. Models NOT in this list (e.g. `PickupAddressModel`, `FeesModel`,
+# `PaymentModel`) keep their original `*Model` names so they don't collide
+# with the hand-written `@strawberry.type` classes that already exist for them.
+_MAPPED_MODEL_TYPE_NAMES = {
+    "UserModel": "User",
+    "ProductModel": "Product",
+    "CategoryModel": "Category",
+    "OrderModel": "Order",
+    "DeliveryModel": "Delivery",
+    "OrderItemModel": "OrderItem",
+    "AddressModel": "Address",
+    "MeatCutModel": "MeatCut",
+    "InventoryModel": "Inventory",
+    "StoreModel": "Store",
+    "StoreDriverModel": "StoreDriver",
+    "StoreLocationCodeModel": "StoreLocationCode",
+}
+
+
+def _model_to_type_name(model):
+    return _MAPPED_MODEL_TYPE_NAMES.get(model.__name__, model.__name__)
+
+
+mapper = StrawberrySQLAlchemyMapper(model_to_type_name=_model_to_type_name)
 
 # Register EncryptedType to be skipped by the mapper
 # These columns contain sensitive data and should never be exposed via GraphQL
@@ -80,7 +112,41 @@ class MeatCut:
 
 @mapper.type(models.InventoryModel)
 class Inventory:
-    pass
+    # Exclude `cut_types` from the auto-generated mapping. The strawberry-sqlalchemy-mapper
+    # dataloader has a known bug with many-to-many relationships through a secondary
+    # table: it tries to read the secondary column (e.g. `inventory_id`) directly off
+    # the related model, raising "'MeatCutModel' object has no attribute 'inventory_id'".
+    # We provide our own resolver below that returns a flat list of MeatCut.
+    __exclude__ = ("cut_types",)
+
+    @strawberry.field
+    def cut_types(self) -> List["MeatCut"]:
+        # If the relationship is already eager-loaded (e.g. via selectinload in the
+        # service layer), return the cached collection without an extra query.
+        try:
+            state = sa_inspect(self)
+            if "cut_types" not in state.unloaded:
+                return list(getattr(self, "cut_types", []) or [])
+        except Exception:
+            pass
+
+        # Fallback: load directly from the join table.
+        from app.db.session import SessionLocal
+        from app.db.models.meat_cut import MeatCutModel, inventory_meat_cuts
+
+        db = SessionLocal()
+        try:
+            return (
+                db.query(MeatCutModel)
+                .join(
+                    inventory_meat_cuts,
+                    MeatCutModel.id == inventory_meat_cuts.c.meat_cut_id,
+                )
+                .filter(inventory_meat_cuts.c.inventory_id == self.id)
+                .all()
+            )
+        finally:
+            db.close()
 
 @mapper.type(models.StoreModel)
 class Store:
