@@ -131,5 +131,40 @@
     "description": "Coriander seeds for fresh aroma",
     "category": "Spices & Masalas",
     "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/051179317901.jpg"
+  },
+  {
+    "name": "Fresh Chicken Curry Cut",
+    "price": 6.99,
+    "description": "Farm-fresh chicken, curry cut with bone",
+    "category": "Meat",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/chicken-curry-cut.jpg"
+  },
+  {
+    "name": "Boneless Chicken Breast",
+    "price": 8.99,
+    "description": "Lean boneless chicken breast, skinless",
+    "category": "Meat",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/chicken-boneless.jpg"
+  },
+  {
+    "name": "Goat Curry Cut",
+    "price": 13.99,
+    "description": "Fresh goat meat, bone-in curry cut",
+    "category": "Meat",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/goat-curry-cut.jpg"
+  },
+  {
+    "name": "Fresh Tilapia Fish",
+    "price": 9.99,
+    "description": "Whole fresh tilapia fish, cleaned",
+    "category": "Seafood",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/fish-tilapia.jpg"
+  },
+  {
+    "name": "Fresh Prawns 1 LB",
+    "price": 11.99,
+    "description": "Fresh medium-sized deveined prawns",
+    "category": "Seafood",
+    "image": "https://s3.us-west-2.amazonaws.com/www.gethomesome.com/productimages_tn/prawns-fresh.jpg"
   }
 ]
