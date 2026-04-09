@@ -486,21 +486,21 @@ const StoreManagement = () => {
 
     setIsUploadingImage(true);
     try {
+      // Same-origin in prod (matches ProductManagement image upload); direct API on localhost
       const baseUrl = window.location.href?.includes('http://localhost')
         ? 'http://127.0.0.1:8000'
-        : 'https://indimitra.com';
-      
-      // Get authentication token
+        : window.location.origin;
+
       const session = await fetchAuthSession();
-      const token = session.tokens?.accessToken?.toString();
-      
-      const headers = {
-        'Content-Type': 'application/json',
-      };
-      
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
+      const token =
+        session?.tokens?.idToken?.toString?.() || session?.tokens?.accessToken?.toString?.();
+      if (!token) {
+        throw new Error('Not authenticated');
       }
+
+      const headers = {
+        Authorization: `Bearer ${token}`,
+      };
       
       // Get upload URL from backend - use 'new' for stores being created
       const storeIdParam = storeId ? storeId.toString() : 'new';
@@ -540,7 +540,7 @@ const StoreManagement = () => {
         throw new Error('Failed to upload image');
       }
 
-      const publicUrl = upload_url.split('?')[0];
+      const publicUrl = upload_url.split('?')[0] + `?t=${Date.now()}`;
 
       if (isEdit) {
         setEditStoreImages((prev) => [...prev, publicUrl]);
