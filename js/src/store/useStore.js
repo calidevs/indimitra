@@ -126,7 +126,42 @@ const useStore = create(
                 ...(existing || product),
                 selectedCut: product.selectedCut ?? existing?.selectedCut ?? null,
                 quantity: (existing?.quantity || 0) + 1,
+                // Per-item order metadata — preserved across quantity changes.
+                instructions: existing?.instructions ?? '',
+                allowSubstitute: existing?.allowSubstitute ?? false,
               },
+            },
+          };
+        }),
+
+      // Update the free-text instructions for a single cart line.
+      setCartItemInstructions: (keyOrItem, instructions) =>
+        set((state) => {
+          const key =
+            typeof keyOrItem === 'string' && keyOrItem.includes('::')
+              ? keyOrItem
+              : cartKeyFor(keyOrItem);
+          if (!state.cart[key]) return state;
+          return {
+            cart: {
+              ...state.cart,
+              [key]: { ...state.cart[key], instructions },
+            },
+          };
+        }),
+
+      // Toggle the "replace with similar item if unavailable" preference for a line.
+      setCartItemAllowSubstitute: (keyOrItem, allowSubstitute) =>
+        set((state) => {
+          const key =
+            typeof keyOrItem === 'string' && keyOrItem.includes('::')
+              ? keyOrItem
+              : cartKeyFor(keyOrItem);
+          if (!state.cart[key]) return state;
+          return {
+            cart: {
+              ...state.cart,
+              [key]: { ...state.cart[key], allowSubstitute: !!allowSubstitute },
             },
           };
         }),

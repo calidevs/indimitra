@@ -735,6 +735,42 @@ const Orders = () => {
                                               </Grid>
                                             </Grid>
 
+                                            {/* Per-item instructions & substitution preference */}
+                                            {(node.instructions || node.allowSubstitute !== null) && (
+                                              <Box
+                                                sx={{
+                                                  mt: 1.5,
+                                                  pt: 1.5,
+                                                  borderTop: '1px dashed',
+                                                  borderColor: 'divider',
+                                                  display: 'flex',
+                                                  flexDirection: 'column',
+                                                  gap: 0.5,
+                                                }}
+                                              >
+                                                {node.instructions && (
+                                                  <Typography
+                                                    variant="body2"
+                                                    sx={{
+                                                      color: 'text.secondary',
+                                                      fontStyle: 'italic',
+                                                    }}
+                                                  >
+                                                    <strong>Instructions:</strong> {node.instructions}
+                                                  </Typography>
+                                                )}
+                                                <Typography
+                                                  variant="body2"
+                                                  sx={{ color: 'text.secondary' }}
+                                                >
+                                                  <strong>If unavailable:</strong>{' '}
+                                                  {node.allowSubstitute
+                                                    ? 'Replace with a similar item'
+                                                    : 'Cancel this item'}
+                                                </Typography>
+                                              </Box>
+                                            )}
+
                                             {/* Edit History Section */}
                                             {itemHistory.length > 1 && (
                                               <Box

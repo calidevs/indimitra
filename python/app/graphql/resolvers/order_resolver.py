@@ -66,6 +66,8 @@ class OrderItemInput:
     productId: int
     quantity: int
     meatCutId: Optional[int] = None
+    instructions: Optional[str] = None
+    allowSubstitute: Optional[bool] = None
 
 
 # ✅ Input Type for Payment
@@ -153,6 +155,8 @@ class OrderMutation:
                     "product_id": item.productId,
                     "quantity": item.quantity,
                     "meat_cut_id": item.meatCutId,
+                    "instructions": item.instructions,
+                    "allow_substitute": item.allowSubstitute,
                 }
                 for item in productItems
             ]
@@ -251,6 +255,8 @@ class OrderMutation:
                     "product_id": item.productId,
                     "quantity": item.quantity,
                     "meat_cut_id": item.meatCutId,
+                    "instructions": item.instructions,
+                    "allow_substitute": item.allowSubstitute,
                 }
                 for item in productItems
             ]
@@ -409,6 +415,8 @@ class OrderMutation:
                     "product_id": item.productId,
                     "quantity": item.quantity,
                     "meat_cut_id": item.meatCutId,
+                    "instructions": item.instructions,
+                    "allow_substitute": item.allowSubstitute,
                 }
                 for item in productItems
             ]

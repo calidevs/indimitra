@@ -43,6 +43,7 @@ import {
   Store,
   Home,
   DeleteOutline,
+  InfoOutlined,
 } from '@mui/icons-material';
 import useStore, { useAuthStore, useAddressStore, cartKeyFor } from './../store/useStore';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -240,6 +241,8 @@ const CartPage = () => {
     setDeliveryType,
     tipAmount,
     setListInputAnswers,
+    setCartItemInstructions,
+    setCartItemAllowSubstitute,
   } = useStore();
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
   const [orderSuccessModalOpen, setOrderSuccessModalOpen] = useState(false);
@@ -560,6 +563,8 @@ const CartPage = () => {
       productId: item.id,
       quantity: item.quantity,
       meatCutId: item.selectedCut?.id ?? null,
+      instructions: item.instructions?.trim() ? item.instructions.trim() : null,
+      allowSubstitute: !!item.allowSubstitute,
     }));
 
     // Get the selected pickup address if pickup is selected
@@ -623,10 +628,12 @@ const CartPage = () => {
       setError('Please select either a pickup location or delivery address');
       return;
     }
-    const orderItems = Object.values(cart).map(item => ({
+    const orderItems = Object.values(cart).map((item) => ({
       productId: item.id,
       quantity: item.quantity,
       meatCutId: item.selectedCut?.id ?? null,
+      instructions: item.instructions?.trim() ? item.instructions.trim() : null,
+      allowSubstitute: !!item.allowSubstitute,
     }));
     createCodOrder({
       userId: userProfile.id,
@@ -855,20 +862,31 @@ const CartPage = () => {
                 </Box>
 
                 {/* Rows */}
-                {Object.values(cart).map((item, idx, arr) => (
+                {Object.values(cart).map((item, idx, arr) => {
+                  const itemKey = cartKeyFor(item);
+                  return (
                   <Box
-                    key={cartKeyFor(item)}
+                    key={itemKey}
                     sx={{
                       px: { xs: 2, sm: 3 },
                       py: { xs: 2, sm: 2.25 },
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: { xs: 1.5, sm: 2.5 },
+                      flexDirection: 'column',
+                      gap: 1.5,
                       borderBottom: idx < arr.length - 1 ? '1px solid' : 'none',
                       borderColor: 'divider',
                       transition: 'background-color 120ms ease',
                       '&:hover': { backgroundColor: 'action.hover' },
                       '&:hover .cart-row-delete': { opacity: 1 },
+                    }}
+                  >
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: { xs: 1.5, sm: 2.5 },
+                      flexWrap: { xs: 'wrap', sm: 'nowrap' },
+                      rowGap: { xs: 1.25, sm: 0 },
                     }}
                   >
                     {/* Thumbnail */}
@@ -889,7 +907,12 @@ const CartPage = () => {
                     />
 
                     {/* Name + variant + unit price */}
-                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Box
+                      sx={{
+                        flex: 1,
+                        minWidth: 0,
+                      }}
+                    >
                       <Typography
                         sx={{
                           fontWeight: 600,
@@ -937,90 +960,161 @@ const CartPage = () => {
                       </Box>
                     </Box>
 
-                    {/* Quantity pill */}
+                    {/* Controls: qty pill + total + delete. On mobile this
+                        block takes full width and drops to its own line below
+                        the thumbnail+name; on larger screens it sits inline. */}
                     <Box
                       sx={{
                         display: 'flex',
                         alignItems: 'center',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                        borderRadius: 9999,
-                        px: 0.25,
-                        height: 36,
-                        flexShrink: 0,
-                        backgroundColor: 'background.paper',
+                        gap: { xs: 1.5, sm: 2.5 },
+                        flex: { xs: '1 1 100%', sm: '0 0 auto' },
+                        justifyContent: { xs: 'space-between', sm: 'flex-end' },
+                        order: { xs: 3, sm: 'initial' },
                       }}
                     >
-                      <IconButton
-                        size="small"
-                        onClick={() => removeFromCart(item)}
+                      {/* Quantity pill */}
+                      <Box
                         sx={{
-                          width: 28,
-                          height: 28,
-                          color: 'text.secondary',
-                          '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
+                          display: 'flex',
+                          alignItems: 'center',
+                          border: '1px solid',
+                          borderColor: 'divider',
+                          borderRadius: 9999,
+                          px: 0.25,
+                          height: 36,
+                          flexShrink: 0,
+                          backgroundColor: 'background.paper',
                         }}
                       >
-                        <Remove sx={{ fontSize: 16 }} />
-                      </IconButton>
+                        <IconButton
+                          size="small"
+                          onClick={() => removeFromCart(item)}
+                          sx={{
+                            width: 28,
+                            height: 28,
+                            color: 'text.secondary',
+                            '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
+                          }}
+                        >
+                          <Remove sx={{ fontSize: 16 }} />
+                        </IconButton>
+                        <Typography
+                          sx={{
+                            minWidth: 24,
+                            textAlign: 'center',
+                            fontWeight: 600,
+                            fontSize: '0.9rem',
+                            color: 'text.primary',
+                            userSelect: 'none',
+                          }}
+                        >
+                          {item.quantity}
+                        </Typography>
+                        <IconButton
+                          size="small"
+                          onClick={() => addToCart(item)}
+                          sx={{
+                            width: 28,
+                            height: 28,
+                            color: 'text.secondary',
+                            '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
+                          }}
+                        >
+                          <Add sx={{ fontSize: 16 }} />
+                        </IconButton>
+                      </Box>
+
+                      {/* Line total */}
                       <Typography
                         sx={{
-                          minWidth: 24,
-                          textAlign: 'center',
-                          fontWeight: 600,
-                          fontSize: '0.9rem',
+                          fontWeight: 700,
+                          fontSize: { xs: '0.95rem', sm: '1rem' },
+                          minWidth: { xs: 'auto', sm: 80 },
+                          textAlign: 'right',
                           color: 'text.primary',
-                          userSelect: 'none',
+                          flexShrink: 0,
                         }}
                       >
-                        {item.quantity}
+                        ${(item.price * item.quantity).toFixed(2)}
                       </Typography>
-                      <IconButton
-                        size="small"
-                        onClick={() => addToCart(item)}
-                        sx={{
-                          width: 28,
-                          height: 28,
-                          color: 'text.secondary',
-                          '&:hover': { color: 'primary.main', backgroundColor: 'transparent' },
-                        }}
-                      >
-                        <Add sx={{ fontSize: 16 }} />
-                      </IconButton>
+
+                      {/* Delete (always visible on mobile, hover-revealed on desktop) */}
+                      <Tooltip title="Remove item">
+                        <IconButton
+                          className="cart-row-delete"
+                          size="small"
+                          onClick={() => deleteCartLine(item)}
+                          sx={{
+                            opacity: { xs: 1, sm: 0 },
+                            transition: 'opacity 120ms ease, color 120ms ease',
+                            color: 'text.disabled',
+                            '&:hover': { color: 'error.main', backgroundColor: 'transparent' },
+                          }}
+                        >
+                          <DeleteOutline sx={{ fontSize: 20 }} />
+                        </IconButton>
+                      </Tooltip>
                     </Box>
-
-                    {/* Line total */}
-                    <Typography
-                      sx={{
-                        fontWeight: 700,
-                        fontSize: { xs: '0.95rem', sm: '1rem' },
-                        minWidth: { xs: 64, sm: 80 },
-                        textAlign: 'right',
-                        color: 'text.primary',
-                        flexShrink: 0,
-                      }}
-                    >
-                      ${(item.price * item.quantity).toFixed(2)}
-                    </Typography>
-
-                    {/* Delete (hover-revealed) */}
-                    <Tooltip title="Remove item">
-                      <IconButton
-                        className="cart-row-delete"
-                        size="small"
-                        onClick={() => deleteCartLine(item)}
-                        sx={{
-                          opacity: { xs: 1, sm: 0 },
-                          transition: 'opacity 120ms ease, color 120ms ease',
-                          color: 'text.disabled',
-                          '&:hover': { color: 'error.main', backgroundColor: 'transparent' },
-                        }}
-                      >
-                        <DeleteOutline sx={{ fontSize: 20 }} />
-                      </IconButton>
-                    </Tooltip>
                   </Box>
-                ))}
+
+                  {/* Per-item instructions + substitution preference */}
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      flexDirection: { xs: 'column', sm: 'row' },
+                      alignItems: { xs: 'stretch', sm: 'flex-start' },
+                      gap: { xs: 1, sm: 2 },
+                      pl: { xs: 0, sm: 9 }, // align under the name column, past the thumbnail
+                    }}
+                  >
+                    <TextField
+                      size="small"
+                      fullWidth
+                      multiline
+                      maxRows={3}
+                      placeholder="Instructions for this item (optional)"
+                      value={item.instructions || ''}
+                      onChange={(e) => setCartItemInstructions(itemKey, e.target.value)}
+                      inputProps={{ maxLength: 500 }}
+                      sx={{ flex: 1 }}
+                    />
+                    <FormControlLabel
+                      sx={{
+                        m: 0,
+                        whiteSpace: 'nowrap',
+                        alignSelf: { xs: 'flex-start', sm: 'center' },
+                      }}
+                      control={
+                        <Checkbox
+                          size="small"
+                          checked={!!item.allowSubstitute}
+                          onChange={(e) =>
+                            setCartItemAllowSubstitute(itemKey, e.target.checked)
+                          }
+                        />
+                      }
+                      label={
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            Replace if unavailable
+                          </Typography>
+                          <Tooltip
+                            title="If checked, the store will replace this item with a similar product of a different brand when unavailable. If unchecked, the item will be cancelled."
+                            placement="top"
+                            arrow
+                          >
+                            <InfoOutlined
+                              sx={{ fontSize: 16, color: 'text.disabled', cursor: 'help' }}
+                            />
+                          </Tooltip>
+                        </Box>
+                      }
+                    />
+                  </Box>
+                  </Box>
+                  );
+                })}
 
                 {/* Custom Order Items */}
                 {customOrder && (

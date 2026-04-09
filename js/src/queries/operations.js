@@ -114,6 +114,8 @@ export const GET_USER_ORDERS = `
             orderAmount
             quantity
             updatedOrderitemsId
+            instructions
+            allowSubstitute
             product {
               id
               name
@@ -179,6 +181,8 @@ query GetAllOrders {
           }
           quantity
           orderAmount
+          instructions
+          allowSubstitute
         }
       }
     }
@@ -358,6 +362,8 @@ export const GET_ORDERS_BY_STORE = `
             productId
             quantity
             updatedOrderitemsId
+            instructions
+            allowSubstitute
             product {
               id
               name
