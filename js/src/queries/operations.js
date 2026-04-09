@@ -88,6 +88,7 @@ export const GET_USER_ORDERS = `
       cancelledByUserId
       createdByUserId
       customOrder
+      displayCode
       orderTotalAmount
       paymentId
       status
@@ -116,6 +117,11 @@ export const GET_USER_ORDERS = `
             updatedOrderitemsId
             instructions
             allowSubstitute
+            meatCut {
+              id
+              label
+              text
+            }
             product {
               id
               name
@@ -364,6 +370,11 @@ export const GET_ORDERS_BY_STORE = `
             updatedOrderitemsId
             instructions
             allowSubstitute
+            meatCut {
+              id
+              label
+              text
+            }
             product {
               id
               name

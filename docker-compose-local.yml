@@ -10,6 +10,7 @@ services:
       - /app/node_modules
     environment:
       - NODE_ENV=development
+      - WATCHPACK_POLLING=true
       - REACT_APP_SQUARE_APPLICATION_ID=${REACT_APP_SQUARE_APPLICATION_ID:-}
       - REACT_APP_SQUARE_LOCATION_ID=${REACT_APP_SQUARE_LOCATION_ID:-}
     depends_on:
